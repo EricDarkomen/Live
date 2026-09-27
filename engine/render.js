@@ -114,11 +114,44 @@ const R = {
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return h >>> 0;
   },
-  /* t > 0 towards white, t < 0 towards black. */
+  /* t > 0 towards white, t < 0 towards black. Remembered, because the wall
+     pass asks it for the same skirting board on every tile of every frame and
+     the answer was a fresh string each time. */
+  _shades: new Map(),
   shade(hex, t) {
+    const key = hex + t;
+    let out = this._shades.get(key);
+    if (out) return out;
     const n = parseInt(hex.slice(1), 16), to = t > 0 ? 255 : 0, a = Math.abs(t);
     const ch = s => Math.round(((n >> s) & 255) + (to - ((n >> s) & 255)) * a);
-    return 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
+    out = 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
+    if (this._shades.size > 4096) this._shades.clear();
+    this._shades.set(key, out);
+    return out;
+  },
+  /* A fade to clear across a rectangle, strongest on `side` ('n', 's', 'w' or
+     'e'). Blitted from a strip baked once per colour, where it used to be a
+     gradient built and thrown away per tile per frame — the eaves, the skirting
+     and the roof shadows alone were a couple of hundred of those a frame in
+     town. `mid` is an optional colour for the 55% stop, which the tide uses. */
+  _fades: new Map(),
+  fade(c, x, y, w, h, side, colour, mid) {
+    const key = side + colour + (mid || '');
+    let st = this._fades.get(key);
+    if (!st) {
+      const L = 64, vert = side === 'n' || side === 's';
+      st = document.createElement('canvas');
+      st.width = vert ? 1 : L; st.height = vert ? L : 1;
+      const g = st.getContext('2d');
+      const from = side === 'n' || side === 'w' ? 0 : L;
+      const gr = vert ? g.createLinearGradient(0, from, 0, L - from) : g.createLinearGradient(from, 0, L - from, 0);
+      gr.addColorStop(0, colour);
+      if (mid) gr.addColorStop(.55, mid);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, st.width, st.height);
+      this._fades.set(key, st);
+    }
+    c.drawImage(st, x, y, w, h);
   },
   /* Throw the baked tiles away. Nothing in the GAME changes a zone while it is
      running, so this is never called there — but the baked bitmap is the only
@@ -127,6 +160,10 @@ const R = {
      changes nothing at all and the preview quietly lies. */
   rebake() {
     if (this._tiles) this._tiles.clear();
+    /* And the ground chunks, every one of which is made of those tiles. */
+    this._ground = null;
+    this._coast = null;
+    this._baseZone = null;
     /* The vehicles are baked too — see carArt() — and for the same reason: the
        baked bitmap is the only thing that reaches the screen, so an editor that
        can change what a thing looks like has to be able to say so. */
@@ -1283,17 +1320,18 @@ const R = {
      everybody knows about the sound of a train is that the joints are further
      apart than that.
 
-     Drawn every frame rather than baked: it is a few dozen fillRects behind a
-     camera cull, which is cheaper than the bookkeeping of a second offscreen
-     canvas the size of a level that has to be thrown away whenever one is. */
-  roadPaint() {
+     Baked with the rest of the ground now, into the chunks ground() keeps —
+     which are not the size of a level, and are thrown away with it for free.
+     `view` is the rectangle to cull against: the chunk being baked, or the
+     camera when the cache is off. */
+  roadPaint(view) {
     const list = World.def && World.def.paint;
     if (!list || !list.length) return;
-    const c = this.ctx;
+    const c = this.ctx, V = view || Cam;
     const WHITE = 'rgba(228,230,222,.58)', YELLOW = 'rgba(206,172,66,.5)';
     /* Anything wholly off-screen costs one rectangle test and nothing else. */
-    const near = (ax, ay, bx, by) => !(Math.max(ax, bx) < Cam.x - TILE || Math.min(ax, bx) > Cam.x + Cam.w + TILE
-      || Math.max(ay, by) < Cam.y - TILE || Math.min(ay, by) > Cam.y + Cam.h + TILE);
+    const near = (ax, ay, bx, by) => !(Math.max(ax, bx) < V.x - TILE || Math.min(ax, bx) > V.x + V.w + TILE
+      || Math.max(ay, by) < V.y - TILE || Math.min(ay, by) > V.y + V.h + TILE);
     /* One line, solid or broken, between two points. Everything except the
        crossing and the words is one of these. */
     const stroke = (ax, ay, bx, by, w, colour, dash) => {
@@ -2583,27 +2621,32 @@ const R = {
       c.fillStyle = '#6d7a8e';
       c.fillRect(Cam.x, Cam.y, Cam.w, Cam.h);
       c.globalCompositeOperation = 'source-over';
+      /* Gathered into four paths — road and not, water and sky in it — and
+         filled once each, rather than two state changes and two fills for
+         every puddle on screen. */
+      const pool = [new Path2D(), new Path2D()], glint = [new Path2D(), new Path2D()];
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         if (!World.zone[y][x] || World.solid[y][x]) continue;
         const sd = World.seed[y][x];
         if (sd < .90) continue;
         /* Puddles gather on the road, not on the camber of a pavement — and
            not on grass, which is the other thing World.surf can say now. */
-        const road = World.surfAt(x, y) === 'tarmac';
+        const road = World.surfAt(x, y) === 'tarmac' ? 1 : 0;
         const px = x * TILE, py = y * TILE;
-        c.globalAlpha = (road ? .34 : .20) * w;
-        c.fillStyle = '#2b3a4e';
-        c.beginPath();
-        c.ellipse(px + TILE * (.3 + sd * .4), py + TILE * (.35 + (1 - sd) * 3 % .4),
-          TILE * (.16 + (sd - .9) * 2.4), TILE * (.10 + (sd - .9) * 1.5), sd * 3, 0, 6.3);
-        c.fill();
-        c.globalAlpha = (road ? .16 : .10) * w;
-        c.fillStyle = '#9fc0dd';
-        c.beginPath();
-        c.ellipse(px + TILE * (.3 + sd * .4) - 2, py + TILE * (.35 + (1 - sd) * 3 % .4) - 2,
-          TILE * (.10 + (sd - .9) * 1.6), TILE * (.05 + (sd - .9) * .9), sd * 3, 0, 6.3);
-        c.fill();
+        const ex = px + TILE * (.3 + sd * .4), ey = py + TILE * (.35 + (1 - sd) * 3 % .4);
+        const rx = TILE * (.16 + (sd - .9) * 2.4), ry = TILE * (.10 + (sd - .9) * 1.5);
+        pool[road].moveTo(ex + rx * Math.cos(sd * 3), ey + rx * Math.sin(sd * 3));
+        pool[road].ellipse(ex, ey, rx, ry, sd * 3, 0, 6.3);
+        const gx = ex - 2, gy = ey - 2, grx = TILE * (.10 + (sd - .9) * 1.6);
+        glint[road].moveTo(gx + grx * Math.cos(sd * 3), gy + grx * Math.sin(sd * 3));
+        glint[road].ellipse(gx, gy, grx, TILE * (.05 + (sd - .9) * .9), sd * 3, 0, 6.3);
       }
+      c.fillStyle = '#2b3a4e';
+      c.globalAlpha = .20 * w; c.fill(pool[0]);
+      c.globalAlpha = .34 * w; c.fill(pool[1]);
+      c.fillStyle = '#9fc0dd';
+      c.globalAlpha = .10 * w; c.fill(glint[0]);
+      c.globalAlpha = .16 * w; c.fill(glint[1]);
     }
     if (lie > .04) {
       /* Lying snow. Over the ground rather than instead of it, so the paving
@@ -2638,24 +2681,26 @@ const R = {
       const t = this.t, dens = .10 * k.rate;
       c.strokeStyle = '#c8e0f5';
       c.lineWidth = 1;
+      /* One walk over the ground sorting each ripple into the pass it is in,
+         where there used to be three walks that each threw two thirds away. */
+      const rings = [new Path2D(), new Path2D(), new Path2D()];
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        if (!World.zone[y][x] || World.solid[y][x]) continue;
+        const sd = World.seed[y][x];
+        const cyc = t * 2.6 + sd * 11;
+        const g = Math.floor(cyc), ph = cyc - g;
+        const i = x * 3011 + y * 7919;
+        if (this.noise(i, g) > dens) continue;
+        const pass = Math.min(2, Math.floor(ph * 3));
+        const cx = (x + this.noise(i + 1, g)) * TILE;
+        const cy = (y + this.noise(i + 2, g)) * TILE;
+        const r = 1.5 + ph * 5.5;
+        rings[pass].moveTo(cx + r, cy);
+        rings[pass].ellipse(cx, cy, r, r * .45, 0, 0, 6.3);
+      }
       for (let pass = 0; pass < 3; pass++) {
         c.globalAlpha = (.30 - pass * .09) * Math.min(1, .35 + w);
-        c.beginPath();
-        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-          if (!World.zone[y][x] || World.solid[y][x]) continue;
-          const sd = World.seed[y][x];
-          const cyc = t * 2.6 + sd * 11;
-          const g = Math.floor(cyc), ph = cyc - g;
-          if (Math.floor(ph * 3) !== pass) continue;
-          const i = x * 3011 + y * 7919;
-          if (this.noise(i, g) > dens) continue;
-          const cx = (x + this.noise(i + 1, g)) * TILE;
-          const cy = (y + this.noise(i + 2, g)) * TILE;
-          const r = 1.5 + ph * 5.5;
-          c.moveTo(cx + r, cy);
-          c.ellipse(cx, cy, r, r * .45, 0, 0, 6.3);
-        }
-        c.stroke();
+        c.stroke(rings[pass]);
       }
     }
     c.restore();
@@ -2670,35 +2715,53 @@ const R = {
      redraw itself. */
   shoreline(x0, y0, x1, y1) {
     if (World.indoors()) return;
-    const c = this.ctx, land = s => s === 'sand' || s === 'rock';
+    const c = this.ctx, rows = this.coast();
+    const was = c.globalAlpha;
+    const FOAM = 'rgba(232,240,244,1)', MID = 'rgba(232,240,244,.318)';
     for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        if (World.surfAt(x, y) !== 'sea') continue;
-        const nAt = land(World.surfAt(x, y - 1)), sAt = land(World.surfAt(x, y + 1));
-        const wAt = land(World.surfAt(x - 1, y)), eAt = land(World.surfAt(x + 1, y));
-        if (!nAt && !sAt && !wAt && !eAt) continue;
-        const px = x * TILE, py = y * TILE;
+      const row = rows[y];
+      if (!row) continue;
+      for (let i = 0; i < row.length; i++) {
+        const t = row[i];
+        if (t.x < x0 || t.x > x1) continue;
+        const px = t.x * TILE, py = y * TILE;
         /* Seeded off the tile so the whole coast does not breathe in
            lockstep, and off nothing else, so it survives a rebuild the way
            every other seeded texture here does. Reduced motion gets the
            foam frozen at its resting reach, same idiom the opening uses for
            its typewriter. */
-        const phase = (this._hash('tide' + x + ',' + y) % 1000) / 1000 * 6.283;
-        const wash = this.animate ? (Math.sin(this.t * 1.6 + phase) + 1) / 2 : .5;
+        const wash = this.animate ? (Math.sin(this.t * 1.6 + t.phase) + 1) / 2 : .5;
         const reach = TILE * (.16 + wash * .22);
-        const band = (bx, by, bw, bh, gx, gy) => {
-          const g = c.createLinearGradient(bx, by, bx + gx, by + gy);
-          g.addColorStop(0, `rgba(232,240,244,${.32 + wash * .24})`);
-          g.addColorStop(.55, `rgba(232,240,244,${.10 + wash * .08})`);
-          g.addColorStop(1, 'rgba(232,240,244,0)');
-          c.fillStyle = g; c.fillRect(bx, by, bw, bh);
-        };
-        if (nAt) band(px, py, TILE, reach, 0, reach);
-        if (sAt) band(px, py + TILE - reach, TILE, reach, 0, -reach);
-        if (wAt) band(px, py, reach, TILE, reach, 0);
-        if (eAt) band(px + TILE - reach, py, reach, TILE, -reach, 0);
+        /* One strip, baked once, at the strength of the crest: the foam's
+           fade is the same shape at every point of the swell (the 55% stop
+           is within half a percent of a third of the crest throughout), so
+           the swell is only how far and how bright. */
+        c.globalAlpha = was * (.32 + wash * .24);
+        if (t.n) this.fade(c, px, py, TILE, reach, 'n', FOAM, MID);
+        if (t.s) this.fade(c, px, py + TILE - reach, TILE, reach, 's', FOAM, MID);
+        if (t.w) this.fade(c, px, py, reach, TILE, 'w', FOAM, MID);
+        if (t.e) this.fade(c, px + TILE - reach, py, reach, TILE, 'e', FOAM, MID);
       }
     }
+    c.globalAlpha = was;
+  },
+  /* The sea tiles that touch land, by row, with which sides do and the phase
+     of each one's swell — worked out once per world rather than per tile per
+     frame, which was four surface lookups and a string hash for every tile on
+     screen. */
+  coast() {
+    if (this._coast && this._coast.world === World._solid) return this._coast.rows;
+    const land = s => s === 'sand' || s === 'rock', rows = [];
+    for (let y = 0; y < MAPH; y++) for (let x = 0; x < MAPW; x++) {
+      if (World.surfAt(x, y) !== 'sea') continue;
+      const n = land(World.surfAt(x, y - 1)), s = land(World.surfAt(x, y + 1));
+      const w = land(World.surfAt(x - 1, y)), e = land(World.surfAt(x + 1, y));
+      if (!n && !s && !w && !e) continue;
+      const phase = (this._hash('tide' + x + ',' + y) % 1000) / 1000 * 6.283;
+      (rows[y] = rows[y] || []).push({ x, n, s, w, e, phase });
+    }
+    this._coast = { world: World._solid, rows };
+    return rows;
   },
   /* THE GRADE. One rectangle, multiplied, over everything that has been drawn
      so far. It is last because it is the light: a person standing under a
@@ -3166,7 +3229,12 @@ const R = {
      stand a kettle on it. */
   /* The zone a wall with no room beside it is tinted as: `base: true` on a
      ZONES row, or the first one. */
-  baseZone() { return Object.keys(ZONES).find(k => ZONES[k].base) || Object.keys(ZONES)[0]; },
+  /* Asked for every wall tile that has no room of its own to take a finish
+     from, so it is remembered; rebake() forgets it with the tiles. */
+  baseZone() {
+    if (this._baseZone && ZONES[this._baseZone]) return this._baseZone;
+    return (this._baseZone = Object.keys(ZONES).find(k => ZONES[k].base) || Object.keys(ZONES)[0]);
+  },
   /* `kitchen: true` on a ZONES row is what makes its worktops kitchen units. */
   kitRun(t) { const z = t && ZONES[World.zoneAt(t.x, t.y)]; return !!(z && z.kitchen) && Tiles.has('obj.counter'); },
   /* The run under a tile, or null. World.worktops is a handful of entries — a
@@ -3829,26 +3897,91 @@ const R = {
     }
     c.restore();
   },
-  draw(dt) {
-    /* `|| 0` because one call with no dt makes t NaN forever, NaN spreads into
-       every frame index derived from it, and a NaN frame index draws nothing
-       and throws nothing. Tests calling R.draw() by hand must pass a dt. */
-    const c = this.ctx; this.t += dt || 0; this.lastDt = dt || 0;
-    /* Before anything draws a door. Two passes read how open one is — the leaf
-       itself and the light coming out of it — and they must not each work it
-       out, or the light will be a frame ahead of the door on the frame the
-       player steps over the threshold. */
-    this.swingDoors(dt || 0);
-    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    c.clearRect(0, 0, Cam.w, Cam.h);
-    const sx = FX.shakeAmt ? rnd(-FX.shakeAmt, FX.shakeAmt) : 0;
-    const sy = FX.shakeAmt ? rnd(-FX.shakeAmt, FX.shakeAmt) : 0;
-    const ox = -Math.round(Cam.x) + sx, oy = -Math.round(Cam.y) + sy;
-    c.save(); c.translate(ox, oy);
-
-    const x0 = Math.max(0, Math.floor(Cam.x / TILE) - 1), x1 = Math.min(MAPW - 1, Math.ceil((Cam.x + Cam.w) / TILE));
-    const y0 = Math.max(0, Math.floor(Cam.y / TILE) - 1), y1 = Math.min(MAPH - 1, Math.ceil((Cam.y + Cam.h) / TILE) + 1);
-
+  /* ---- The ground cache ----
+     The floor and everything painted straight onto it, baked in chunks of
+     GROUND_N × GROUND_N tiles at the canvas's own device scale, so a chunk is
+     blitted 1:1 and costs one drawImage however much is on it. Keyed on the
+     world's own buffer (World.build() makes a new one, so a new level or an
+     editor rebuild is a new cache without anybody saying so), the season (the
+     grass changes), the art (a sheet decoding late must not leave a chunk of
+     emoji-era floor behind) and the scale. rebake() throws it away with the
+     tiles it was built from. Bounded by a pixel budget rather than a count, so
+     the editor zoomed out over a whole island does not hold a gigabyte. */
+  GROUND_N: 8,
+  _ground: null,
+  groundScale() {
+    const d = this.dpr, dev = Math.min(2, window.devicePixelRatio || 1);
+    /* The game's scale is fixed, so it bakes at exactly that. The editor's
+       zoom is continuous, and a scale per zoom step would rebake the lot on
+       every frame of a pinch: it snaps up to a power of two instead. */
+    if (Math.abs(d - dev) < 1e-6) return d;
+    return clamp(Math.pow(2, Math.ceil(Math.log2(d))), 1 / 16, 4);
+  },
+  ground(x0, y0, x1, y1) {
+    if (this.noGroundCache || !World._solid || typeof document === 'undefined') return false;
+    const S = this.groundScale();
+    const key = S + '|' + Sky.season() + '|' + (Tiles.gen || 0);
+    let G = this._ground;
+    if (!G || G.world !== World._solid || G.key !== key) {
+      G = this._ground = { world: World._solid, key, S, chunks: new Map(), px: 0, clock: 0, pool: [] };
+    }
+    const N = this.GROUND_N, W = N * TILE, c = this.ctx;
+    const cx0 = Math.floor(x0 / N), cx1 = Math.floor(x1 / N);
+    const cy0 = Math.floor(y0 / N), cy1 = Math.floor(y1 / N);
+    const clock = ++G.clock;
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      const ch = this.groundChunk(G, cx, cy);
+      ch.used = clock;
+      c.drawImage(ch.cv, cx * W, cy * W, W, W);
+    }
+    /* One chunk of the ring just off screen per frame, so walking or driving
+       into new ground finds it ready rather than baking a row of it at once. */
+    const mx = Math.ceil(MAPW / N) - 1, my = Math.ceil(MAPH / N) - 1;
+    outer: for (let cy = Math.max(0, cy0 - 1); cy <= Math.min(my, cy1 + 1); cy++)
+      for (let cx = Math.max(0, cx0 - 1); cx <= Math.min(mx, cx1 + 1); cx++)
+        if (!G.chunks.has(cy * 4096 + cx)) { this.groundChunk(G, cx, cy).used = clock; break outer; }
+    /* Over budget: drop whatever has been off screen longest. Three screens'
+       worth, which is what is visible plus the ring round it, with room over. */
+    const budget = Math.max(4e6, 3 * this.cv.width * this.cv.height);
+    if (G.px > budget) {
+      const old = [...G.chunks].filter(e => e[1].used !== clock).sort((a, b) => a[1].used - b[1].used);
+      for (const [id, ch] of old) {
+        if (G.px <= budget * .75) break;
+        G.chunks.delete(id); G.px -= ch.cv.width * ch.cv.height;
+        if (G.pool.length < 8) G.pool.push(ch.cv);
+      }
+    }
+    return true;
+  },
+  groundChunk(G, cx, cy) {
+    const id = cy * 4096 + cx;
+    let ch = G.chunks.get(id);
+    if (ch) return ch;
+    const N = this.GROUND_N, W = N * TILE, S = G.S, size = Math.ceil(W * S);
+    const cv = G.pool.pop() || document.createElement('canvas');
+    cv.width = cv.height = size;                 /* and cleared, by being set */
+    const g = cv.getContext('2d');
+    g.setTransform(S, 0, 0, S, -cx * W * S, -cy * W * S);
+    const tx0 = cx * N, ty0 = cy * N;
+    const tx1 = Math.min(MAPW - 1, tx0 + N - 1), ty1 = Math.min(MAPH - 1, ty0 + N - 1);
+    const was = this.ctx;
+    this.ctx = g;
+    try {
+      /* The tiles of this chunk, and the passes over them from one tile
+         further out: a kerb, a stain and a painted line all lap over the edge
+         of the tile they belong to, and the canvas clips what falls outside. */
+      this.groundBase(tx0, ty0, tx1, ty1, { x: cx * W, y: cy * W, w: W, h: W }, 1);
+      this.groundMarks(Math.max(0, tx0 - 1), Math.max(0, ty0 - 1), Math.min(MAPW - 1, tx1 + 1), Math.min(MAPH - 1, ty1 + 1));
+    } finally { this.ctx = was; }
+    ch = { cv, used: 0 };
+    G.chunks.set(id, ch); G.px += size * size;
+    return ch;
+  },
+  /* The floor, the kerbs and the paint: the ground as it was laid. `view` is
+     what roadPaint() culls against, the camera unless a chunk is being baked,
+     and `m` how far past the tiles the kerbs are looked for. */
+  groundBase(x0, y0, x1, y1, view, m = 0) {
+    const c = this.ctx;
     /* The tile seam belongs to the sprite, not to a grid stroke over the top:
        carpet has a seam, glazed tile has grout, sheet vinyl has neither. */
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -3864,15 +3997,14 @@ const R = {
        floor, before the wear and the wall shadows: a marking is painted on the
        tarmac and everything the building does to the light happens on top of
        it. Both cost nothing on a level with no surfaces declared. */
-    this.kerbs(x0, y0, x1, y1);
-    this.roadPaint();
-    this.shoreline(x0, y0, x1, y1);
-    /* And then the weather on it. Water and lying snow are part of what the
-       ground is made of today, so they go on with the ground rather than over
-       the whole frame — a puddle a colleague walks through has to be under
-       them, and a screen-space wash never can be. */
-    this.wetGround(x0, y0, x1, y1);
-
+    this.kerbs(Math.max(0, x0 - m), Math.max(0, y0 - m), Math.min(MAPW - 1, x1 + m), Math.min(MAPH - 1, y1 + m));
+    this.roadPaint(view);
+  },
+  /* What wear and the walls have done to it since: the worn patches, the
+     stains, and the contact shadow along the foot of every wall. `shadows`
+     leaves the wear out, for putting the dark half back over lying snow. */
+  groundMarks(x0, y0, x1, y1, shadows) {
+    const c = this.ctx;
     /* worn patches and old stains. The patch is a whole tile lightened by
        under two percent, which is nothing at all on carpet or on grit and was
        nothing at all on the road until the road became a flat, poured sheet
@@ -3881,7 +4013,7 @@ const R = {
        nothing on it. So the carriageway sits this one out and keeps the
        stains below, which are round, and which a road has anyway. */
     c.fillStyle = 'rgba(255,255,255,.018)';
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (!shadows) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (!World.zone[y][x] || World.solid[y][x]) continue;
       if (World.surfAt(x, y) === 'tarmac') continue;
       if (World.seed[y][x] > .82) c.fillRect(x * TILE, y * TILE, TILE, TILE);
@@ -3907,13 +4039,92 @@ const R = {
         if (m & 4) c.fillRect(px + o, py, t - o, TILE);
         if (m & 8) c.fillRect(px + TILE - t, py, t - o, TILE);
       }
-    }
+    }  },
+  draw(dt) {
+    /* `|| 0` because one call with no dt makes t NaN forever, NaN spreads into
+       every frame index derived from it, and a NaN frame index draws nothing
+       and throws nothing. Tests calling R.draw() by hand must pass a dt. */
+    const c = this.ctx; this.t += dt || 0; this.lastDt = dt || 0;
+    /* Before anything draws a door. Two passes read how open one is — the leaf
+       itself and the light coming out of it — and they must not each work it
+       out, or the light will be a frame ahead of the door on the frame the
+       player steps over the threshold. */
+    this.swingDoors(dt || 0);
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.clearRect(0, 0, Cam.w, Cam.h);
+    const sx = FX.shakeAmt ? rnd(-FX.shakeAmt, FX.shakeAmt) : 0;
+    const sy = FX.shakeAmt ? rnd(-FX.shakeAmt, FX.shakeAmt) : 0;
+    const ox = -Math.round(Cam.x) + sx, oy = -Math.round(Cam.y) + sy;
+    c.save(); c.translate(ox, oy);
+
+    const x0 = Math.max(0, Math.floor(Cam.x / TILE) - 1), x1 = Math.min(MAPW - 1, Math.ceil((Cam.x + Cam.w) / TILE));
+    const y0 = Math.max(0, Math.floor(Cam.y / TILE) - 1), y1 = Math.min(MAPH - 1, Math.ceil((Cam.y + Cam.h) / TILE) + 1);
+
+    /* THE GROUND, from the cache. Everything from here to the contact shadows
+       is the same on every frame of a level — what the tiles are made of, the
+       kerbs, the paint, the wear, the shadow at the foot of every wall — and it
+       used to be worked out afresh on every one of them: a thousand floor tiles
+       looked up by string key and blitted one at a time, and the same again for
+       each of the passes over them. It is baked into chunks now (see ground())
+       and a frame is a dozen blits. What moves — the tide and the rain — goes on
+       top, as it always did. groundBase()/groundMarks() are still the one place
+       any of it is drawn, so the fallback below is the old frame exactly. */
+    const cached = this.ground(x0, y0, x1, y1);
+    if (!cached) this.groundBase(x0, y0, x1, y1);
+    this.shoreline(x0, y0, x1, y1);
+    /* And then the weather on it. Water and lying snow are part of what the
+       ground is made of today, so they go on with the ground rather than over
+       the whole frame — a puddle a colleague walks through has to be under
+       them, and a screen-space wash never can be. */
+    this.wetGround(x0, y0, x1, y1);
+    if (!cached) this.groundMarks(x0, y0, x1, y1);
+    /* Lying snow covers what the chunk has already laid down, where the old
+       frame drew the shadows on top of it. Put them back over the snow. */
+    else if (Sky.lying() > .04 && !World.indoors()) this.groundMarks(x0, y0, x1, y1, true);
+
     /* walls */
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       /* ...and never the water. An open surface is solid, so without this it
          reaches the roof branch at the bottom of this loop and the river comes
          out as a terrace of slate. See World.open(). */
       if (!World.solid[y][x] || World.open(x, y)) continue;
+      const below = y + 1 < MAPH && !World.solid[y + 1][x] && World.zone[y + 1][x];
+      const anyNear = below || (x + 1 < MAPW && !World.solid[y][x + 1]) || (x > 0 && !World.solid[y][x - 1]) || (y > 0 && !World.solid[y - 1][x]);
+      /* Wall mass with nothing beside it to see it from. Indoors that is the
+         inside of the building and it is black; outdoors it is whatever is
+         past the car park wall, and black there reads as a hole cut in the
+         world rather than as distance. */
+      /* Indoors this is the inside of the building and it is black. Outdoors
+         it used to be a flat pale blue-grey standing for distance, which was
+         right while the only wall mass out there was one course of car park
+         wall — and became wrong the moment a level had a whole city block in
+         the middle of it, because forty tiles of flat pale grey between two
+         streets reads as a lake. It is roofs now, which is what is actually up
+         there: correct over the block, and better than a flat colour past the
+         edge of the map as well, where what you are looking at is the rest of
+         a town. */
+      if (!anyNear) {
+        if (World.indoors()) { c.fillStyle = '#080b11'; c.fillRect(x * TILE, y * TILE, TILE, TILE); }
+        else {
+          /* THE GAP FIRST, and then the roof over it. A corner-matched roof
+             tile is not opaque to its own edges — the two pixels outside the
+             coping are clear, because upstream drew these to sit over whatever
+             is behind the building. Here what is behind the building is the
+             next building, so those two pixels are the reveal between two
+             parapets: four pixels of shadow wherever two plots meet, and two
+             at the outside of the block. That line is the single thing doing
+             the most work in this whole pass. It is not black — black reads as
+             a hole cut in the world — it is the colour of a gutter nobody has
+             cleared. */
+          c.fillStyle = '#14181f'; c.fillRect(x * TILE, y * TILE, TILE, TILE);
+          const roof = this.roofTile(x, y) || this.roofBaked((x * 5 + y * 3) & 1);
+          c.drawImage(roof, x * TILE, y * TILE, TILE, TILE);
+        }
+        continue;
+      }
+      /* Only a wall somebody can see needs to know whose it is: the roofs above
+         were drawn without asking, and eight neighbour lookups a tile, for
+         every tile of every roof in town, was most of this loop. */
       /* Which room's wall this is: the one it faces. A wall tile between two
          rooms belongs to whichever is below it, because that is the face you
          can see — and that's the ONLY neighbour a one-sided lookup like
@@ -3961,40 +4172,6 @@ const R = {
         || World.zoneAt(x + 1, y + 1) || World.zoneAt(x - 1, y + 1)
         || World.zoneAt(x + 1, y - 1) || World.zoneAt(x - 1, y - 1)
         || null;
-      const below = y + 1 < MAPH && !World.solid[y + 1][x] && World.zone[y + 1][x];
-      const anyNear = below || (x + 1 < MAPW && !World.solid[y][x + 1]) || (x > 0 && !World.solid[y][x - 1]) || (y > 0 && !World.solid[y - 1][x]);
-      /* Wall mass with nothing beside it to see it from. Indoors that is the
-         inside of the building and it is black; outdoors it is whatever is
-         past the car park wall, and black there reads as a hole cut in the
-         world rather than as distance. */
-      /* Indoors this is the inside of the building and it is black. Outdoors
-         it used to be a flat pale blue-grey standing for distance, which was
-         right while the only wall mass out there was one course of car park
-         wall — and became wrong the moment a level had a whole city block in
-         the middle of it, because forty tiles of flat pale grey between two
-         streets reads as a lake. It is roofs now, which is what is actually up
-         there: correct over the block, and better than a flat colour past the
-         edge of the map as well, where what you are looking at is the rest of
-         a town. */
-      if (!anyNear) {
-        if (World.indoors()) { c.fillStyle = '#080b11'; c.fillRect(x * TILE, y * TILE, TILE, TILE); }
-        else {
-          /* THE GAP FIRST, and then the roof over it. A corner-matched roof
-             tile is not opaque to its own edges — the two pixels outside the
-             coping are clear, because upstream drew these to sit over whatever
-             is behind the building. Here what is behind the building is the
-             next building, so those two pixels are the reveal between two
-             parapets: four pixels of shadow wherever two plots meet, and two
-             at the outside of the block. That line is the single thing doing
-             the most work in this whole pass. It is not black — black reads as
-             a hole cut in the world — it is the colour of a gutter nobody has
-             cleared. */
-          c.fillStyle = '#14181f'; c.fillRect(x * TILE, y * TILE, TILE, TILE);
-          const roof = this.roofTile(x, y) || this.roofBaked((x * 5 + y * 3) & 1);
-          c.drawImage(roof, x * TILE, y * TILE, TILE, TILE);
-        }
-        continue;
-      }
       const px = x * TILE, py = y * TILE;
       c.drawImage(this.wallTile(nz || this.baseZone(), (x * 3 + y) & 1), px, py, TILE, TILE);
       if (below) {
@@ -4053,9 +4230,7 @@ const R = {
           const eave = this.roofTile(x, y - 2) || this.roofBaked((x * 5 + (y - 2) * 3) & 1);
           const N = eave.width, EH = 5;
           c.drawImage(eave, 0, N - (EH / TILE) * N, N, (EH / TILE) * N, px, py - TILE, TILE, EH);
-          const es = c.createLinearGradient(0, py - TILE + EH, 0, py - TILE + EH + 8);
-          es.addColorStop(0, 'rgba(0,0,0,.5)'); es.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = es; c.fillRect(px, py - TILE + EH, TILE, 8);
+          this.fade(c, px, py - TILE + EH, TILE, 8, 'n', 'rgba(0,0,0,.5)');
         }
         c.restore();
         /* Skirting. One 7px board along the foot of every wall you can see the
@@ -4068,9 +4243,7 @@ const R = {
         c.fillRect(px, sk, TILE, 9);
         c.fillStyle = 'rgba(255,255,255,.10)'; c.fillRect(px, sk, TILE, 2);
         c.fillStyle = 'rgba(0,0,0,.30)'; c.fillRect(px, py + TILE - 2, TILE, 2);
-        const g = c.createLinearGradient(0, py + TILE, 0, py + TILE + 10);
-        g.addColorStop(0, 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = g; c.fillRect(px, py + TILE, TILE, 10);
+        this.fade(c, px, py + TILE, TILE, 10, 'n', 'rgba(0,0,0,.45)');
       } else if (!World.indoors() && this.roofSkirt(x, y)) {
         /* THE VERGE. This is the ring of wall the roof sits on — a gable end,
            the back wall, a corner — and what is on top of a wall that bears a
@@ -4095,17 +4268,10 @@ const R = {
         const OV = 7;
         /* From the wall face outwards, so the dark end is against the
            building and the clear end is the ground it falls on. */
-        const dark = (rx, ry, w, h, fx, fy, tx, ty) => {
-          const g2 = c.createLinearGradient(fx, fy, tx, ty);
-          g2.addColorStop(0, 'rgba(0,0,0,.34)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = g2; c.fillRect(rx, ry, w, h);
-        };
-        if (x > 0 && !World.solid[y][x - 1])
-          dark(px - OV, py, OV, TILE, px, py, px - OV, py);
-        if (x + 1 < MAPW && !World.solid[y][x + 1])
-          dark(px + TILE, py, OV, TILE, px + TILE, py, px + TILE + OV, py);
-        if (y > 0 && !World.solid[y - 1][x])
-          dark(px, py - OV, TILE, OV, px, py, px, py - OV);
+        const SH = 'rgba(0,0,0,.34)';
+        if (x > 0 && !World.solid[y][x - 1]) this.fade(c, px - OV, py, OV, TILE, 'e', SH);
+        if (x + 1 < MAPW && !World.solid[y][x + 1]) this.fade(c, px + TILE, py, OV, TILE, 'w', SH);
+        if (y > 0 && !World.solid[y - 1][x]) this.fade(c, px, py - OV, TILE, OV, 's', SH);
       } else {
         /* Not a visible face — interior wall mass, or a boundary with nothing
            behind it to enclose. One tile, same as it always was. */
@@ -4580,7 +4746,7 @@ const R = {
     c.beginPath(); c.roundRect(x - w / 2, y - 20, w, 24, 7); c.fill(); c.stroke();
     c.beginPath(); c.moveTo(x - 5, y + 4); c.lineTo(x + 5, y + 4); c.lineTo(x, y + 10); c.fill();
     c.fillStyle = '#dfe6f2';
-    let t = text; if (c.measureText(t).width > 212) { while (c.measureText(t + '…').width > 212 && t.length > 4) t = t.slice(0, -1); t += '…'; }
+    let t = text; if (c.measureText(t).width > 212) { const ch = Array.from(t); while (ch.length > 4 && c.measureText(ch.join('') + '…').width > 212) ch.pop(); t = ch.join('') + '…'; }
     c.fillText(t, x, y - 4);
     c.globalAlpha = 1;
   },

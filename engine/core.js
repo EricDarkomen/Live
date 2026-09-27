@@ -29,6 +29,15 @@ const says = (key, vars) => {
   if (t === undefined) { say(key); return []; }
   return (Array.isArray(t) ? t : [t]).map(x => vars ? String(x).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : x);
 };
+/* A line cut down to n characters with an ellipsis on the end — counted in
+   characters rather than UTF-16 units, so an emoji is never cut in half and
+   shown to the player as a replacement character. */
+const clip = (s, n) => {
+  s = String(s);
+  if (s.length <= n) return s;
+  const a = Array.from(s);
+  return a.length <= n ? s : a.slice(0, n - 1).join('') + '…';
+};
 /* An amount of money, in the game's own currency. */
 const cash = n => GAME.currency + Math.abs(n).toFixed(2);
 /* Game code on an engine event — HOOKS in data/game.js. Optional, and a hook

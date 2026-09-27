@@ -19,7 +19,7 @@ const Chat = {
   /* The alert is one line at 11.5px in a 160px band, so it carries the start of
      what was said rather than all of it. The whole message is in the channel,
      which is the arrangement that lets this be short. */
-  gist(m) { return m.length > 44 ? m.slice(0, 43) + '…' : m; },
+  gist(m) { return clip(m, 44); },
   tick() {
     CHAT_SCRIPT.forEach((c, i) => {
       if (!G.chatSent) G.chatSent = {};
