@@ -19,7 +19,7 @@
   /* Deeper and colder than the shared screen gradient, with the light coming
      from where the strip light on the canvas is. */
   background:
-    radial-gradient(1100px 620px at 50% 8%,rgba(77,163,255,.10),transparent 62%),
+    radial-gradient(1100px 620px at 50% 8%,rgba(255,111,145,.10),transparent 62%),
     radial-gradient(900px 700px at 50% 100%,rgba(180,140,255,.06),transparent 70%),
     linear-gradient(180deg,#0f1620,var(--ink) 55%,#080b10);
   /* Deliberately NOT setting justify-content here. .screen centres, and the
@@ -96,9 +96,9 @@
   font-family:var(--mono);font-size:clamp(30px,7.6vw,68px);font-weight:700;
   letter-spacing:.035em;line-height:.95;color:var(--text);
   text-shadow:
-    2px 0 0 rgba(77,163,255,.36),
+    2px 0 0 rgba(255,111,145,.36),
     -2px 0 0 rgba(255,179,71,.16),
-    0 0 38px rgba(77,163,255,.28);
+    0 0 38px rgba(255,111,145,.28);
 }
 .title-line2{
   font-family:var(--mono);font-size:clamp(21px,5.2vw,46px);font-weight:700;
@@ -140,7 +140,7 @@
 }
 .title-menu .btn.sel::before{opacity:1}
 .title-menu .btn.sel{border-color:var(--brand);
-  box-shadow:0 0 0 1px rgba(77,163,255,.22),0 12px 34px -16px var(--brand)}
+  box-shadow:0 0 0 1px rgba(255,111,145,.22),0 12px 34px -16px var(--brand)}
 .title-menu .btn:disabled::before{content:"·";color:var(--dim)}
 
 /* ---------- the wallboard ----------
@@ -166,7 +166,7 @@
 .cell-n{
   display:block;font-family:var(--mono);font-size:clamp(24px,5.4vw,34px);line-height:1;
   color:var(--text);font-variant-numeric:tabular-nums;transition:color .3s;
-  text-shadow:0 0 22px rgba(77,163,255,.22);
+  text-shadow:0 0 22px rgba(255,111,145,.22);
 }
 .cell-n.warn{color:var(--hold);text-shadow:0 0 22px rgba(255,179,71,.3)}
 .cell-n.bad{color:var(--bad);text-shadow:0 0 22px rgba(255,95,86,.3)}
@@ -223,3 +223,38 @@
 body.calm-title .phone-icon,body.calm-title .phone-icon i,body.calm-title .title-line2,
 body.calm-title .title-rule::after,body.calm-title .hero-live i,body.calm-title .ticker-run{animation:none}
 body.calm-title #titleFlicker{display:none}
+
+/* ============================================================
+   Tan Lines — the sunset. The canvas behind is the whole backdrop now, so the
+   CRT grade and the strip-light flicker come off, and the lettering is warm.
+   ============================================================ */
+#titleScreen{background:#2a1446}
+#titleGrade{background:radial-gradient(120% 90% at 50% 40%,transparent 45%,rgba(20,6,30,.55) 100%);mix-blend-mode:normal;opacity:1}
+#titleFlicker{display:none}
+.phone-icon{animation:bob 3.6s ease-in-out infinite}
+.phone-icon i{border-color:rgba(255,214,150,.7)}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+.title-line1{
+  font-family:"Trebuchet MS","Segoe UI",sans-serif;font-weight:800;letter-spacing:.08em;
+  font-size:clamp(46px,11vw,104px);color:#fff4dc;
+  text-shadow:0 3px 0 #b33a6b,0 6px 0 #6b2d63,0 0 42px rgba(255,160,90,.55);
+}
+.title-line2{
+  font-family:var(--ui);font-weight:700;font-size:clamp(12px,2.6vw,20px);letter-spacing:.28em;
+  color:#ffd08a;animation:none;text-shadow:0 2px 12px rgba(80,10,60,.8);margin-top:10px;
+}
+.title-rule::after{background:linear-gradient(90deg,transparent,#ffd08a,transparent)}
+.tagline{text-shadow:0 2px 10px rgba(40,6,40,.9)}
+.tagline small{color:#ffd9e6}
+.hero-strip{color:#ffd9e6;text-shadow:0 1px 6px rgba(40,6,40,.8)}
+.hero-live{color:#ffd08a}
+.hero-live i{background:#ffd08a}
+.board{background:linear-gradient(180deg,rgba(60,20,70,.62),rgba(26,12,40,.72));border-color:rgba(255,190,150,.35)}
+.cell-n{text-shadow:0 0 22px rgba(255,160,90,.35);color:#fff1e6}
+.title-menu .btn.sel{border-color:var(--hold);box-shadow:0 0 0 1px rgba(255,179,71,.3),0 12px 34px -16px var(--hold)}
+.phone-icon i{display:none}
+@media (max-width:640px),(max-height:620px){
+  #titleScreen .board{display:none}
+  .title-line2{letter-spacing:.18em}
+  .tagline small{font-size:12px}
+}

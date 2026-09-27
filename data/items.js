@@ -1,124 +1,192 @@
 'use strict';
 /* Items, skills, jobs, achievements, the minigame cabinets and the shops. */
 
-/* ---------------- Items ---------------- */
+/* ---------------- Items ----------------
+   n name · e emoji · d description · v value (what it sells and buys for)
+   r rarity · use what happens when you use it · slot where it is worn
+   eff what wearing it does · gun a key in GUNS (engine/guns.js)
+   `crop` on a seed names the fruit it grows into (see data/garden.js);
+   `drink` marks a cocktail you can give, ship or knock back. */
 const ITEMS = {
-  coffee: { n: 'A Coffee', e: '☕', d: 'Hot, brown, and technically coffee.', v: 1.2, r: 'common', use: { energy: 20, patience: -3, count: { coffee: 1 }, sfx: 'coffee', t: 'Coffee. You feel braver.' } },
-  sandwich: { n: 'A Sandwich', e: '🥪', d: 'From the shop. Cheese and something.', v: 3, r: 'common', use: { energy: 25, patience: 10, minutes: 10, t: 'A proper lunch. It helps.' } },
-  biscuit: { n: 'A Biscuit', e: '🍪', d: 'Small, honest, correct.', v: 0.5, r: 'common', use: { energy: 8, patience: 3, t: 'A biscuit.' } },
-  mug: { n: 'A Mug', e: '☕', d: 'It was somebody’s. It is yours now.', v: 0, r: 'common', slot: 'mug', eff: { patience: 4 } },
-  lanyard: { n: 'A Lanyard', e: '🪪', d: 'Your name, spelled correctly for once.', v: 0, r: 'rare', slot: 'trinket', eff: { knowledge: 2 } },
-  cabletie: { n: 'A Cable Tie', e: '🪢', d: 'The one left over. There is always one left over.', v: 0, r: 'rare', slot: 'trinket', eff: { knowledge: 1 } },
-  blaster: { n: 'Foam Dart Blaster', e: '🔫', d: 'Six foam darts. Found in the supplies cupboard.', v: 0, r: 'rare', gun: 'dart' },
+  /* Worn. */
+  headset0: { n: 'Cheap Sunglasses', e: '🕶️', d: 'Two euros from the airport. They make you look like you know things.', v: 0, r: 'common', slot: 'headset', eff: { bullshit: 1 } },
+  aviators: { n: 'Aviators', e: '🕶️', d: 'Mirrored. Nobody can see you looking. Everybody can see you looking.', v: 18, r: 'rare', slot: 'headset', eff: { bullshit: 3, empathy: 1 } },
+  strawhat: { n: 'Rafa’s Straw Hat', e: '👒', d: 'Frayed at the brim and smelling faintly of rum. It fits perfectly.', v: 0, r: 'rare', slot: 'trinket', eff: { knowledge: 2, patience: 4 } },
+  shaker: { n: 'The Silver Shaker', e: '🍸', d: 'Mari’s spare. “Don’t drop it. Or do, it’s a good show.”', v: 0, r: 'rare', slot: 'mug', eff: { knowledge: 3 } },
+  shell: { n: 'Puka Shell Necklace', e: '🐚', d: 'Kai made it. He made you promise not to tell anyone he made it.', v: 0, r: 'rare', slot: 'trinket', eff: { empathy: 2, chaos: 1 } },
+  hibiscus: { n: 'Hibiscus Flower', e: '🌺', d: 'Tucked behind the ear. Left means taken, right means available. You forget which.', v: 4, r: 'common', slot: 'trinket', eff: { empathy: 1 } },
+  suncream: { n: 'Factor 50', e: '🧴', d: 'The most important item in the game. Put it on.', v: 6, r: 'common', use: { patience: 12, t: 'You put sun cream on. Somebody offers to do your back. You let them.' } },
+  /* Food and drink you buy. */
+  coffee: { n: 'Island Coffee', e: '☕', d: 'Thick, black, and grown on the hill.', v: 2, r: 'common', use: { energy: 20, patience: -2, count: { coffee: 1 }, sfx: 'coffee', t: 'Rocket fuel. You feel brave.' } },
+  icecream: { n: 'Coconut Ice Cream', e: '🍦', d: 'It is melting down your wrist before you have paid for it.', v: 3, r: 'common', use: { energy: 12, patience: 10, t: 'Cold, sweet, gone in four licks.' } },
+  empanada: { n: 'An Empanada', e: '🥟', d: 'From Coco’s. Still hot. Dangerously hot.', v: 4, r: 'common', use: { energy: 25, patience: 8, minutes: 10, t: 'A proper lunch. You burn your mouth. Worth it.' } },
+  coconutwater: { n: 'Coconut Water', e: '🥥', d: 'Straight from the nut, with a straw in it.', v: 3, r: 'common', use: { energy: 15, patience: 6, t: 'Hydrated. Your skin thanks you.' } },
+  /* Seeds, from Mama Coco's. */
+  seed_mint: { n: 'Mint Seedlings', e: '🌱', d: 'Grows fast. Grows everywhere. Plant it in the garden.', v: 2, r: 'common', crop: 'mint' },
+  seed_lime: { n: 'Lime Sapling', e: '🌱', d: 'Every good drink starts with a lime. Plant it in the garden.', v: 3, r: 'common', crop: 'lime' },
+  seed_strawberry: { n: 'Strawberry Runners', e: '🌱', d: 'Sweet, red and a little bit suggestive. Plant it in the garden.', v: 4, r: 'common', crop: 'strawberry' },
+  seed_mango: { n: 'Mango Stone', e: '🌱', d: 'Slow to start, worth the wait. Plant it in the garden.', v: 6, r: 'common', crop: 'mango' },
+  seed_pineapple: { n: 'Pineapple Crown', e: '🌱', d: 'The top off last week’s pineapple. Plant it in the garden.', v: 8, r: 'common', crop: 'pineapple' },
+  seed_coconut: { n: 'Sprouting Coconut', e: '🌱', d: 'A coconut that has decided to become a tree. Plant it in the garden.', v: 10, r: 'rare', crop: 'coconut' },
+  /* Harvest. */
+  mint: { n: 'Fresh Mint', e: '🌿', d: 'Smells like a mojito already.', v: 3, r: 'common', use: { patience: 3, t: 'You chew a mint leaf. Fresh.' } },
+  lime: { n: 'Lime', e: '🍋', d: 'Sour, bright, essential.', v: 4, r: 'common' },
+  strawberry: { n: 'Strawberries', e: '🍓', d: 'Warm from the sun.', v: 5, r: 'common', use: { energy: 6, patience: 4, t: 'You eat one. Then four more.' } },
+  mango: { n: 'Mango', e: '🥭', d: 'Ripe, heavy, and it will drip everywhere.', v: 8, r: 'common', use: { energy: 12, patience: 6, t: 'Juice to the elbows. No regrets.' } },
+  pineapple: { n: 'Pineapple', e: '🍍', d: 'Spiky outside, sweet inside. Like Mari.', v: 11, r: 'common' },
+  coconut: { n: 'Coconut', e: '🥥', d: 'Hard work. Worth it.', v: 14, r: 'rare' },
+  /* Cocktails, from the blender at The Driftwood. */
+  mojito: { n: 'Mojito', e: '🍸', d: 'Lime, mint, rum, and a bit of a swagger.', v: 16, r: 'rare', drink: true, use: { energy: 10, patience: 14, t: 'Cold, minty, dangerous. You feel ten per cent more attractive.' } },
+  daiquiri: { n: 'Strawberry Daiquiri', e: '🍹', d: 'Pink, frozen, and deeply flirtatious.', v: 18, r: 'rare', drink: true, use: { energy: 8, patience: 16, t: 'Brain freeze. Worth it.' } },
+  sotb: { n: 'Sex on the Beach', e: '🍑', d: 'Mango, strawberry, a splash of scandal. The house special.', v: 24, r: 'rare', drink: true, use: { energy: 10, patience: 20, t: 'You blush. You are not sure why. You are sure why.' } },
+  colada: { n: 'Piña Colada', e: '🥥', d: 'If you like it, and getting caught in the rain.', v: 30, r: 'epic', drink: true, use: { energy: 15, patience: 22, t: 'Creamy, sweet, and it tastes like a holiday postcard.' } },
+  sunset: { n: 'Driftwood Sunset', e: '🌅', d: 'Rafa’s own recipe: mango, pineapple and lime, layered like the sky at eight.', v: 40, r: 'epic', drink: true, use: { energy: 20, patience: 30, t: 'It tastes like the last night of a holiday. You feel wonderful.' } },
+  /* Toys. */
+  soaker: { n: 'Water Pistol', e: '💦', d: 'From the surf shack. For “emergencies”.', v: 0, r: 'rare', gun: 'water' },
+  /* Keepsakes. */
+  letter: { n: 'Rafa’s Letter', e: '💌', d: '“The bar is yours now, kid. Look after Mari, water the mangoes, and never let a man called Sterling buy you a drink. — R.”', v: 0, r: 'rare', quest: true },
+  polaroid: { n: 'A Polaroid', e: '📸', d: 'The two of you at the cove, lit by the lantern, laughing at something you have already forgotten.', v: 0, r: 'epic', quest: true },
 };
 
-/* ---------------- Skills ---------------- */
+/* ---------------- Skills ----------------
+   The ids are the engine's (engine/progress.js reads empathy, product, system,
+   corp, sarcasm, stress, caffeine, deesc and persuade by name); everything a
+   player reads is here. */
 const SKILLS = {
-  people: { name: '🤝 People', colour: '#5ad48a', list: {
-    empathy: { n: 'Empathy', d: 'You hear what they mean, not what they say.', max: 3 },
-    deesc: { n: 'De-escalation', d: 'Encounters hit you softer.', max: 3 },
-    persuade: { n: 'Persuasion', d: 'A won encounter pays more.', max: 3 } } },
-  systems: { name: '🖥️ Systems', colour: '#4da3ff', list: {
-    product: { n: 'Product Knowledge', d: 'You know the answer before they finish.', max: 3 },
-    system: { n: 'The System', d: 'You can find anything in it, eventually.', max: 3 },
-    corp: { n: 'Corporate', d: 'You can say nothing convincingly.', max: 3 } } },
-  self: { name: '🧘 Self', colour: '#ffb347', list: {
-    stress: { n: 'Resilience', d: 'More patience to spend.', max: 3 },
-    caffeine: { n: 'Caffeine', d: 'More energy to spend.', max: 3 },
-    sarcasm: { n: 'Sarcasm', d: 'Chaos, deployed.', max: 2 } } },
+  people: { name: '💋 Charm', colour: '#ff7eb6', list: {
+    empathy: { n: 'Read the Room', d: 'You know what they want before they do.', max: 3 },
+    deesc: { n: 'Cool Head', d: 'A difficult guest bothers you less.', max: 3 },
+    persuade: { n: 'Big Tipper', d: 'A happy guest pays more.', max: 3 } } },
+  systems: { name: '🍸 Mixology', colour: '#4dd4ff', list: {
+    product: { n: 'Recipes', d: 'Your drinks hit harder.', max: 3 },
+    system: { n: 'Speed Pour', d: 'Faster, flashier, more ice.', max: 3 },
+    corp: { n: 'Smooth Lines', d: 'You always know what to say.', max: 3 } } },
+  self: { name: '☀️ Island Life', colour: '#ffb347', list: {
+    stress: { n: 'Sun-kissed', d: 'More nerve to spend.', max: 3 },
+    caffeine: { n: 'Espresso Tolerance', d: 'More energy to spend.', max: 3 },
+    sarcasm: { n: 'Cheek', d: 'Your mischief lands.', max: 2 } } },
 };
 
-/* ---------------- Quests ---------------- */
-/* `track` is one entry per step: where the tracker points when a job is being
-   followed. `{ npc }` is a colleague, who walks their own schedule and is
-   followed live; `{ obj }` is a world object, named by its `use` handler so it
-   moves if the floor plan ever does; `{ wp }` is a floor waypoint, for a step
-   that means a room rather than a thing.
-   `null` is deliberate and load-bearing: a step whose whole point is that you do
-   not know where to go — who has the mug, who wrote the numbers — gets no pin.
-   The tracker says so rather than inventing a destination, because a compass
-   arrow pointing at the answer is the game telling you the answer. */
+/* ---------------- Jobs ----------------
+   `track` is one entry per step: `{ npc }` a person, followed live; `{ obj }` a
+   world object named by its `use`; `{ wp }` a waypoint. `null` means you have
+   to find it yourself, and the tracker says so. */
 const QUESTS = {
-  q_settle: { n: 'Settling In', giver: 'Lee', steps: [
-      'Find your desk.',
-      'Get Lee a coffee from the kitchen.',
-      'Take the coffee to Lee.',
+  q_arrive: { n: 'Welcome to Paradise', giver: 'Teo', steps: [
+      'Find The Driftwood on the Promenade.',
+      'Say hello to Mari behind the bar.',
     ],
-    track: [{ obj: 'playerDesk' }, { obj: 'coffee' }, { npc: 'lee' }],
-    rw: { xp: 80, money: 5, item: 'mug' } },
-  q_look: { n: 'Look Around', giver: 'Pat', steps: [
-      'Find the meeting room.',
-      'Find out whose name is on the whiteboard.',
-      'Tell Pat.',
+    track: [{ obj: 'barDoor' }, { npc: 'mari' }],
+    rw: { xp: 40, money: 20, item: 'hibiscus' } },
+  q_bar: { n: 'Behind the Bar', giver: 'Mari', steps: [
+      'Open up the till behind the bar.',
+      'Serve your first guest — ring a bell, pour a drink.',
+      'Tell Mari how it went.',
     ],
-    track: [{ wp: 'meeting' }, null, { npc: 'pat' }],
-    rw: { xp: 60, money: 0, item: 'lanyard' } },
+    track: [{ obj: 'playerDesk' }, { obj: 'stool' }, { npc: 'mari' }],
+    rw: { xp: 80, money: 25, item: 'shaker' } },
+  q_garden: { n: 'Rafa’s Garden', giver: 'Mama Coco', steps: [
+      'Buy some seeds at Mama Coco’s.',
+      'Plant them in Rafa’s garden, inside the loop.',
+      'Harvest your first crop.',
+      'Blend a cocktail at The Driftwood.',
+    ],
+    track: [{ obj: 'seedRack' }, { obj: 'plot' }, { obj: 'plot' }, { obj: 'blender' }],
+    rw: { xp: 100, money: 10, item: 'strawhat' } },
+  q_boat: { n: 'Cargo', giver: 'Captain Teo', steps: [
+      'Read the order board on the jetty.',
+      'Fill an order for the supply boat.',
+    ],
+    track: [{ obj: 'orderBoard' }, { obj: 'orderBoard' }],
+    rw: { xp: 90, money: 40 } },
+  q_kai: { n: 'Catch a Wave', giver: 'Kai', steps: [
+      'Pick up a board at the surf shack.',
+      'Find the lagoon Kai told you about, somewhere in the jungle.',
+      'Tell Kai you found it.',
+    ],
+    track: [{ obj: 'surfShack' }, null, { npc: 'kai' }],
+    rw: { xp: 80, item: 'shell' } },
+  q_jade: { n: 'Lifeguard on Duty', giver: 'Jade', steps: [
+      'Bring Jade something cold from the bar.',
+      'Meet Jade at the cove lantern after sunset.',
+    ],
+    track: [{ npc: 'jade' }, { obj: 'coveLantern' }],
+    rw: { xp: 90, item: 'aviators' } },
+  q_luca: { n: 'Sunrise Salutations', giver: 'Luca', steps: [
+      'Join Luca on the yoga deck.',
+      'Put a record on the jukebox for his set.',
+      'Find Luca on the deck at The Driftwood.',
+    ],
+    track: [{ obj: 'yogaMats' }, { obj: 'jukebox' }, { npc: 'luca' }],
+    rw: { xp: 80, money: 15 } },
+  q_critic: { n: 'The Review', giver: 'Mari', steps: [
+      'Blend three cocktails to have ready.',
+      'Win over Sienna Vale on the deck.',
+    ],
+    track: [{ obj: 'blender' }, { npc: 'sienna' }],
+    rw: { xp: 150, money: 60 } },
+  q_offer: { n: 'The Offer', giver: 'Blake Sterling', steps: [
+      'Hear Blake Sterling out.',
+    ],
+    track: [{ npc: 'blake' }],
+    rw: { xp: 200 } },
 };
 
-/* ---------------- Achievements ---------------- */
+/* ---------------- Achievements ----------------
+   Several ids are the engine's own — a_first, a_landed, a_adult, a_bs,
+   a_legend, a_allthree, a_drive, a_parked, a_lap, a_foamwar and the arcade's —
+   and only their words are ours. */
 const ACHS = {
-  a_first: { n: 'Day One', e: '🕔', d: 'Finish a working day.' },
-  a_settled: { n: 'One of Us', e: '☕', d: 'Bring Lee a coffee.' },
-  a_review: { n: 'Reviewed', e: '📊', d: 'Survive your review.' },
-  a_landed: { n: 'Landed It', e: '🤝', d: 'Win an encounter on rapport alone.' },
-  a_adult: { n: 'The Adult in the Room', e: '🧘', d: 'Win an encounter with more than half your patience left.' },
-  a_bs: { n: 'Said Nothing, Won', e: '💼', d: 'Win an encounter using only corporate language.' },
-  a_legend: { n: 'Legend', e: '⭐', d: 'Reach 100 reputation.' },
+  a_first: { n: 'First Sunset', e: '🌅', d: 'Close the bar at the end of a day.' },
+  a_settled: { n: 'Part of the Furniture', e: '🍹', d: 'Serve your first guest.' },
+  a_review: { n: 'Five Stars', e: '⭐', d: 'Win over Sienna Vale.' },
+  a_landed: { n: 'Smooth Operator', e: '😏', d: 'Seal the deal on chemistry alone.' },
+  a_adult: { n: 'Ice Cold', e: '🧊', d: 'Win a guest over with more than half your nerve left.' },
+  a_bs: { n: 'All Talk', e: '💬', d: 'Win a guest using nothing but lines.' },
+  a_legend: { n: 'Legend of the Isle', e: '👑', d: 'Reach 100 reputation.' },
   a_allthree: { n: 'Explorer', e: '🧭', d: 'Walk into every place there is.' },
-  a_drive: { n: 'Behind the Wheel', e: '🚗', d: 'Drive a car.' },
-  a_parked: { n: 'First Go', e: '🅿️', d: 'Park straight, between the lines.' },
-  a_lap: { n: 'Round the Block', e: '🔄', d: 'Drive the whole loop in one go.' },
-  a_grid: { n: 'Every Road', e: '🗺️', d: 'Drive every road in one go.' },
-  a_greenman: { n: 'Green Man', e: '🚶', d: 'Cross at the crossing you pressed.' },
-  a_pressed: { n: 'Pressed It Again', e: '🚦', d: 'Press a crossing button that was already lit.' },
-  a_foamwar: { n: 'Foam War', e: '🔫', d: 'Hit five people with something foam.' },
-  a_holdmusic: { n: 'On Hold', e: '🎵', d: 'Clear the rhythm game.' },
-  a_inboxzero: { n: 'Inbox Zero', e: '📥', d: 'Clear the inbox game.' },
-  a_nothingread: { n: 'Flawless', e: '📭', d: 'Clear the inbox game without a mistake.' },
-  a_patched: { n: 'Patched', e: '🔌', d: 'Clear the cable game.' },
-  a_arcade: { n: 'Arcade', e: '🕹️', d: 'Clear all three games.' },
+  a_drive: { n: 'Top Down', e: '🚙', d: 'Drive the beach buggy.' },
+  a_parked: { n: 'Nailed the Park', e: '🅿️', d: 'Park straight, first go.' },
+  a_lap: { n: 'Round the Island', e: '🔄', d: 'Drive the whole loop in one go.' },
+  a_foamwar: { n: 'Water Fight', e: '💦', d: 'Soak five different people.' },
+  a_holdmusic: { n: 'Shake It', e: '🍸', d: 'Clear the cocktail rhythm game.' },
+  a_inboxzero: { n: 'All Booked', e: '📅', d: 'Clear the bookings game.' },
+  a_nothingread: { n: 'Flawless', e: '💯', d: 'Clear the bookings game without a mistake.' },
+  a_patched: { n: 'Lit Up', e: '✨', d: 'Clear the fairy-lights game.' },
+  a_arcade: { n: 'Beach Games', e: '🕹️', d: 'Clear all three games.' },
+  a_lagoon: { n: 'Secret Spot', e: '💎', d: 'Find the Hidden Lagoon.' },
+  a_green: { n: 'Green Fingers', e: '🌱', d: 'Harvest ten crops.' },
+  a_mixer: { n: 'Mixologist', e: '🍸', d: 'Blend ten cocktails.' },
+  a_cargo: { n: 'Shipshape', e: '⛵', d: 'Fill five orders for the supply boat.' },
+  a_date: { n: 'Lantern Light', e: '🏮', d: 'Go on a date at Lovers’ Cove.' },
+  a_kiss: { n: 'Sunset Kiss', e: '💋', d: 'Win somebody’s heart completely.' },
+  a_stayed: { n: 'Paradise Kept', e: '🌴', d: 'Turn down Blake Sterling.' },
+  a_dip: { n: 'Skinny Dip', e: '🌙', d: 'Go for a swim in the lagoon after dark.' },
 };
-
 
 /* ---------------- The arcade cabinets ----------------
-   WHERE a minigame is played, and what it is wired into. One entry per game
-   per object, and every field on it is a string that joins two files nothing
-   else joins up:
-
-     game    a minigame in engine/arcade.js's catalogue
-     use     an object's `use:` handler in data/acts.js — the thing you press
-     t       the reply that offers it, in the dialogue that object opens
-     skill   a skill in SKILLS whose rank the game is handed and spends on
-             something felt: a wider judgement window, a longer read, one more
-             cable already bolted down
-     job     a job in QUESTS, stepped once when the game is first cleared
-     item    an item in ITEMS, handed over the first time it is cleared
-     need    a G.flag that has to be set before the reply is offered at all
-
-   It is a TABLE rather than four hand-written dialogue choices because that is
-   the only form the editor can add to, edit and take away from — a minigame
-   bound to an object in code is one the tool can describe and never change.
-   cab() at the top of data/acts.js turns these into the replies, so the PROSE
-   stays there with the rest of the writing and only the wiring is data.
-
-   Every one of those six joins fails silently and each fails differently: a
-   `use` nothing handles is a reply that never appears, a `skill` that is not
-   in SKILLS is a rank of zero for ever, an `item` ITEMS has never heard of is
-   a reward that quietly does not arrive. editor/games.js checks all six. */
+   WHERE a minigame is played, and what it is wired into.
+     game   a minigame in engine/arcade.js's catalogue
+     use    an object's `use:` handler in data/acts.js
+     t      the reply that offers it
+     skill  a skill whose rank the game spends on something felt
+     job    a job stepped once when first cleared · item handed over then
+     need   a G.flag that must be set before it is offered */
 const CABINETS = [
-  { game: 'holdmusic', use: 'oldTerminal', skill: 'system', job: null, item: null, need: null,
-    t: 'Play the game on the old terminal.' },
-  { game: 'patch', use: 'cables', skill: 'product', job: null, item: 'cabletie', need: null,
-    t: 'Sort out the cables.' },
+  { game: 'holdmusic', use: 'djBooth', skill: 'system', job: null, item: null, need: null,
+    t: 'Get on the decks.' },
+  { game: 'patch', use: 'fairyLights', skill: 'product', job: null, item: 'hibiscus', need: null,
+    t: 'Untangle the fairy lights.' },
   { game: 'inbox', use: 'playerDesk', skill: 'corp', job: null, item: null, need: null,
-    t: 'Clear your inbox.' },
+    t: 'Sort out the bookings.' },
 ];
 
-
-/* ---------------- Shop ---------------- */
+/* ---------------- Shops ---------------- */
 const SHOP = {
-  vending: { title: 'Vending machine', note: 'Snacks, and one kind of coffee.',
-    stock: ['coffee', 'biscuit'] },
-  corner: { title: 'The Shop', note: 'Sandwiches and the rest.',
-    stock: ['sandwich', 'coffee', 'biscuit'] },
+  coco: { title: 'Mama Coco’s', note: 'Seeds, snacks, sun cream and scandal.',
+    stock: ['seed_mint', 'seed_lime', 'seed_strawberry', 'seed_mango', 'seed_pineapple', 'seed_coconut', 'empanada', 'coffee', 'coconutwater', 'suncream', 'hibiscus', 'aviators'] },
+  icecream: { title: 'The Ice-Cream Cart', note: 'One flavour. It is the right one.',
+    stock: ['icecream', 'coconutwater'] },
+  fruit: { title: 'The Fruit Stall', note: 'Whatever came in on the boat this morning.',
+    stock: ['lime', 'mint', 'strawberry', 'mango'] },
 };

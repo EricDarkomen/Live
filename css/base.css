@@ -3,21 +3,22 @@
    Palette: laminated office signage, dark-mode intranet
    ============================================================ */
 :root{
-  --ink:#0d1117;          /* deep slate  */
-  --ink2:#151b25;
-  --panel:#1b2230;
-  --panel2:#222b3b;
-  --line:#33405a;
+  /* Dusk on Isla Solana: a violet night, coral light, gold on the water. */
+  --ink:#1a1026;          /* deep dusk   */
+  --ink2:#221432;
+  --panel:#2a1a3a;
+  --panel2:#342247;
+  --line:#5a3a6a;
   --line-soft:rgba(255,255,255,.08);   /* the same edge, whispered — see the mobile block */
-  --text:#dfe6f2;
-  --dim:#8d9bb5;
-  --brand:#4da3ff;        /* the brand colour */
-  --hold:#ffb347;         /* hold-music amber */
-  --good:#5ad48a;
+  --text:#fff1e6;
+  --dim:#c7a6bd;
+  --brand:#ff6f91;        /* coral pink  */
+  --hold:#ffb347;         /* sunset gold */
+  --good:#5ad4a8;
   --bad:#ff5f56;
-  --purple:#b48cff;
-  --carpet:#2b3446;
-  --radius:10px;
+  --purple:#c79bff;
+  --carpet:#3a2448;
+  --radius:12px;
   --mono:ui-monospace,"Cascadia Mono","Consolas","DejaVu Sans Mono",monospace;
   --ui:"Trebuchet MS","Segoe UI",Tahoma,Verdana,sans-serif;
 }
@@ -64,7 +65,7 @@ button{font-family:inherit;color:inherit}
 .btn:hover{border-color:var(--brand);background:linear-gradient(180deg,#2a3648,var(--panel2))}
 .btn:active{transform:translateY(1px)}
 .btn:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
-.btn.primary{border-color:var(--brand);box-shadow:0 0 0 1px rgba(77,163,255,.18),0 8px 24px -12px var(--brand)}
+.btn.primary{border-color:var(--brand);box-shadow:0 0 0 1px rgba(255,111,145,.18),0 8px 24px -12px var(--brand)}
 .btn.small{padding:6px 10px;font-size:12px}
 .btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--line)}
 .btn:disabled:hover{background:linear-gradient(180deg,var(--panel2),var(--panel));border-color:var(--line)}

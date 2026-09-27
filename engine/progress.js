@@ -3,6 +3,7 @@
 const Player = {
   init(name) {
     P.name = name; P.level = 1; P.xpv = 0; P.xpNext = 100; P.rank = 0;
+    if (typeof RANKS !== 'undefined' && RANKS[0] && RANKS[0].face) P.face = RANKS[0].face;
     P.patience = 100; P.energy = 100; P.money = 0; P.rep = 0;
     P.stats = { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 };
     P.skills = {}; P.skillPoints = 1; P.inventory = []; P.equipment = { headset: null, trinket: null, mug: null };

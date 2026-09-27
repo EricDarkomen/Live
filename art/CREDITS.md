@@ -24,6 +24,13 @@ standing, walking, running, sitting and one-handed combat frames, and packed
 into a sheet per source project — or, for the character creator, a file per
 component.
 
+**The beachwear is derived from the same parts**: the bikini tops, bikini
+bottoms, trunks, shorts, tank tops and open shirts in `art/sprites/parts/`
+(the entries named `Swim …` in `art/sprites/manifest.js`) were cut from the
+LPC T-shirt and trouser parts listed above, frame by frame, and recoloured
+from the T-shirt palettes. They carry the licence of the parts they were cut
+from.
+
 Licensed **OGA-BY 3.0** (some contributions additionally CC0), except the sheets
 marked with a part above: *LICENSE part 3* is **CC-BY-SA 3.0** and *LICENSE
 part 4* is **CC-BY-SA 4.0**. Those are ShareAlike, they are not the same

@@ -9,7 +9,7 @@
   color:var(--dim);cursor:pointer;font-family:var(--mono);letter-spacing:.06em;transition:.14s}
 .tab:hover{color:var(--text);border-color:var(--line-soft);background:rgba(255,255,255,.03)}
 .tab.on{color:var(--ink);background:linear-gradient(180deg,#63b3ff,var(--brand));border-color:var(--brand);
-  font-weight:700;box-shadow:0 6px 16px -8px rgba(77,163,255,.7)}
+  font-weight:700;box-shadow:0 6px 16px -8px rgba(255,111,145,.7)}
 /* The icon carries less weight than the label until a tab is selected — a row
    of eight equally bold glyphs read as noise before you have picked one. */
 .tab-i{font-size:14px;line-height:1;opacity:.7;filter:grayscale(.25)}
@@ -55,7 +55,7 @@
 .mp-key span{display:inline-flex;align-items:center;gap:6px}
 .mp-key i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
 .mp-you{background:#fff;clip-path:polygon(100% 50%,14% 100%,38% 50%,14% 0)}
-.mp-out{background:#4da3ff;border-radius:999px!important}
+.mp-out{background:#ff6f91;border-radius:999px!important}
 .mp-pin{background:#5ad48a}
 .mp-npc{background:rgba(180,140,255,.85)}
 .mp-car{background:rgba(90,212,138,.9)}
@@ -81,7 +81,7 @@
 .branch h4{font-size:13px;margin-bottom:9px;font-family:var(--mono);letter-spacing:.1em}
 .skill{display:flex;gap:8px;align-items:center;padding:7px;border-radius:7px;border:1px solid transparent;
   cursor:pointer;transition:.12s}
-.skill:hover{background:rgba(77,163,255,.1);border-color:var(--line)}
+.skill:hover{background:rgba(255,111,145,.1);border-color:var(--line)}
 .skill .sn{font-size:12.5px;flex:1}
 .skill .pips{font-family:var(--mono);font-size:11px;color:var(--hold);letter-spacing:.1em}
 .skill.maxed .pips{color:var(--good)}
@@ -120,7 +120,7 @@
 .rep-row{display:flex;justify-content:space-between;padding:6px 0;
   border-bottom:1px dotted #2a3448;font-size:13.5px}
 .rep-row span:last-child{font-family:var(--mono);color:var(--hold)}
-.verdict{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:9px;background:rgba(77,163,255,.07);text-align:center}
+.verdict{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:9px;background:rgba(255,111,145,.07);text-align:center}
 .verdict .vt{font-family:var(--mono);font-size:20px;color:var(--brand);letter-spacing:.06em}
 .verdict .vn{font-size:11px;color:var(--dim);margin-top:8px;font-style:italic}
 .ending-title{font-family:var(--mono);font-size:clamp(22px,5vw,40px);letter-spacing:.08em;color:var(--hold)}

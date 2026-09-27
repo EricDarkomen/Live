@@ -23,36 +23,36 @@
 
 const MG_INBOX = {
   id: 'inbox',
-  name: 'Inbox Zero',
-  icon: '✉️',
-  blurb: 'Two thousand unread. You are not going to read them. You are going to sort them.',
-  goal: 'Sort thirty before the escalations reach the top.',
+  name: 'All Booked',
+  icon: '📅',
+  blurb: 'The Driftwood inbox. Bookings, staff, and a lot of people trying to sell you things.',
+  goal: 'Sort thirty before the mess piles up.',
   mins: 10,
   /* Measured, like the others: a good round — a couple wrong out of thirty —
      scores about this. Perfect is 11,280 and caps at the 1.4 the reward
      clamps to. */
   par: 7500,
   help: {
-    keys: ['◀ delete · ▲ reply · ▶ forward', 'A real customer gets a reply. Everything else does not.'],
-    taps: ['Tap DELETE, REPLY or FORWARD', 'A real customer gets a reply. Everything else does not.']
+    keys: ['◀ bin · ▲ book · ▶ pass to Mari', 'A real booking gets booked. Staff notes go to Mari. Everything else goes in the bin.'],
+    taps: ['Tap BIN, BOOK or MARI', 'A real booking gets booked. Staff notes go to Mari. Everything else goes in the bin.']
   },
   pads: [
-    { code: 'ArrowLeft', label: '🗑 Delete', aria: 'Delete this email' },
-    { code: 'ArrowUp', label: '↩ Reply', aria: 'Reply to this email' },
-    { code: 'ArrowRight', label: '➜ Forward', aria: 'Forward this email' }
+    { code: 'ArrowLeft', label: '🗑 Bin', aria: 'Bin this message' },
+    { code: 'ArrowUp', label: '📅 Book', aria: 'Book this in' },
+    { code: 'ArrowRight', label: '💃 Mari', aria: 'Pass this to Mari' }
   ],
 
   /* Three verbs, and the key and pad that mean each. */
   ACT: { ArrowLeft: 'bin', ArrowUp: 'reply', ArrowRight: 'dave' },
-  LABEL: { bin: 'DELETED', reply: 'REPLIED', dave: 'FORWARDED' },
-  VERB: { bin: 'DELETE', reply: 'REPLY', dave: 'FORWARD' },
+  LABEL: { bin: 'BINNED', reply: 'BOOKED', dave: 'TO MARI' },
+  VERB: { bin: 'BIN', reply: 'BOOK', dave: 'MARI' },
   /* One line per kind, shown on the card when you get one wrong. The rules of
      the game, given a card at a time and only when they are wanted — which is
      the only moment anybody reads a rule. */
   WHY: {
-    reply: 'a real person with a real account problem',
-    dave: 'internal post — nobody is expecting an answer',
-    bin: 'nobody you have ever met, wanting something clicked'
+    reply: 'a real guest who wants a table',
+    dave: 'somebody on the island — Mari will deal with it',
+    bin: 'nobody you have ever met, selling something'
   },
   TARGET: 30,
   CEILING: 12,           /* escalations you can carry before somebody notices */
@@ -70,69 +70,69 @@ const MG_INBOX = {
      subject already used this round is not offered again. */
   DECK: {
     reply: {
-      from: ['mrs.aitken@', 'g.pollard@', 'j.mcbride@', 'complaints.in@', 's.okafor@',
-        'w.hargreaves@', 'd.iqbal@', 'the.brennans@', 'a.nkemelu@', 'r.whitlock@'],
-      subj: ['My bill is £4 more than last month',
-        'Still no engineer — third time of asking',
-        'Cancelled in March, still being charged',
-        'Wrong name on the account (it is not Gerald)',
-        'Promised a callback on Tuesday',
-        'Router blinking amber, has been for a fortnight',
-        'You have taken the money twice',
-        'My late mother is still receiving your letters',
-        'Moved house in June, service did not',
-        'The engineer came. The engineer left. Nothing happened.',
-        'Third bill this month, all different amounts',
-        'I have been on hold for fifty-one minutes',
-        'Your website says my postcode does not exist',
-        'Someone else’s direct debit is on my account',
-        'Upgraded, downgraded, billed for both',
-        'Can somebody please just ring me back',
-        'The line goes dead every time it rains',
-        'I am not angry, I would just like an answer']
+      from: ['priya.and.tom@', 'the.okafors@', 'honeymoon.2026@', 'j.mcbride@', 'sunseekers.club@',
+        'w.hargreaves@', 'hen.do.kerry@', 'the.brennans@', 'a.nkemelu@', 'yoga.retreat@'],
+      subj: ['Table for 6 at sunset on Friday?',
+        'Can we book the deck for a proposal?? (SECRET)',
+        'Hen party of 12 — do you do pink drinks',
+        'Anniversary dinner, somewhere romantic please',
+        'Birthday drinks for my wife, Saturday 8pm',
+        'Do you take bookings for the fire pit?',
+        'Wedding afterparty — 40 guests, June',
+        'Honeymoon! Any chance of the snug?',
+        'Group of 8 surfers, very thirsty, Tuesday',
+        'Can we reserve two stools at the bar?',
+        'Is Luca DJing on Friday? Booking if yes',
+        'Retirement party for Pepe (surprise)',
+        'Sunset table for two, first date, help',
+        'Book us in for cocktail class please',
+        'Our yacht arrives Thursday, table for 10',
+        'Vow renewal on the beach — drinks after?',
+        'Can you do a mojito tower for 20',
+        'Returning guests! Same table as last year?']
     },
     dave: {
-      from: ['all-staff@', 'facilities@', 'hr.notices@', 'wellbeing@', 'compliance@',
-        'workplace@', 'internal.comms@', 'health.safety@', 'the.hub@', 'estates@'],
-      subj: ['ALL STAFF: fridge amnesty Friday',
-        'Reminder: the car park is not a car park',
-        'Mandatory: Values Refresher (45 min)',
-        'FYI — Q3 synergy framework, for information',
-        'Please do not reply to all',
-        'Someone has taken the good chair again',
-        'Desk audit: your desk has been audited',
-        'Kitchen: the washing up is not a communal activity',
-        'For your awareness: awareness week',
-        'Lift 2 is being itself again',
-        'Cascade: please cascade this to your teams',
-        'Fire drill Thursday. It is a drill. Probably.',
-        'The printer on 4 has been spoken to',
-        'Wellbeing: have you tried going outside',
-        'Policy update — no change to the policy',
-        'Christmas decorations to remain up until further notice',
-        'Bike rack consultation, phase two',
-        'Nobody has claimed the tupperware']
+      from: ['mari@', 'luca.dj@', 'kai.surf@', 'teo.boat@', 'mamacoco@',
+        'jade.lifeguard@', 'pepe@', 'rafa@', 'the.driftwood@', 'island.council@'],
+      subj: ['Mari: we are OUT of limes. Again.',
+        'Luca: new playlist, very sexy, you will see',
+        'Kai: left my board on the deck lol',
+        'Teo: boat is late, fish is early',
+        'Mama Coco: I know what you did last night',
+        'Jade: can I store sun cream in your fridge',
+        'Pepe: my chair. Please.',
+        'Rafa: postcard from Bali, wish you were here',
+        'Council: bin day is Tuesday. It was always Tuesday.',
+        'Mari: who put a flamingo on the roof',
+        'Luca: the jukebox is jealous of me',
+        'Kai: are you coming surfing or what',
+        'Mari: rota for next week (you are on every day)',
+        'Teo: I need the forty euros Rafa owed me',
+        'Jade: somebody fell asleep on lounger 4',
+        'Mama Coco: mangoes half price, tell nobody',
+        'Pepe: I have a story. It is long.',
+        'Council: please stop the conga at 2am']
     },
     bin: {
-      from: ['no-reply@', 'IT-SUPPORT@', 'winner@', 'payroII@', 'security-alert@',
-        'ceo.office@', 'admin.verify@', 'docusign-alerts@', 'account-team@', 'hr-payroll@'],
-      subj: ['URGENT: click here to verify your account',
-        'Your mailbox is FULL — act within 24 hours',
-        'Re: Re: Re: Re: Re: Re: (no subject)',
-        'Congratulations you have been selected',
-        'Password expires today — confirm your details',
-        'I need a favour, are you at your desk? — Sent from my iPhone',
+      from: ['no-reply@', 'sterling.resorts@', 'winner@', 'crypto.beach@', 'timeshare.deals@',
+        'ceo.office@', 'free.cruise@', 'bitc0in.bar@', 'account-team@', 'influencer.pr@'],
+      subj: ['URGENT: sell your bar in 24 hours',
+        'Sterling Resorts: an offer you cannot refuse',
+        'You have WON a free cruise (pay postage)',
+        'Timeshare opportunity: own 1/52 of a condo',
         'Invoice attached (invoice.pdf.exe)',
+        'Crypto for beach bars — the future of rum',
+        'Congratulations you have been selected',
+        'Collab? 12 followers, want free drinks forever',
+        'Your domain driftwood.bar is expiring (it is not)',
+        'Buy 10,000 paper umbrellas, special price',
+        'ACTION REQUIRED: verify your cocktail licence',
+        'Sterling Resorts: let’s circle back on your shack',
+        'Hot singles in your area (the area is an island)',
         'Your parcel could not be delivered (no parcel exists)',
-        'ACTION REQUIRED: unusual sign-in from Lagos',
         'Payroll update — reconfirm your bank details',
-        'You have 1 undelivered message. Release it here.',
-        'Quick question — are you free right now? — CEO',
-        'Your subscription will auto-renew at £249.99',
-        'Document shared with you: “Q4 BONUS LIST.xlsm”',
-        'Mailbox migration: sign in to keep your email',
-        'FINAL NOTICE regarding your account (no account)',
-        'HR: your P60 is ready (click to authenticate)',
+        'FINAL NOTICE regarding your yacht (no yacht)',
+        'Document shared with you: “FREE RUM.xlsm”',
         'We noticed a problem. Confirm everything.']
     }
   },
@@ -225,13 +225,13 @@ const MG_INBOX = {
         this.fly = null;
         if (this.esc >= this.CEILING) {
           return a.end({ win: false, score: a.score,
-            note: 'Your manager has been copied in.' });
+            note: 'Mari has seen the state of the inbox.' });
         }
         if (this.done >= this.TARGET) {
           a.add(this.bestCombo * 25 + Math.max(0, this.CEILING - this.esc) * 40);
           return a.end({ win: true, score: a.score,
-            note: this.wrong === 0 ? 'Thirty sorted, none escalated. The folder is empty. It will not last the hour.'
-              : 'The folder is empty. Two thousand more are on their way.' });
+            note: this.wrong === 0 ? 'Thirty sorted, not one wrong. The book is full and the bin is fuller.'
+              : 'The book is full. The bin is fuller.' });
         }
         this.deal(a);
       }
@@ -275,9 +275,9 @@ const MG_INBOX = {
     const w = (a.w - pad * (n + 1)) / n;
     const y = a.h - h - pad;
     return [
-      { verb: 'bin', label: a.touch ? 'DELETE' : '◀ DELETE', x: pad, y: y, w: w, h: h, c: a.paint.bad },
-      { verb: 'reply', label: a.touch ? 'REPLY' : '▲ REPLY', x: pad * 2 + w, y: y, w: w, h: h, c: a.paint.good },
-      { verb: 'dave', label: a.touch ? 'FORWARD' : '▶ FORWARD', x: pad * 3 + w * 2, y: y, w: w, h: h, c: a.paint.brand }
+      { verb: 'bin', label: a.touch ? 'BIN' : '◀ BIN', x: pad, y: y, w: w, h: h, c: a.paint.bad },
+      { verb: 'reply', label: a.touch ? 'BOOK' : '▲ BOOK', x: pad * 2 + w, y: y, w: w, h: h, c: a.paint.good },
+      { verb: 'dave', label: a.touch ? 'MARI' : '▶ MARI', x: pad * 3 + w * 2, y: y, w: w, h: h, c: a.paint.brand }
     ];
   },
   targetAt(a, x, y) {
@@ -295,7 +295,7 @@ const MG_INBOX = {
     const ew = a.w - 24;
     p.bar(g, 12, 10, ew, 7, this.esc / this.CEILING,
       this.esc >= this.CEILING - 3 ? p.bad : this.esc > 4 ? p.hold : p.line);
-    p.say(g, 'ESCALATIONS ' + this.esc + '/' + this.CEILING, 12, 30,
+    p.say(g, 'PILE-UP ' + this.esc + '/' + this.CEILING, 12, 30,
       { size: 9, font: p.mono, colour: this.esc > 4 ? p.hold : p.dim });
     p.say(g, (this.TARGET - this.done) + ' LEFT', a.w - 12, 30,
       { size: 9, font: p.mono, colour: p.dim, align: 'right' });
@@ -374,7 +374,7 @@ const MG_INBOX = {
     const share = clamp(r.score / this.par, 0, 1.4);
     if (!r.win) {
       return { xp: Math.round(16 * share), patience: -4,
-        toast: 'The folder won. The folder always wins.' };
+        toast: 'The inbox won. Mari takes your phone off you.' };
     }
     Ach.get('a_inboxzero');
     if (this.wrong === 0 && this.timedOut === 0) Ach.get('a_nothingread');
@@ -383,7 +383,7 @@ const MG_INBOX = {
       xp: 35 + Math.round(65 * share),
       money: Math.round(share * 180) / 100,
       rep: 2, energy: -6,
-      toast: 'Inbox: zero. For eleven minutes it was true.'
+      toast: 'All booked. Every table, every sunset, every stool.'
     };
   }
 };

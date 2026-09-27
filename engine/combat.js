@@ -212,14 +212,14 @@ const Combat = {
         el.parentElement.setAttribute('aria-valuetext', label);
       }
     };
-    meter('#cbFrus', E.frus / E.maxFrus * 100, Math.max(0, Math.round(E.frus)) + ' frustration');
+    meter('#cbFrus', E.frus / E.maxFrus * 100, Math.max(0, Math.round(E.frus)) + ' guard');
     $('#cbFrusV').textContent = Math.max(0, Math.round(E.frus));
-    meter('#cbCPat', E.cpat / E.maxCpat * 100, E.cpat > 900 ? 'endless patience'
+    meter('#cbCPat', E.cpat / E.maxCpat * 100, E.cpat > 900 ? 'all the time in the world'
       : this.words(E).pat(Math.max(0, Math.round(E.cpat))));
     $('#cbCPatV').textContent = E.cpat > 900 ? '∞' : Math.max(0, Math.round(E.cpat));
-    meter('#cbYou', P.patience / P.patMax * 100, Math.round(P.patience) + ' of your patience left');
+    meter('#cbYou', P.patience / P.patMax * 100, Math.round(P.patience) + ' nerve left');
     $('#cbYouV').textContent = Math.round(P.patience);
-    meter('#cbRap', E.rap || 0, Math.round(E.rap || 0) + ' rapport');
+    meter('#cbRap', E.rap || 0, Math.round(E.rap || 0) + ' chemistry');
     $('#cbRapV').textContent = Math.round(E.rap || 0);
 
     /* The tell. Named as a want rather than a mechanic — "they want a straight
@@ -302,7 +302,7 @@ const Combat = {
         E.rap = clamp(E.rap + 20 + P.eff.empathy, 0, 100);
         E.matched++; E.lastMatch = true;
         note = ' — that was what they wanted.';
-        FX.float(P.x, P.y - 34, '🤝 rapport', '#b48cff');
+        FX.float(P.x, P.y - 34, '💕 chemistry', '#b48cff');
         /* Somebody who is being understood calms down, and stays calmer for
            the rest of the call than they started it. Never all the way: they
            still rang up about something. */
@@ -321,7 +321,7 @@ const Combat = {
     }
     E.frus -= r.dmg;
     this.line(this.words(E).wrote + r.txt + note, 'nar');
-    this.log((r.dmg >= 900 ? '[END] ' : r.dmg >= 0 ? '−' + Math.round(r.dmg) + ' frustration · ' : '+' + Math.round(-r.dmg) + ' frustration · ')
+    this.log((r.dmg >= 900 ? '[END] ' : r.dmg >= 0 ? '−' + Math.round(r.dmg) + ' guard · ' : '+' + Math.round(-r.dmg) + ' guard · ')
       + m.n + (match ? '  ✓ ' + NEEDS[E.need].n : '') + (uses ? '  (heard it ' + uses + '×)' : ''));
     if (r.dmg > 0 && r.dmg < 900) FX.burst(P.x, P.y - 20, '💬', 4);
     this.refresh();
@@ -355,7 +355,7 @@ const Combat = {
     dmg = Math.max(1, dmg + rnd(-2, 2));
     P.patience = Math.max(0, P.patience - dmg);
     this.line(said, 'say');
-    this.log(this.words(E).said + said + '  (−' + Math.round(dmg) + ' patience)');
+    this.log(this.words(E).said + said + '  (−' + Math.round(dmg) + ' nerve)');
     this.hit(Math.round(dmg));
     FX.shake(Math.min(6, dmg / 3));
     E.frus += E.boss ? 3 : 1.5;
@@ -407,7 +407,7 @@ const Combat = {
         P.energy = clamp(P.energy + gas, 0, P.eneMax);
         $('#combat').classList.remove('critical');
         this.line(b.breather || '— ' + ph.n + ' —', 'nar');
-        this.log('PHASE: ' + ph.n + '  (+' + heal + ' patience, +' + gas + ' energy)');
+        this.log('PHASE: ' + ph.n + '  (+' + heal + ' nerve, +' + gas + ' energy)');
         Sfx.bad(); FX.shake(10); UI.flash('#ff5f56', .35);
         this.busy = false; this.refresh(); return;
       }
@@ -449,7 +449,7 @@ const Combat = {
       if (rap >= 40) {
         const bonus = Math.round(rap / 2) + (E.landed ? 40 : 0);
         xp += bonus; rep += E.landed ? 6 : 3;
-        UI.toast('🤝', say(E.landed ? 'enc.landed' : 'enc.rapport', { xp: bonus }), 'gold');
+        UI.toast('💕', say(E.landed ? 'enc.landed' : 'enc.rapport', { xp: bonus }), 'gold');
         if (E.landed) { P.stats.empathy += 1; Ach.get('a_landed'); }
       }
       /* Anything a game wants to happen on a won encounter — a job that
@@ -494,7 +494,7 @@ const Combat = {
       k: how === 'win' ? 'good' : how === 'transfer' ? '' : 'bad',
       /* The one-line header of the record: which channel, how long it took,
          how well you read them, what it paid. */
-      meta: CHANNELS_CB[E.ch].what + ' · ' + this.turn + ' turns · rapport '
+      meta: CHANNELS_CB[E.ch].what + ' · ' + this.turn + ' turns · chemistry '
         + Math.round(E.rap || 0) + ' · +' + xp + ' XP'
         + (money ? ' · +' + cash(money) : ''),
       lines: E.script.slice(),

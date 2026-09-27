@@ -198,6 +198,10 @@ const R = {
         g.globalCompositeOperation = 'multiply';
         g.fillStyle = this.shade(v ? floor : alt, .55);
         g.fillRect(0, 0, N, N);
+        /* A surface may LIFT its tile as well as tint it: multiply can only
+           darken, and a tropical sea painted from a North Sea tile needs light
+           adding back, not taking away. */
+        if (S && S.lift) { g.globalCompositeOperation = 'screen'; g.fillStyle = S.lift; g.fillRect(0, 0, N, N); }
         g.globalCompositeOperation = 'source-over';
         /* The seam along the top and left of a tile is what makes a floor read
            as laid rather than as wallpaper. A road has no seams in it — it was

@@ -28,18 +28,18 @@
 
 const MG_PATCH = {
   id: 'patch',
-  name: 'Patch Panel',
-  icon: '🔌',
-  blurb: 'Steve says it is a network issue. Steve has said that since 2021.',
-  goal: 'Turn the loose cables until the rack reaches the panel. Three racks.',
+  name: 'Fairy Lights',
+  icon: '✨',
+  blurb: 'Four hundred bulbs, one knot the size of a coconut, and sunset in twenty minutes.',
+  goal: 'Turn the loose strands until the lights reach the plug. Three strings.',
   mins: 8,
   /* The one of the three that was already right. A perfect solve is about 3,500
      and a sloppy one about 2,000, so a good round is here. */
   par: 3000,
   help: {
-    keys: ['Click a cable to turn it · arrows and space also work',
-      'Overshot? Press Z, or the undo on the rack'],
-    taps: ['Tap a cable to turn it', 'Overshot? Tap the undo under the rack']
+    keys: ['Click a strand to turn it · arrows and space also work',
+      'Overshot? Press Z, or the undo under the lights'],
+    taps: ['Tap a strand to turn it', 'Overshot? Tap the undo under the lights']
   },
   pads: [],           /* pointer-first: the board IS the control. */
 
@@ -342,7 +342,7 @@ const MG_PATCH = {
     bg.addColorStop(0, '#0e1a1a'); bg.addColorStop(1, p.ink);
     g.fillStyle = bg; g.fillRect(0, 0, a.w, a.h);
 
-    p.say(g, 'RACK ' + (this.rack + 1) + ' · ' + this.n + '×' + this.n, a.w / 2, 26,
+    p.say(g, 'STRING ' + (this.rack + 1) + ' · ' + this.n + '×' + this.n, a.w / 2, 26,
       { size: 10, font: p.mono, colour: p.dim, align: 'center' });
 
     /* the cabinet the whole thing sits in */
@@ -442,8 +442,8 @@ const MG_PATCH = {
        thing a short viewport drops, so on a phone this is the only place it can
        be read at all. */
     if (this.rack === 0 && this.moves < 3) {
-      p.say(g, a.touch ? 'Tap a cable to turn it · bolted ones will not move'
-        : 'Click a cable to turn it · bolted ones will not move',
+      p.say(g, a.touch ? 'Tap a strand to turn it · pinned ones will not move'
+        : 'Click a strand to turn it · pinned ones will not move',
         a.w / 2, Math.min(u.y + u.h + 18, a.h - 6),
         { size: 11, colour: 'rgba(255,255,255,.34)', align: 'center' });
     }
@@ -459,7 +459,7 @@ const MG_PATCH = {
     const share = clamp(r.score / this.par, 0, 1.4);
     if (!r.win) {
       return { xp: Math.round(14 * share),
-        toast: 'You put the knot back roughly as you found it.' };
+        toast: 'You put the knot back roughly as you found it. Mari sighs.' };
     }
     Ach.get('a_patched');
     if (typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
@@ -467,7 +467,7 @@ const MG_PATCH = {
       xp: 45 + Math.round(60 * share),
       money: Math.round(share * 150) / 100,
       rep: 3, patience: 4,
-      toast: 'Three racks patched. Steve will explain that it was always a network issue.'
+      toast: 'The deck lights up gold. Everybody goes “ooh”. You pretend it was easy.'
     };
   }
 };

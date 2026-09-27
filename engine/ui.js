@@ -110,7 +110,7 @@ const UI = {
          and three meters, and "calls" is the word the amber dot beside it is
          already saying. */
       if (q) $('#hQueueT').textContent = TOUCH ? q + ' waiting'
-        : q === 1 ? '1 call waiting' : q + ' calls waiting';
+        : q === 1 ? '1 guest waiting' : q + ' guests waiting';
     }
     /* the bars turn red when you are nearly out of yourself */
     const low = P.patience <= P.patMax * 0.25;

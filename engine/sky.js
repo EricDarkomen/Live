@@ -46,7 +46,10 @@ const Sky = {
 
   season() {
     const d = Math.max(1, G.day | 0);
-    return this.SEASONS[Math.floor((d - 1) / this.SEASON_DAYS) % this.SEASONS.length];
+    /* A game may name its own year — an island near the equator has one
+       season, and GAME.seasons says so without this file knowing why. */
+    const S = (typeof GAME !== 'undefined' && GAME.seasons) || this.SEASONS;
+    return S[Math.floor((d - 1) / this.SEASON_DAYS) % S.length];
   },
   seasonName() { const s = this.season(); return s[0].toUpperCase() + s.slice(1); },
 
@@ -61,7 +64,7 @@ const Sky = {
     autumn: { rise: 430, set: 1090 },   /* 07:10 → 18:10 */
     winter: { rise: 485, set: 965 }     /* 08:05 → 16:05 */
   },
-  sun() { return this.SUN[this.season()] || this.SUN.autumn; },
+  sun() { return (typeof GAME !== 'undefined' && GAME.sun) || this.SUN[this.season()] || this.SUN.autumn; },
 
   /* ---- the clock ----
      Minutes past midnight, always, and G.minutes is kept inside 0..1439 by the
@@ -188,7 +191,7 @@ const Sky = {
      which is what makes a day feel like one day rather than ten. */
   roll(soft) {
     const st = this.state();
-    const bag = this.BAGS[this.season()] || this.BAGS.autumn;
+    const bag = (typeof GAME !== 'undefined' && GAME.weather) || this.BAGS[this.season()] || this.BAGS.autumn;
     let k = pick(bag);
     if (soft) {
       /* Two draws, keep the one closer to what is already happening. Cheap, and

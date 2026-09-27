@@ -54,10 +54,10 @@ const Sfx = {
   cut() { this.tone(174, 0.34, 'sine', 0.11); this.tone(116, 0.4, 'sine', 0.07, 0.02); },
   select() { this.tone(680, 0.07, 'triangle', 0.3); this.tone(920, 0.06, 'triangle', 0.22, 0.05); },
   deny() { this.tone(180, 0.16, 'sawtooth', 0.25, 0, -60); },
+  /* A guest at the bar: the brass service bell, struck once, bright and
+     ringing on — not a telephone. */
   ring() {
-    for (let i = 0; i < 2; i++) {
-      this.tone(880, 0.09, 'sine', 0.3, i * 0.22); this.tone(660, 0.09, 'sine', 0.3, i * 0.22 + 0.1);
-    }
+    this.tone(1568, 0.7, 'sine', 0.22); this.tone(2349, 0.45, 'sine', 0.08); this.tone(3136, 0.25, 'sine', 0.04);
   },
   xp() { this.tone(700, 0.07, 'triangle', 0.25); this.tone(1050, 0.1, 'triangle', 0.22, 0.06); },
   levelup() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.3, i * 0.09)); },
@@ -140,20 +140,20 @@ const Sfx = {
     this.tone(70 + v * 40, 0.16, 'square', 0.1 + v * 0.16, 0, -30);
   },
   scrape() { this.noise(0.1, 0.07); },
-  /* Hold music: a MIDI keyboard demo of Greensleeves, played by a machine
-     that has never been outdoors. */
+  /* Bar music: a little calypso on a steel drum, looping under a
+     conversation at the bar. */
   holdMusic(start) {
     clearTimeout(this.holdTimer); this.holdTimer = null;
     if (!start || !this.music || !this.on || !this.ctx) return;
-    const mel = [440, 523, 587, 659, 698, 659, 587, 494, 440, 392, 440, 494, 523, 494, 440, 415];
+    const mel = [523, 659, 784, 659, 698, 880, 784, 659, 587, 698, 880, 698, 659, 784, 659, 523];
     let i = 0;
     const loop = () => {
       if (!this.music || !this.on) return;
       const f = mel[i % mel.length];
-      this.tone(f * (chance(0.06) ? 1.06 : 1), 0.26, 'triangle', 0.09);
-      this.tone(f / 2, 0.3, 'sine', 0.05);
+      this.tone(f, 0.32, 'sine', 0.08); this.tone(f * 2.02, 0.18, 'sine', 0.03);
+      if (i % 2 === 0) this.tone(i % 4 === 0 ? 131 : 196, 0.22, 'triangle', 0.06);
       i++;
-      this.holdTimer = setTimeout(loop, i % 8 === 0 ? 420 : 300);
+      this.holdTimer = setTimeout(loop, i % 4 === 3 ? 360 : 180);
     };
     loop();
   }

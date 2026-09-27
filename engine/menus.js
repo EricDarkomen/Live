@@ -288,7 +288,7 @@ const Report = {
     G.flags.leaving = pick(this.LEAVING);
     Ach.get('a_first');
     Q.restand();
-    UI.toast('🕔', say('dayOver', { where: TOUCH ? '<b>☰ · Shift</b>' : 'press <span class="kbd">T</span>' }), 'gold');
+    UI.toast('🌅', say('dayOver', { where: TOUCH ? '<b>☰ · ' + (TEXT['tab.shift'] ? say('tab.shift') : 'Shift') + '</b>' : 'press <span class="kbd">T</span>' }), 'gold');
     Hook('dayEnd', G.day);
     Save.write(true);
     UI.hud();
@@ -311,7 +311,7 @@ const Endings = {
   offer() {
     G.flags.endingShown = true;
     const opts = this.available();
-    Dialogue.say('📊', say('endings.name'), say('endings.role'), says('endings.pages'),
+    Dialogue.say('🌅', say('endings.name'), say('endings.role'), says('endings.pages'),
       opts.map(k => ({ t: ENDINGS[k].t, to: null, do() { Endings.show(k); } })));
   },
   show(k) {

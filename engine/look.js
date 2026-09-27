@@ -106,7 +106,11 @@ const Look = {
 
   /* ---- the screen ---- */
 
-  open() {
+  open(opts) {
+    /* The wardrobe: the same screen opened mid-game from a piece of furniture,
+       which goes back to the game rather than on to the opening. */
+    this.wardrobe = !!(opts && opts.wardrobe);
+    const go = $('#btnLookGo'); if (go) go.textContent = this.wardrobe ? 'Done' : 'Start';
     G.state = 'look';
     $('#nameScreen').classList.remove('on');
     $('#lookScreen').classList.add('on');
@@ -274,6 +278,12 @@ const Look = {
   accept() {
     this.close();
     Sfx.select();
+    if (this.wardrobe) {
+      this.wardrobe = false;
+      G.state = 'play';
+      UI.toast('👙', 'Looking good. Somebody on the beach is going to notice.', 'gold');
+      return;
+    }
     Cut.start();
   },
 };

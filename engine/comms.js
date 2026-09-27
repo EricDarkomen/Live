@@ -67,7 +67,7 @@ const CHANNELS = [
                   an acknowledgement of your own press is not spam.
      Anything silent still counts on the rail, which is the whole reason the
      rail exists. */
-  { id: 'mail',  n: 'Mail',   e: '✉️', cap: 60,  read: 'thread', pop: 'always',
+  { id: 'mail',  n: 'Post',   e: '💌', cap: 60,  read: 'thread', pop: 'always',
     get empty() { return say('empty.mail'); } },
   { id: 'text',  n: 'Texts',  e: '📱', cap: 90,  read: 'thread', pop: 'always',
     get empty() { return say('empty.text'); } },
@@ -79,7 +79,7 @@ const CHANNELS = [
      which is the shape a log actually wants. */
   { id: 'log',   n: 'Log',    e: '📋', cap: 160, read: 'ledger', pop: 'always',
     get empty() { return say('empty.log'); } },
-  { id: 'calls', n: 'Calls',  e: '📞', cap: 40,  read: 'thread', pop: 'never',
+  { id: 'calls', n: 'Guests', e: '🍹', cap: 40,  read: 'thread', pop: 'never',
     get empty() { return say('empty.calls'); } }
 ];
 const CH = {}; CHANNELS.forEach(c => CH[c.id] = c);

@@ -36,8 +36,8 @@ body.talking #touch.on{display:none}
    not eased: a transition here puts it permanently a tenth of a second behind
    the thumb, which reads as the control being broken. */
 #stickKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;
-  border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(77,163,255,.62),rgba(77,163,255,.3));
-  border:2px solid var(--brand);box-shadow:0 8px 20px -10px rgba(77,163,255,.9);will-change:transform}
+  border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(255,111,145,.62),rgba(255,111,145,.3));
+  border:2px solid var(--brand);box-shadow:0 8px 20px -10px rgba(255,111,145,.9);will-change:transform}
 .stick.grab{opacity:.96}
 body.southpaw .stick{left:auto;right:calc(18px + env(safe-area-inset-right))}
 /* ---- the second stick ----
@@ -128,7 +128,7 @@ body.driving #touchE{font-size:12px;letter-spacing:.06em}
   bottom:calc(76px + env(safe-area-inset-bottom));width:150px;height:150px;pointer-events:auto;touch-action:none}
 .dpad button{position:absolute;width:50px;height:50px;background:rgba(34,43,59,.8);border:1px solid var(--line);
   border-radius:10px;color:var(--text);font-size:16px;touch-action:none}
-.dpad button:active{background:rgba(77,163,255,.35);border-color:var(--brand)}
+.dpad button:active{background:rgba(255,111,145,.35);border-color:var(--brand)}
 .dpad .u{left:50px;top:0}.dpad .d{left:50px;top:100px}.dpad .l{left:0;top:50px}.dpad .r{left:100px;top:50px}
 /* Exactly one of the two is ever on screen. Both live in the markup so the
    switch is a class rather than a rebuild — see Hand.apply(). */
@@ -136,9 +136,9 @@ body.dpad-controls #stickZone{display:none}
 body.dpad-controls .dpad{display:block}
 #touchE{position:absolute;right:calc(18px + env(safe-area-inset-right));
   bottom:calc(96px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:50%;
-  background:rgba(77,163,255,.25);border:2px solid var(--brand);color:#fff;font-size:15px;
+  background:rgba(255,111,145,.25);border:2px solid var(--brand);color:#fff;font-size:15px;
   pointer-events:auto;font-family:var(--mono);touch-action:none}
-#touchE:active{background:rgba(77,163,255,.5)}
+#touchE:active{background:rgba(255,111,145,.5)}
 #hudBottom{padding-bottom:env(safe-area-inset-bottom)}
 #hudTL{top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left))}
 #hudTR{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
@@ -146,7 +146,7 @@ body.dpad-controls .dpad{display:block}
   bottom:calc(182px + env(safe-area-inset-bottom));width:54px;height:54px;border-radius:50%;
   background:rgba(21,27,37,.88);border:1px solid var(--line);color:var(--text);font-size:20px;
   pointer-events:auto;touch-action:none}
-#touchMenu:active{border-color:var(--brand);background:rgba(77,163,255,.3)}
+#touchMenu:active{border-color:var(--brand);background:rgba(255,111,145,.3)}
 /* Southpaw: the whole control layout mirrors. Left-handers were holding the
    phone in the hand that had to reach across it for the pad. Nothing about the
    controls changes except which side they are on, so this is pure CSS off a

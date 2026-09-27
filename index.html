@@ -2,74 +2,486 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="description" content="Bum Bay — a cute, crude little island farming game.">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Tan Lines — inherit a beach bar on a Caribbean island. Grow the fruit, pour the drinks, fall for somebody.">
 <meta name="author" content="Grant van Zyl">
-<meta name="theme-color" content="#2ec4e8">
+<meta name="copyright" content="© 2026 Grant van Zyl">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">
+<meta name="theme-color" content="#2a1446">
+<meta name="color-scheme" content="dark">
+<!-- The Fullscreen API a click can request (see Boot.goFullscreen) does not
+     exist at all in iOS Safari for anything but a <video> — the button asks and
+     is refused silently, every time, in every browser tab. These three lines are
+     the one path to a chrome-free screen that actually works there: added to the
+     home screen, the game launches "standalone" — no address bar, no browser
+     chrome — automatically, with no click and no request to refuse. Harmless
+     everywhere else; a plain tab ignores tags it does not use. -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bum Bay">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%9D%EF%B8%8F%3C/text%3E%3C/svg%3E">
-<title>Bum Bay</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="bay/bay.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%85%3C/text%3E%3C/svg%3E">
+<title>Tan Lines</title>
+<link rel="stylesheet" href="css/base.css?v=c29a337">
+<link rel="stylesheet" href="css/hud.css?v=c29a337">
+<link rel="stylesheet" href="css/dialogue.css?v=c29a337">
+<link rel="stylesheet" href="css/combat.css?v=c29a337">
+<link rel="stylesheet" href="css/panels.css?v=c29a337">
+<link rel="stylesheet" href="css/comms.css?v=c29a337">
+<link rel="stylesheet" href="css/controls.css?v=c29a337">
+<link rel="stylesheet" href="css/arcade.css?v=c29a337">
+<link rel="stylesheet" href="css/cutscene.css?v=c29a337">
+<link rel="stylesheet" href="css/title.css?v=c29a337">
+<link rel="stylesheet" href="css/responsive.css?v=c29a337">
 </head>
 <body>
-<canvas id="world"></canvas>
+<div id="app">
 
-<header id="hud">
-  <div class="pill lvl"><span class="star">⭐<b id="lvl">1</b></span><span class="xp"><i id="xpFill"></i></span></div>
-  <div class="pill">🪙 <b id="coins">0</b></div>
-  <div class="pill">✨💩 <b id="gold">0</b></div>
-  <div class="pill joy" title="Decoration tip bonus">🦩 <b id="joy">+0%</b></div>
-</header>
+  <!-- ============ TITLE ============
+       A sunset over the sea, drawn live behind the name, the menu and the beach
+       board — which counts down to sunset while you stand there reading it.
+       See engine/title.js and css/title.css. -->
+  <section id="titleScreen" class="screen on">
+    <canvas id="titleFx" aria-hidden="true"></canvas>
+    <div id="titleGrade" aria-hidden="true"></div>
+    <div id="titleFlicker" aria-hidden="true"></div>
 
-<button id="captain"><span class="face">🧔‍♂️</span><span id="capTask">…</span></button>
+    <div class="hero">
+      <div class="hero-strip">
+        <span class="hero-live"><i aria-hidden="true"></i>Now open</span>
+        <span id="heroCo">The Driftwood</span>
+        <span id="heroBuild">Isla Solana · <b>28°</b></span>
+      </div>
 
-<div id="modeBar"><span id="modeTxt"></span><button id="modeX">Done</button></div>
-<div id="toasts"></div>
+      <span class="phone-icon" aria-hidden="true">🍹<i class="ring-1"></i><i class="ring-2"></i></span>
+      <h1 class="title-line1" id="titleLine1">TAN LINES</h1>
+      <h1 class="title-line2" id="titleLine2">SUN, SAND &amp; QUESTIONABLE DECISIONS</h1>
+      <div class="title-rule" aria-hidden="true"></div>
+      <p class="tagline" id="tagline">“…”<small></small></p>
 
-<nav id="bar">
-  <button id="bShop"><span>🛒</span>Shop</button>
-  <button id="bOrders"><span>⛵</span>Boats<i class="badge" id="oBadge">0</i></button>
-  <button id="bBarn"><span>🎒</span>Barn</button>
-  <button id="bQuest"><span>📜</span>Quests<i class="badge" id="qBadge">!</i></button>
-  <button id="bMenu"><span>⚙️</span></button>
-</nav>
+      <div class="title-menu" id="titleMenu">
+        <button class="btn primary" id="btnNew">Start a new summer</button>
+        <button class="btn" id="btnLoad">Load saved game</button>
+        <button class="btn" id="btnHelp">How to play</button>
+      </div>
 
-<div id="scrim"></div>
-<section id="sheet">
-  <div class="sheet-head"><h2 id="sheetTitle"></h2><button id="sheetX" aria-label="Close">✕</button></div>
-  <div id="sheetBody"></div>
-</section>
+      <!-- The numbers are a joke that keeps score, and they are read out as one
+           thing or not at all: a screen reader announcing a counter that ticks
+           every four seconds would talk over the menu for as long as anybody
+           stayed on this screen. -->
+      <div class="board" aria-hidden="true">
+        <div class="board-head"><span>Honeymoon Sands</span><span><b>19:55</b></span></div>
+        <div class="board-cells">
+          <div class="cell"><span class="cell-n" id="boardWaiting">3</span><span class="cell-l">Sea</span></div>
+          <div class="cell"><span class="cell-n" id="boardHeld">0:37</span><span class="cell-l">Till sunset</span></div>
+          <div class="cell"><span class="cell-n" id="boardAgents">1</span><span class="cell-l">Couples on the sand</span></div>
+        </div>
+        <div class="board-note" id="boardNote">Beach: perfect · cocktails: cold</div>
+      </div>
+    </div>
 
-<div id="levelUp">
-  <div class="lu">
-    <div class="burst">⭐</div>
-    <h2>LEVEL <span id="lvlNum">2</span>!</h2>
-    <p id="lvlLine"></p>
-    <p id="lvlUnlock" class="unlock"></p>
-    <button id="lvlOk" class="go big">Nice 👍</button>
-  </div>
+    <div id="titleFoot">
+      <!-- The chalkboard outside the bar, moving. Filled in by Title.ticker(). -->
+      <div class="ticker" aria-hidden="true"><div class="ticker-run" id="tickerRun"></div></div>
+      <div class="legal">© 2026 Grant van Zyl · a work of fiction · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license noopener" target="_blank">CC BY-NC-ND 4.0</a>
+        <span class="copyright">character art by <a href="art/CREDITS.md" rel="noopener" target="_blank">LPC contributors</a>, <a href="https://static.opengameart.org/OGA-BY-3.0.txt" rel="license noopener" target="_blank">OGA-BY 3.0</a>, modified</span></div>
+    </div>
+  </section>
+
+  <!-- ============ NAME ============ -->
+  <section id="nameScreen" class="screen">
+    <div class="sign">
+      <div class="sign-title"><span>New game · 1 of 2</span><span class="badge">You</span></div>
+      <input id="nameInput" maxlength="14" placeholder="YOUR NAME" autocomplete="off" spellcheck="false">
+      <p class="field-note">What should people call you?</p>
+      <button class="btn primary" id="btnName">Next</button>
+    </div>
+  </section>
+
+  <!-- ============ WHO YOU ARE ============ -->
+  <!-- Section 2 of the same form. The preview is the REAL sprite, drawn by the
+       real renderer and walking on the spot: a still picture would hide the one
+       thing worth checking, which is that every layer is present in every
+       frame. -->
+  <section id="lookScreen" class="screen">
+    <div class="sign look">
+      <div class="sign-title"><span>New game · 2 of 2</span><span class="badge">You</span></div>
+      <div class="look-body">
+        <canvas id="lookView" aria-label="Your character, walking on the spot"></canvas>
+        <div id="lookPick" class="look-pick"></div>
+      </div>
+      <p class="field-note" id="lookNote"></p>
+      <p class="field-note look-flavour">Pick something for the beach. There is a wardrobe in your hut if you change your mind.</p>
+      <div class="look-btns">
+        <button class="btn" id="btnLookRandom">Surprise me</button>
+        <button class="btn primary" id="btnLookGo">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CUTSCENE ============
+       Four layers, and the order of them is the whole design.
+
+       #cutGround is the dark the opening starts in. It fades away the first
+       time a beat names a camera, which is the moment you are through the door
+       — before that the building is deliberately not shown, because the office
+       level cannot honestly draw a street and a wide shot of the fourth floor
+       under the words "outside" is a lie the player can see.
+       #cutGrade is the grade over the world once it IS showing: a scrim and a
+       vignette, so the caption has something to sit on and the floor reads as
+       a place being looked at rather than a game being played.
+       #cutBars is the letterbox. #cutBody is the writing.
+
+       The game canvas is BEHIND all of it — body.cinema shows #game with every
+       piece of its chrome hidden, so the shot under the words is the real
+       renderer drawing the real building. -->
+  <section id="cutscene" class="screen">
+    <div id="cutGround" aria-hidden="true"></div>
+    <div id="cutGrade" aria-hidden="true"></div>
+    <div id="cutBars" aria-hidden="true"><i class="cut-bar"></i><i class="cut-bar"></i></div>
+
+    <div id="cutBody">
+      <div id="cutCard">
+        <div class="cut-emoji" id="cutFace">🏢</div>
+        <div class="cut-say">
+          <div class="cut-label" id="cutLabel">Outside · 08:57</div>
+          <!-- The typed line and, behind it at zero opacity, the whole line —
+               so the box is already the height of the finished sentence and the
+               layout does not grow a row as the words arrive. -->
+          <div class="cut-text" id="cutText"></div>
+          <div class="cut-text cut-ghost" id="cutGhost" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cutFoot">
+      <div id="cutDots" class="cut-dots" aria-hidden="true"></div>
+      <p class="cut-hint" id="cutHint"><span class="kbd">Space</span> continue · <span class="kbd">Esc</span> skip</p>
+    </div>
+    <button id="btnSkip" class="cut-skip" type="button">Skip<span aria-hidden="true"> ▸▸</span></button>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game">
+    <div id="stage">
+      <canvas id="view" aria-label="The game world, seen from above" role="img"></canvas>
+      <div id="vignette" aria-hidden="true"></div>
+      <div id="flash" aria-hidden="true"></div>
+      <!-- The curtain across a change of level. Purely decorative: the swap
+           itself happens on one frame whether this is here or not. -->
+      <div id="fade" aria-hidden="true"></div>
+      <div id="zoneName" aria-hidden="true"></div>
+    </div>
+
+    <!-- Two cards in opposite corners on a desktop; ONE bar across the top of a
+         phone. The wrapper is what the mobile layout makes that bar out of — on
+         a desktop it is a zero-height anchor along the top of the stage, so both
+         corners are exactly where they always were. -->
+    <div id="hudTop">
+      <div class="hud" id="hudTL">
+        <div class="card">
+          <div class="who-row">
+            <span class="who-face" id="hFace">🧑‍💻</span>
+            <div>
+              <div class="who-name" id="hName">TRAINEE</div>
+              <div class="who-rank" id="hRank">Lv.1 · Trainee</div>
+            </div>
+          </div>
+          <!-- Wrapped so the phone bar can stand the three meters BESIDE the
+               name instead of under it. A plain block on a desktop. -->
+          <div class="vitals">
+            <!-- The maximum is a separate element so the phone bar can drop it:
+                 "103/103" is twice the width of "103" and the three of them
+                 together were leaving the meters about thirteen pixels of bar
+                 to draw in. The Profile panel carries the full numbers. -->
+            <div class="bar-row"><span class="lbl" title="Nerve">❤️</span><span class="bar" role="progressbar" aria-label="Nerve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bPat" style="background:linear-gradient(90deg,#ff5f56,#ff8f56)"></i></span><span class="val"><b id="vPat">100</b><i id="mPat">/100</i></span></div>
+            <div class="bar-row"><span class="lbl" title="Energy">⚡</span><span class="bar" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bEne" style="background:linear-gradient(90deg,#ffb347,#ffe08a)"></i></span><span class="val"><b id="vEne">100</b><i id="mEne">/100</i></span></div>
+            <div class="bar-row"><span class="lbl" title="Experience">⭐</span><span class="bar" role="progressbar" aria-label="Experience" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="bXp" style="background:linear-gradient(90deg,#4da3ff,#b48cff)"></i></span><span class="val"><b id="vXp">0</b><i id="mXp">/100</i></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud" id="hudTR">
+        <div class="card">
+          <div class="clock" id="hClock">09:00<small id="hDay">DAY 1 · MONDAY</small></div>
+          <div class="money-row"><span title="Takings today">💶 <b id="hMoney">0.00</b></span><span title="Guests served today">🍹 <b id="hCalls">0</b></span></div>
+          <!-- What it is doing outside, and what month it thinks it is. One
+               line, under the clock, because both of them are the same fact:
+               the light on the floor is the time of day and the time of year
+               and the weather, and this is the only place in the building that
+               says any of it out loud. -->
+          <div class="sky" id="hSky"><span id="hSkyT">Overcast</span></div>
+          <div class="queue" id="hQueue" hidden><span class="qdot" aria-hidden="true"></span><span id="hQueueT">1 guest waiting</span></div>
+          <!-- THE OTHER QUEUE. A ringing phone has always been on this card and
+               an unanswered email was on nothing at all — it sat in a tab of a
+               portal with a number on it, which is not the same as the game
+               telling you there is work. Same row, same dot, different colour,
+               and it does not go away when you leave the building, because
+               neither does the work. -->
+          <div class="queue written" id="hWrit" hidden><span class="qdot" aria-hidden="true"></span><span id="hWritT">1 to answer</span></div>
+        </div>
+      </div>
+
+      <!-- How far through the shift you are, as a hairline along the bottom edge
+           of the bar. Phone only: the desktop corners have no bottom edge to
+           draw it on and the clock is already the size of a clock there. -->
+      <div id="shiftBar" aria-hidden="true"><i id="shiftBarI"></i></div>
+    </div>
+
+    <!-- The minimap is also the way into the map screen, which is the only
+         thing on this HUD that is worth pressing and has nowhere else to say
+         so. A button rather than a canvas with a click handler, so it is a
+         thing the keyboard and a screen reader can find. -->
+    <div id="minimapWrap"><button id="minimapBtn" title="The map · N" aria-label="Open the map"><canvas id="minimap" width="168" height="118" aria-hidden="true"></canvas></button></div>
+
+    <!-- What you are doing, and everything you have said you would do. The
+         objective used to be the bottom half of the top-right card, where it
+         wrapped to four lines on a phone and made that card the tallest thing on
+         the screen; it is the first line of this box now, with the open jobs
+         under it. Every job folds to its title, the whole box folds to its
+         header, and one job at a time can be tracked — which puts the same pin
+         and compass on it that finding your desk gets. -->
+    <div class="hud" id="tracker">
+      <div class="card">
+        <div class="tk-head">
+          <span class="tk-lbl" id="tkLbl">Jobs</span>
+          <span class="tk-n" id="tkCount"></span>
+          <button class="tk-b" id="tkTitles" type="button" title="Collapse every job to its title" aria-label="Collapse every job to its title">⇕</button>
+          <button class="tk-b" id="tkFold" type="button" title="Collapse the tracker" aria-label="Collapse the tracker" aria-expanded="true">▾</button>
+        </div>
+        <div class="tk-body" id="tkBody">
+          <div class="tk-obj" id="hObj">Find The Driftwood.</div>
+          <div class="tk-list" id="tkList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud" id="hudBottom">
+      <!-- What is in your hand and what is left in it. Only while it is out —
+           see Guns.hud(). -->
+      <div id="gunHud" role="status" aria-live="off" hidden></div>
+      <div id="prompt" role="status" aria-live="polite"></div>
+      <nav id="keyhints" aria-label="Open a panel">
+        <button data-panel="map"><span class="kh-i" aria-hidden="true">🗺️</span>N · Map</button>
+        <button data-panel="shift"><span class="kh-i" aria-hidden="true">💶</span>T · Takings</button>
+        <button data-panel="quests"><span class="kh-i" aria-hidden="true">🗂️</span>J · Jobs</button>
+        <button data-panel="inventory"><span class="kh-i" aria-hidden="true">🎒</span>I · Inventory</button>
+        <button data-panel="skills"><span class="kh-i" aria-hidden="true">📈</span>K · Skills</button>
+        <!-- Two of these open the comms console rather than a portal tab. They
+             are the same two keys they always were — C and M have been the
+             chat and the email since there was a chat and an email — and this
+             row is the desktop's only written statement of what the keyboard
+             reaches, so the console has to be in it. The rail in the corner is
+             a different question: that one says what is WAITING. -->
+        <button data-comms="mail"><span class="kh-i" aria-hidden="true">💌</span>M · Post</button>
+        <button data-comms="text"><span class="kh-i" aria-hidden="true">📱</span>V · Texts</button>
+        <button data-comms="chat"><span class="kh-i" aria-hidden="true">💬</span>C · Chat</button>
+        <button data-panel="stats"><span class="kh-i" aria-hidden="true">🪪</span>P · Profile</button>
+        <button data-panel="settings"><span class="kh-i" aria-hidden="true">⚙️</span>Esc · Menu</button>
+      </nav>
+    </div>
+
+    <div id="touch" aria-hidden="true">
+      <div id="stickZone">
+        <div class="stick" id="stick"><div id="stickKnob"></div></div>
+      </div>
+      <!-- The throttle. Only on screen while you are driving, and listed
+           before the buttons so that the buttons paint over it and a thumb
+           landing on E gets E rather than the stick underneath it. -->
+      <div id="throttleZone">
+        <div class="stick" id="throttle"><div id="throttleKnob"></div></div>
+        <div id="throttleHint" aria-hidden="true"><span>GO</span><span>BRAKE</span></div>
+      </div>
+      <!-- The aim stick: the other half of twin-stick, in the same corner and
+           on the same terms as the throttle. Only on screen while you are
+           carrying something to fire and are not behind a wheel, and listed
+           before the buttons for the same reason the throttle is. -->
+      <div id="aimZone">
+        <div class="stick" id="aim"><div id="aimKnob"></div></div>
+        <div id="aimHint" aria-hidden="true"><span>AIM · FIRE</span></div>
+      </div>
+      <div class="dpad">
+        <button class="u" data-dir="up">▲</button><button class="l" data-dir="left">◀</button>
+        <button class="r" data-dir="right">▶</button><button class="d" data-dir="down">▼</button>
+      </div>
+      <button id="touchE">E</button>
+      <button id="touchMenu" aria-label="Open jobs, inventory and menus">☰</button>
+    </div>
+
+    <!-- ============ COMMS ============
+         Two things, and the split is the point. #alerts is the tap on the
+         shoulder: one line each, typed by the channel it came from, at most
+         two of them on a phone, gone in five seconds — and each one is a
+         BUTTON, because tapping it opens the channel at the thing it named.
+         The rail beside it is the state: what is waiting, per channel, in a
+         row that is the same size whether nothing has happened all day or
+         forty things have. Five chips on a desktop; ONE on a phone, where
+         five would not fit the band and the console's own tabs are one tap
+         away regardless. Both are here at once and Comms.sync() writes both.
+         See engine/comms.js for why the archive is not in here at all. -->
+    <div id="comms">
+      <div id="alerts" role="log" aria-live="polite" aria-relevant="additions" aria-label="New messages and events"></div>
+      <nav id="chRail" aria-label="Comms channels">
+        <button class="chip" type="button" data-ch="mail" aria-label="Post"><span class="chip-e" aria-hidden="true">💌</span><span class="chip-n" aria-hidden="true"></span></button>
+        <button class="chip" type="button" data-ch="text" aria-label="Texts"><span class="chip-e" aria-hidden="true">📱</span><span class="chip-n" aria-hidden="true"></span></button>
+        <button class="chip" type="button" data-ch="chat" aria-label="Chat"><span class="chip-e" aria-hidden="true">💬</span><span class="chip-n" aria-hidden="true"></span></button>
+        <button class="chip" type="button" data-ch="log" aria-label="Log"><span class="chip-e" aria-hidden="true">📋</span><span class="chip-n" aria-hidden="true"></span></button>
+        <button class="chip" type="button" data-ch="calls" aria-label="Guests"><span class="chip-e" aria-hidden="true">🍹</span><span class="chip-n" aria-hidden="true"></span></button>
+      </nav>
+      <button id="cmOne" type="button" aria-label="Comms"><span class="chip-e" aria-hidden="true">📨</span><span class="chip-n" aria-hidden="true"></span></button>
+    </div>
+
+    <!-- dialogue -->
+    <div id="dialogue" role="dialog" aria-label="Conversation" aria-modal="false">
+      <div class="dlg sign">
+        <div class="dlg-head">
+          <span class="dlg-face" id="dFace">🧑</span>
+          <div><div class="dlg-name" id="dName">DAVE</div><div class="dlg-role" id="dRole">Senior Agent</div></div>
+          <div class="dlg-mood" id="dMood"></div>
+        </div>
+        <div class="dlg-text" id="dText" aria-live="polite"></div>
+        <div class="dlg-choices" id="dChoices" role="group" aria-label="What you say"></div>
+        <div class="dlg-cont" id="dCont">Space — continue</div>
+      </div>
+    </div>
+
+    <!-- combat -->
+    <div id="combat" role="dialog" aria-modal="true" aria-label="Serving a guest">
+      <!-- The label is rewritten per channel by Combat.begin(): an email
+           exchange announced as a telephone call is a screen reader saying
+           the one thing about this card that is not true. -->
+      <div class="cb sign">
+        <div class="sign-title"><span id="cbTitle">At the bar · stool 1</span><span class="badge" id="cbTimer">TURN 1</span></div>
+        <div class="cb-top">
+          <span class="cb-face" id="cbFace">🍹</span>
+          <div class="cb-who"><h3 id="cbName">CUSTOMER</h3><div class="sub" id="cbIssue">Account query</div></div>
+          <div class="cb-meters">
+            <div class="bar-row"><span class="lbl" title="Their guard">🛡️</span><span class="bar" role="progressbar" aria-label="Their guard" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbFrus" style="background:linear-gradient(90deg,#ff5f56,#ffb347)"></i></span><span class="val" id="cbFrusV">80</span></div>
+            <div class="bar-row"><span class="lbl" title="Their patience">⏳</span><span class="bar" role="progressbar" aria-label="Their patience" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbCPat" style="background:linear-gradient(90deg,#b48cff,#4da3ff)"></i></span><span class="val" id="cbCPatV">100</span></div>
+            <div class="bar-row"><span class="lbl" title="Your nerve">❤️</span><span class="bar" role="progressbar" aria-label="Your nerve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbYou" style="background:linear-gradient(90deg,#5ad48a,#4da3ff)"></i></span><span class="val" id="cbYouV">100</span></div>
+            <div class="bar-row"><span class="lbl" title="Chemistry">💕</span><span class="bar" role="progressbar" aria-label="Chemistry" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="cbRap" style="background:linear-gradient(90deg,#b48cff,#5ad48a);width:0%"></i></span><span class="val" id="cbRapV">0</span></div>
+          </div>
+        </div>
+        <div class="cb-line" id="cbLine" role="status" aria-live="polite"></div>
+        <div class="cb-tell" id="cbTell" role="status" aria-live="polite"></div>
+        <div class="cb-moves" id="cbMoves" role="group" aria-label="What you say next"></div>
+        <div class="hold-note" id="cbHold">♪ hold music: “Greensleeves”, but wrong</div>
+        <div class="cb-log scroll" id="cbLog" role="log" aria-live="polite" aria-label="Conversation"></div>
+      </div>
+    </div>
+
+    <!-- arcade: whatever minigame is running. The shell is the same for all of
+         them — a live bar, a canvas, the touch pads a game declares, and a card
+         over the top before and after a round. Everything inside the canvas
+         belongs to minigames/, and engine/arcade.js is the only thing that
+         knows both sides. -->
+    <div id="arcade" role="dialog" aria-modal="true" aria-label="Arcade">
+      <div class="mg sign">
+        <div class="sign-title"><span id="mgTitle">Arcade</span><span class="badge" id="mgBadge">ARCADE</span></div>
+        <div class="mg-hud"><span id="mgHudL"></span><span id="mgHudR"></span></div>
+        <div class="mg-stage">
+          <canvas id="mgView" aria-label="Minigame" role="img"></canvas>
+          <div class="mg-card" id="mgCard"></div>
+        </div>
+        <div class="mg-pads" id="mgPads" role="group" aria-label="Controls"></div>
+        <div class="mg-foot"><span class="mg-hint" id="mgHint"></span>
+          <button class="btn small" id="mgQuit">Leave · Esc</button></div>
+      </div>
+    </div>
+
+    <!-- panel -->
+    <div id="panel" role="dialog" aria-modal="true" aria-label="Employee self-service portal">
+      <div class="pn sign">
+        <div class="sign-title"><span id="pnTitle">Employee self-service portal</span>
+          <button class="btn small" id="pnClose">Close · Esc</button></div>
+        <div class="tabs" id="pnTabs" role="tablist"></div>
+        <div class="pn-body scroll" id="pnBody"></div>
+      </div>
+    </div>
+
+    <!-- ============ THE COMMS CONSOLE ============
+         Five channels, each read in the shape it belongs in: an inbox with
+         headers, threads in bubbles, a chat by channel, a ledger with no
+         reader at all, and one transcript per call. Two panes side by side on
+         a desktop; on a phone the reader lies OVER the list and #cmFoot is the
+         way back to it, because 320px of width is one pane, not two. -->
+    <div id="inbox" role="dialog" aria-modal="true" aria-label="Comms">
+      <div class="cm sign">
+        <div class="sign-title"><span id="cmTitle">Comms</span>
+          <button class="btn small" id="cmClose">Close · Esc</button></div>
+        <div class="cm-tabs" id="cmTabs" role="tablist"></div>
+        <div class="cm-panes">
+          <div class="cm-list scroll" id="cmList" role="tabpanel"></div>
+          <div class="cm-read scroll" id="cmRead"></div>
+        </div>
+        <div class="cm-foot" id="cmFoot"></div>
+      </div>
+    </div>
+
+    <!-- ending -->
+    <div id="ending" role="dialog" aria-modal="true" aria-label="Exit interview">
+      <div class="rep sign" style="text-align:center">
+        <div class="sign-title"><span>Exit interview</span><span class="badge">CONFIDENTIAL</span></div>
+        <div class="rep-body scroll" id="endBody"></div>
+        <div style="padding:0 18px 18px;display:flex;gap:8px;justify-content:center">
+          <button class="btn primary" id="endAgain">Start a new game</button>
+          <button class="btn" id="endTitle">Back to title</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
-
-<section id="title">
-  <div class="sun"></div>
-  <div class="tisle">🏝️</div>
-  <h1>Bum <span>Bay</span></h1>
-  <p class="tag">Paradise. Mostly. It smells a bit.</p>
-  <div class="tfloat"><span>💩</span><span>🐔</span><span>🫘</span><span>🧻</span><span>🦀</span><span>💨</span></div>
-  <button id="btnPlay" class="go big">🧻 Play</button>
-  <button id="btnNew" class="linkish" style="display:none">Start a new island</button>
-  <small>Best on a phone. Headphones recommended. Nose plugs optional.</small>
-</section>
-
-<script src="bay/data.js"></script>
-<script src="bay/game.js"></script>
-<script src="bay/render.js"></script>
-<script src="bay/ui.js"></script>
-<script src="bay/main.js"></script>
+<!-- The game's content, and the manifest for its art. Plain scripts, not
+     modules: a module is fetched, and a fetch is what file:// forbids — this
+     way the game still opens straight off disk. Their top-level consts land in
+     the global lexical scope, which the engine below reads by bare name. -->
+<script src="art/sprites/manifest.js?v=c29a337"></script>
+<script src="data/game.js?v=c29a337"></script>
+<script src="data/world.js?v=c29a337"></script>
+<script src="data/roads.js?v=c29a337"></script>
+<script src="data/levels.js?v=c29a337"></script>
+<script src="data/island.js?v=c29a337"></script>
+<script src="data/npcs.js?v=c29a337"></script>
+<script src="data/items.js?v=c29a337"></script>
+<script src="data/garden.js?v=c29a337"></script>
+<script src="data/callers.js?v=c29a337"></script>
+<script src="data/office.js?v=c29a337"></script>
+<script src="data/acts.js?v=c29a337"></script>
+<script src="engine/core.js?v=c29a337"></script>
+<script src="engine/acts.js?v=c29a337"></script>
+<script src="engine/controls.js?v=c29a337"></script>
+<script src="engine/audio.js?v=c29a337"></script>
+<script src="engine/state.js?v=c29a337"></script>
+<script src="engine/sky.js?v=c29a337"></script>
+<script src="engine/world.js?v=c29a337"></script>
+<script src="engine/collide.js?v=c29a337"></script>
+<script src="engine/levels.js?v=c29a337"></script>
+<script src="engine/ui.js?v=c29a337"></script>
+<script src="engine/comms.js?v=c29a337"></script>
+<script src="engine/progress.js?v=c29a337"></script>
+<script src="engine/office.js?v=c29a337"></script>
+<script src="engine/dialogue.js?v=c29a337"></script>
+<script src="engine/combat.js?v=c29a337"></script>
+<script src="engine/npc.js?v=c29a337"></script>
+<script src="engine/sprites.js?v=c29a337"></script>
+<script src="engine/faces.js?v=c29a337"></script>
+<script src="engine/cars.js?v=c29a337"></script>
+<script src="engine/peds.js?v=c29a337"></script>
+<script src="engine/signals.js?v=c29a337"></script>
+<script src="engine/guns.js?v=c29a337"></script>
+<script src="engine/render.js?v=c29a337"></script>
+<script src="engine/panels.js?v=c29a337"></script>
+<script src="engine/map.js?v=c29a337"></script>
+<script src="engine/menus.js?v=c29a337"></script>
+<script src="engine/arcade.js?v=c29a337"></script>
+<script src="engine/look.js?v=c29a337"></script>
+<script src="engine/title.js?v=c29a337"></script>
+<script src="engine/input.js?v=c29a337"></script>
+<!-- The minigame library. Separate files on purpose: each is a whole game
+     that knows only the interface in engine/arcade.js, and a fourth is a new
+     file here rather than a change to anything above it. -->
+<script src="minigames/holdmusic.js?v=c29a337"></script>
+<script src="minigames/inbox.js?v=c29a337"></script>
+<script src="minigames/patch.js?v=c29a337"></script>
+<script src="engine/boot.js?v=c29a337"></script>
 </body>
 </html>
