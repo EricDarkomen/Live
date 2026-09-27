@@ -679,6 +679,8 @@ const Tiles = {
         sh.img = im; sh.ok = true;
         if (!this.img) this.img = im;        /* the first sheet to decode */
         this.ready = true;
+        /* Anything baked from the emoji stand-ins is out of date now. */
+        this.gen = (this.gen || 0) + 1;
       };
       im.onerror = () => { sh.ok = false; };   /* this sheet stays on the emoji */
       /* No cache key on a data: URI — a query string there is part of the data,

@@ -311,7 +311,7 @@ const Comms = {
     const line = this.plain(item.alert || item.subj || item.body);
     el.querySelector('.a-e').textContent = item.face || CH[item.ch].e;
     el.querySelector('.a-t').innerHTML = '<b>' + el._n + ' new</b> ' + esc(
-      line.length > 40 ? line.slice(0, 39) + '…' : line);
+      clip(line, 40));
     el.setAttribute('aria-label', CH[item.ch].n + ': ' + el._n + ' new, latest — ' + line);
     el.classList.remove('folded'); void el.offsetWidth; el.classList.add('folded');
     clearTimeout(el._out);
@@ -520,7 +520,7 @@ const Comms = {
   who(s) { return String(s).replace(/\s*<[^>]*>\s*/, '').trim() || String(s); },
   gist(it) {
     const s = this.plain(it.subj || it.body || '');
-    return s.length > 90 ? s.slice(0, 89) + '…' : s;
+    return clip(s, 90);
   },
 
   /* ---------------- each channel, read as itself ---------------- */
