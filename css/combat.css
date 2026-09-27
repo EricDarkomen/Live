@@ -1,0 +1,294 @@
+/* combat */
+#combat{position:absolute;inset:0;z-index:25;display:none;align-items:center;justify-content:center;
+  padding:14px;background:radial-gradient(120% 100% at 50% 40%,rgba(10,14,22,.82),rgba(4,6,10,.94))}
+#combat.on{display:flex;animation:fadeIn .2s ease}
+/* a jolt when the caller takes a piece out of you */
+#combat.struck .cb{animation:struck .32s ease}
+@keyframes struck{0%{transform:translateX(0)}20%{transform:translateX(-5px)}
+  45%{transform:translateX(4px)}70%{transform:translateX(-2px)}100%{transform:translateX(0)}}
+#combat.critical .cb{box-shadow:0 0 0 1px rgba(255,95,86,.5),0 0 60px -10px rgba(255,95,86,.55)}
+#combat.critical .cb-top{background:rgba(255,95,86,.07)}
+.cb-dmg{position:absolute;right:-4px;top:-14px;font-family:var(--mono);font-size:13px;font-weight:700;
+  color:var(--bad);text-shadow:0 2px 8px #000;pointer-events:none;animation:dmgFloat .9s ease forwards}
+@keyframes dmgFloat{0%{opacity:0;transform:translateY(6px)}18%{opacity:1;transform:translateY(-2px)}
+  100%{opacity:0;transform:translateY(-18px)}}
+@media(prefers-reduced-motion:reduce){
+  #combat.struck .cb{animation:none}
+  .cb-dmg{animation:dmgFadeOnly .9s ease forwards}
+  @keyframes dmgFadeOnly{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+}
+/* max-height in % of the padded overlay rather than vh: on a phone the browser
+   chrome makes vh taller than the part of the page you can actually see. */
+.cb{width:min(940px,97vw);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.cb-top{display:flex;gap:12px;padding:14px;border-bottom:1px dashed var(--line);align-items:center}
+.cb-face{font-size:46px;animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{50%{transform:translateY(-4px) scale(1.04)}}
+.cb-who{flex:1}
+.cb-who h3{font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase}
+.cb-who .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.cb-meters{width:min(300px,42%);display:flex;flex-direction:column;gap:5px}
+.cb-meters .bar-row{position:relative}
+.cb-line{padding:12px 16px;font-size:15px;line-height:1.5;min-height:74px;background:rgba(11,15,22,.5)}
+.cb-line .say{color:var(--text)} .cb-line .nar{color:var(--dim);font-style:italic;font-size:13px}
+/* The tell: what they are giving away about what they actually want. Sits with
+   the caller's line because that is where you are already looking.
+   Deliberately normal flowing text, not a flex row: a nowrap "wants …" chip
+   pushed to the end of a flex line squeezes the sentence into a narrow column
+   and it grew to five lines on a 320px screen, which cost three of the seven
+   move buttons. */
+.cb-tell{flex:none;padding:7px 16px;font-size:12.5px;line-height:1.38;
+  background:rgba(11,15,22,.5);border-top:1px dashed rgba(255,179,71,.22)}
+.cb-tell .tt{font-style:italic;color:#e3c68d}
+.cb-tell .tw{color:var(--hold);font-family:var(--mono);font-size:11px;white-space:nowrap}
+.cb-tell:empty{display:none}
+/* A move the caller has already heard this call. */
+.move .mw{float:right;font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.06em}
+.move.worn .mn{opacity:.72}
+/* The close, once it is earned. It sits first in the list and has to look like
+   the opportunity it is — on a phone it is otherwise one more grey rectangle
+   in a scrolling column of grey rectangles. */
+.move.primary{grid-column:1/-1;border-color:var(--good);
+  background:linear-gradient(180deg,rgba(90,212,138,.18),rgba(90,212,138,.07));
+  box-shadow:0 0 0 1px rgba(90,212,138,.22),0 10px 26px -14px var(--good)}
+.move.primary:hover:not(:disabled){border-color:var(--good);background:rgba(90,212,138,.24)}
+.move.primary .mn{font-weight:700}
+.cb-log{padding:8px 16px;max-height:120px;font-size:12px;color:var(--dim);border-top:1px dashed var(--line);font-family:var(--mono)}
+.cb-log div{padding:2px 0}
+/* The moves are the only thing you can act on, so they get whatever height is
+   left and scroll inside it. Without min-height:0 the grid refuses to shrink
+   and the last few moves render off the bottom of the screen entirely.
+   The four background layers are the classic scroll-shadow: the two "local"
+   covers travel with the content and mask the shadow at each end, so a shadow
+   is visible exactly when there is more to scroll to in that direction. Without
+   it a phone shows four of seven moves and no sign the other three exist. */
+/* `align-content:start`: rows keep their content height and leftover space is
+   never distributed into them. Auto rows in a grid box that is taller than its
+   content stretch by default, which would make the single End call button
+   inherit whatever height seven move buttons had. */
+.cb-moves{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:12px;overflow-y:auto;min-height:0;
+  align-content:start;
+  background:
+    linear-gradient(var(--ink2) 30%,rgba(21,27,37,0)) top/100% 22px no-repeat local,
+    linear-gradient(rgba(21,27,37,0),var(--ink2) 70%) bottom/100% 22px no-repeat local,
+    radial-gradient(farthest-side at 50% 0,rgba(0,0,0,.6),rgba(0,0,0,0)) top/100% 12px no-repeat,
+    radial-gradient(farthest-side at 50% 100%,rgba(0,0,0,.6),rgba(0,0,0,0)) bottom/100% 12px no-repeat}
+.cb-line{flex:none}
+/* On a phone the fixed furniture — title bar, portrait, caller line, hold-music
+   joke, transcript — ate so much of the card that two of seven moves were
+   visible. Everything here is flavour; the buttons are the game. Trimming them
+   roughly doubles how many moves you can see without scrolling. */
+@media(max-width:640px){
+  .cb-moves{grid-template-columns:1fr}
+  /* The title row goes, and the turn badge floats over the corner it was in.
+     "Incoming call · queue position 4" is flavour that had already been
+     ellipsised down to "INCOMING CALL · QUEUE P…", and the HUD bar at the top
+     of the screen says how many are waiting. The row it sat in was 48px of a
+     568px phone, which is one more reply you can reach without scrolling while
+     somebody is shouting at you. The badge is the half worth keeping: the turn
+     count is the clock you are playing against. */
+  .cb{position:relative}
+  .cb .sign-title{position:absolute;top:0;right:0;z-index:2;
+    padding:7px 9px;border:0;background:none}
+  .cb .sign-title>span:first-child{display:none}
+  /* The meters were sharing the top row with a portrait and a name, which left
+     each bar about 60px long — four identical stubs and a number with nothing
+     to measure it against. They get the full width and their own row now, two
+     up, which is enough bar to read at a glance while a caller is shouting. */
+  .cb-top{flex-wrap:wrap;row-gap:9px}
+  .cb-meters{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:5px 14px}
+  .cb-meters .bar-row{margin-top:0}
+  .bar-row .val{width:auto;min-width:32px;font-size:11px}
+  .bar{height:11px}
+  /* "TURN 1" was breaking across two lines and taking the header with it. */
+  .cb .sign-title .badge{flex:none;white-space:nowrap;letter-spacing:.1em;padding:3px 7px}
+  /* Every row above the buttons is measured in buttons: the moves take what is
+     left, so eight pixels of padding here is a move you can no longer reach
+     without scrolling on a timer. */
+  .cb-top{padding:8px 12px;gap:10px}
+  /* Room for the badge floating in the corner, on the NAME's row only — as
+     padding on .cb-top it would have taken the same 62px off the meters, which
+     are a wrapped flex line of their own below and have the whole width to
+     play with. Without it "MRS AITKEN, MOTHERWELL" runs under the badge.
+     Two lines at the very most, and only when a name earns them. Callers run
+     from "MRS AITKEN, MOTHERWELL" to "CALLER WHO HAS ALREADY POSTED ABOUT
+     YOU", so a hard one-line clamp cuts the joke off a third of the deck and
+     letting them run free costs three rows of a card whose every row above the
+     buttons is measured in buttons. */
+  .cb-who{margin-right:62px;min-width:0}
+  .cb-who h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cb-face{font-size:28px}
+  .cb-who h3{font-size:13px;letter-spacing:.1em}
+  .cb-line{min-height:0;padding:8px 14px;font-size:14px}
+  .cb-tell{padding:6px 14px;font-size:12px}
+  .cb-log{max-height:40px;padding:5px 14px}
+  .hold-note{display:none}
+  .cb-moves{padding:9px 10px;gap:6px}
+}
+/* 320px, where the seven buttons are the whole game and everything above them
+   is competing for the same pixels. The transcript is the first thing to go —
+   it is a record of what already happened. */
+@media(max-width:360px){
+  .cb-log{display:none}
+  .cb-line{min-height:0}
+  .cb-who .sub{display:none}
+  /* The town is the joke in "MRS AITKEN, MOTHERWELL", and at 320px it was three
+     pixels from fitting on one line. The tracking and half a point of type go
+     rather than the last four letters of it. */
+  .cb-who h3{font-size:12.5px;letter-spacing:.04em}
+  .cb .sign-title .badge{padding:3px 6px;letter-spacing:.06em}
+  /* Same call landscape already makes: the name and its emoji say what a move
+     does, and the explanation costs two wrapped lines per button here. Three of
+     seven reachable without scrolling is not enough on a timed call. */
+  .move .md{display:none}
+  .move{padding:9px 11px}
+}
+/* Landscape: reclaim the height the transcript and the portrait were using. */
+/* Landscape on a phone is ~340px tall, and the call card's fixed furniture was
+   leaving 95px for the moves — one row of a two-column grid. Everything that is
+   not a button gets cut back hard here. */
+@media(max-height:520px){
+  .cb .sign-title{padding:5px 12px;font-size:10px}
+  .cb-top{padding:6px 12px;gap:8px}
+  .cb-face{font-size:24px;animation:none}
+  /* Landscape is short and wide, so the meters stay *beside* the name rather
+     than dropping below it — but two up rather than four down, which is four
+     stacked rows of a 314px card spent on numbers instead of buttons. */
+  .cb-top{flex-wrap:nowrap}
+  .cb-meters{width:min(400px,54%);display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+  .cb-meters .bar-row{margin-top:0}
+  .cb-line{min-height:0;padding:7px 12px;font-size:13px}
+  .cb-log,.hold-note{display:none}
+  .cb-moves{grid-template-columns:1fr 1fr;padding:8px 10px;gap:6px}
+  /* The name and its emoji already say what a move does; the explanation is the
+     first thing to go when there are 340px of screen to work with. */
+  .move .md{display:none}
+  .move{padding:7px 10px}
+}
+.move{text-align:left;background:rgba(34,43,59,.65);border:1px solid var(--line);border-radius:8px;
+  padding:9px 11px;cursor:pointer;transition:.12s}
+.move:hover:not(:disabled){border-color:var(--brand);background:rgba(77,163,255,.14)}
+.move:disabled{opacity:.38;cursor:not-allowed}
+.move .mn{font-size:14px} .move .md{font-size:11px;color:var(--dim);margin-top:2px}
+.move .mk{display:inline-block;min-width:15px;margin-right:6px;padding:1px 4px;border-radius:4px;
+  background:#0c1018;border:1px solid var(--line);font-family:var(--mono);font-size:10px;
+  color:var(--hold);text-align:center;vertical-align:1px}
+.move:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
+.move .mc{float:right;font-family:var(--mono);font-size:10px;color:var(--hold)}
+/* ---- the moves, on a thumb ---------------------------------------------
+   Three things were wrong with these on a phone and all three came from the
+   desktop layout being floats inside a block.
+
+   The cost floated right into the same line box as the reply, so a reply that
+   wrapped ran underneath it — "Let me check that for you" with "−1❤️ −3⚡"
+   sitting on top of the second line. It is a grid now, and deliberately not a
+   flex row: flex-wrapped, a long reply pushed the cost onto a line of its own
+   and then out through the bottom of the button. A grid column cannot move.
+
+   The 1–9 key chip is 28px of a 290px screen spent telling you to press a key
+   on a device that has none.
+
+   And a button you tap in a hurry, on a timer, while somebody shouts at you,
+   should be a comfortable target rather than a 37px strip.
+
+   That target comes from padding and NOT from `min-height`: on a grid item a
+   specified min-height replaces the content-based automatic minimum, so the
+   row could not grow for a reply that wrapped — the button stayed 46px and the
+   line underneath it rendered straight through the button below. */
+@media(pointer:coarse){
+  .move{display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center;
+    padding:13px 12px}
+  .move .mk{display:none}
+  .move .mn{grid-column:1;grid-row:1;min-width:0;font-size:15px;line-height:1.3}
+  .move .mc{grid-column:2;grid-row:1;float:none;justify-self:end;white-space:nowrap;
+    font-size:11px;letter-spacing:.03em;color:var(--hold);opacity:.9}
+  .move .mw{grid-column:1/-1;float:none;margin-top:3px}
+  /* The explanation goes. The emoji and the line itself say what a reply does,
+     and a second greyed line per button is the difference between seeing your
+     options and scrolling for them while somebody waits on the other end. */
+  .move .md{display:none}
+  /* The close is the one you are playing for; make it read as a way out
+     rather than the sixth grey rectangle. */
+  .move.primary{padding:16px 12px}
+  .move.primary .mn{font-size:16px}
+}
+/* 320px. 48px targets cost the fifth button, and the fifth button is worth
+   more than four pixels of padding: 44 is still a comfortable thumb. Placed
+   after the block above so it wins — the older max-width:360px rules are
+   earlier in the file and would not. */
+@media(pointer:coarse) and (max-width:360px){
+  .move{padding:11px 11px;column-gap:8px}
+  .move .mn{font-size:14.5px}
+  .move .mc{font-size:10.5px}
+  .cb-line{font-size:13.5px}
+}
+/* The one button left when the call is over. Sized to the call card's own
+   rhythm rather than to a settings row, and laid out as label + reward so the
+   two never wrap through each other. */
+/* `.btn.cb-end`, two classes, deliberately: the coarse-pointer `.btn` block
+   further down this file gives every button a 44px minimum and 16px of
+   padding, and at equal specificity it is later and wins.
+
+   NOWRAP, and that is the whole point of it. It used to be allowed to wrap, on
+   the reasoning that the reward dropping to a second line beat it wrapping
+   mid-figure — but a wrapped End call button is a 78px slab across the bottom of
+   a phone, and whether it wraps depends on fonts this repository's test browser
+   does not have: `var(--ui)` and `var(--mono)` resolve to Helvetica and Menlo on
+   iOS, both wider than the Linux fallbacks Chromium picks here, so the button
+   measured 47px in every screenshot and was two lines tall on a real phone.
+   One line, always: the label gives way first (it is the word "End call" beside
+   a telephone), and the reward — the number you are reading — never moves. */
+.btn.cb-end{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap;
+  min-height:0;padding:11px 14px;font-size:14px;line-height:1.25}
+.btn.cb-end .ce-t{font-weight:600;letter-spacing:.01em;white-space:nowrap;
+  min-width:0;overflow:hidden;text-overflow:ellipsis}
+.btn.cb-end .ce-r{flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--good);
+  background:rgba(90,212,138,.12);border:1px solid rgba(90,212,138,.3);
+  border-radius:999px;padding:2px 9px;white-space:nowrap}
+@media(pointer:coarse){
+  /* Comfortable without the settings-row slab: one line of type and its own
+     padding, with a floor for the thumb. It cannot wrap, so the floor is safe:
+     a min-height on a grid item replaces the content-based minimum, which is
+     only ever a problem for a box whose content can grow. */
+  .btn.cb-end{min-height:46px;padding:12px 14px;border-radius:12px}
+}
+/* Narrow phones: the emoji is 22px of a button that has to fit a label and a
+   figure on one line, and the telephone is the least of the three. */
+@media(max-width:360px){
+  .btn.cb-end{gap:8px;padding:12px 10px}
+  .btn.cb-end .ce-t{font-size:13.5px}
+  .btn.cb-end .ce-r{font-size:11px;padding:2px 7px}
+}
+.hold-note{padding:0 16px 12px;font-family:var(--mono);font-size:11px;color:var(--hold);opacity:.85}
+
+/* ============================================================
+   THE CHANNEL AN ENCOUNTER ARRIVED ON
+   ------------------------------------------------------------
+   The card is the same card — same meters, same moves, same measured height,
+   because the mechanic is identical and a second layout for it would be a
+   second thing to keep working on a 320px screen. What changes is the accent
+   and the two lines of wording engine/combat.js writes into it, which is
+   enough: the eye takes the colour before it reads the title, and an amber
+   card that says "hold music" is unmistakably not the green one that says
+   "delivered · read".
+   ============================================================ */
+#combat.ch-call .cb{--cbch:var(--hold)}
+#combat.ch-mail .cb{--cbch:var(--brand)}
+#combat.ch-text .cb{--cbch:var(--good)}
+/* The hanging tab every .sign has, in the channel's colour. One element, no
+   extra markup, and it is the first thing on the card the eye lands on. */
+#combat[class*=ch-] .cb::before{background:var(--cbch,var(--brand))}
+#combat[class*=ch-] .cb-top{border-bottom-color:var(--cbch,var(--line))}
+/* The status line under the moves. On the phone it is what tells you whether
+   somebody is holding or whether this is a thread you can take your time over
+   — so it keeps the channel's colour where the rest of the card is grey. */
+#combat[class*=ch-] .hold-note{color:var(--cbch,var(--dim))}
+/* Written channels are a THREAD, so the transcript is the shape of the card
+   worth giving room to rather than the afterthought it is on a call: on the
+   phone the log is a receipt of something you both heard, and in writing it is
+   the conversation. */
+#combat.ch-mail .cb-log,#combat.ch-text .cb-log{max-height:168px;color:var(--text);
+  border-top-color:var(--cbch)}
+#combat.ch-mail .cb-log div,#combat.ch-text .cb-log div{padding:3px 0}
+/* Nothing is ringing, so nothing pulses. The critical ring stays — running out
+   of yourself is the same either way. */
+#combat.ch-mail .cb-face,#combat.ch-text .cb-face{animation:none}

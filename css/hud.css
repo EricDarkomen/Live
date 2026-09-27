@@ -1,0 +1,260 @@
+/* ---------- game ---------- */
+#game{position:absolute;inset:0;display:none}
+#game.on{display:block}
+/* ---------- the opening's shot ----------
+   The cutscene draws the real building behind its own letterbox, so the game
+   is switched ON during it — canvas, camera, twenty colleagues walking about,
+   all of it — with every piece of chrome taken off. Hiding the chrome by name
+   would rot the first time somebody adds a corner to the HUD; this hides
+   everything that is not the stage, and inside the stage everything that is
+   not the picture. The vignette stays: it is the one overlay that helps.
+
+   Chained :not() rather than a selector list, which is a level-4 selector and
+   this file has to work in the browsers the rest of the game does. */
+body.cinema #game > :not(#stage){display:none!important}
+body.cinema #stage > :not(#view):not(#vignette){display:none!important}
+#stage{position:absolute;inset:0;overflow:hidden;background:#05070b}
+/* NB: no CSS blur here, deliberately. A `filter`/`backdrop-filter` over a canvas
+   is re-rasterised every single frame even when the canvas is static, which cost
+   half the frame rate during calls. The out-of-focus look is baked into the
+   canvas once instead — see R.freeze(). */
+/* touch-action:none over the play area. The game is a fixed layout fitted to
+   the pixels it is given, so every gesture a browser would otherwise take for
+   itself here — double-tap to zoom, pinch, the pull-to-refresh a thumb starts
+   when it drags upwards from low on the screen — is a way to end up playing a
+   magnified corner of it with no way back. */
+canvas#view{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:auto;
+  touch-action:none}
+#vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%,transparent 45%,rgba(0,0,0,.62) 100%)}
+#flash{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0;transition:opacity .3s}
+/* The curtain across a change of level. Above the world and below every panel:
+   it is hiding the cut between two maps, not the interface. Its 190ms is the
+   number Levels.transition() waits before swapping, and the two have to agree
+   or the swap happens in front of the player. */
+#fade{position:absolute;inset:0;pointer-events:none;background:#05070c;opacity:0;
+  transition:opacity .19s ease;z-index:4}
+#fade.on{opacity:1}
+
+/* HUD */
+.hud{position:absolute;pointer-events:none;z-index:5}
+/* Softer than the panels and the call card on purpose — this sits over the
+   office for the whole shift, not just while you are reading it. A hairline
+   the same brightness as `.sign`'s border read as another laminated notice
+   pinned to the game; `--line-soft` and a shallower shadow let it recede to
+   "instrument overlay" instead. */
+.hud .card{pointer-events:auto;position:relative;background:linear-gradient(180deg,rgba(24,31,43,.82),rgba(17,22,31,.86));
+  border:1px solid var(--line-soft);border-radius:var(--radius);backdrop-filter:blur(9px);
+  box-shadow:0 10px 26px -18px #000,inset 0 1px 0 rgba(255,255,255,.04)}
+/* The wrapper the phone bar is made of. Zero height and click-through here, so
+   the two cards inside keep their own corners and nothing about the desktop
+   changes; responsive.css turns it into the bar. */
+#hudTop{position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none}
+#shiftBar{display:none}
+#hudTL{top:12px;left:12px;width:236px}
+#hudTL .card{padding:10px 12px;transition:box-shadow .3s,border-color .3s}
+#hudTL.low .card{border-color:rgba(255,95,86,.65);box-shadow:0 0 30px -8px rgba(255,95,86,.6)}
+#hudTL.low .who-name{color:var(--bad)}
+/* min-width:0 so the name and rank can be clipped rather than forcing the card
+   wider than the corner it lives in — a long name wrapped to three lines on a
+   phone and pushed the bars down with it. */
+.who-row{display:flex;align-items:center;gap:9px}
+.who-row>div{min-width:0}
+/* A lanyard photo, not a loose glyph — the same ringed-chip idea the phone bar
+   already uses for this face, brought to the desktop card it was invented
+   for. The ring goes to the alert colour with the rest of the card once
+   patience is low, so the one thing you glance at first says so too. */
+.who-face{font-size:26px;line-height:1;flex:0 0 auto;
+  padding:5px 7px;border-radius:11px;border:1px solid var(--line-soft);
+  background:radial-gradient(circle at 50% 35%,rgba(77,163,255,.16),rgba(77,163,255,.02));
+  transition:border-color .3s,background .3s}
+#hudTL.low .who-face{border-color:rgba(255,95,86,.5);
+  background:radial-gradient(circle at 50% 35%,rgba(255,95,86,.24),rgba(255,95,86,.03))}
+.who-name{font-weight:700;font-size:15px;line-height:1.1}
+.who-rank{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--hold);text-transform:uppercase}
+.bar{height:9px;background:#0b0f16;border:1px solid var(--line-soft);border-radius:6px;overflow:hidden;position:relative;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.bar>i{display:block;height:100%;width:50%;border-radius:5px;transition:width .3s ease}
+.bar-row{display:flex;align-items:center;gap:7px;margin-top:7px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.bar-row .lbl{width:16px;text-align:center;font-size:12px;opacity:.85}
+.bar-row .bar{flex:1}
+.bar-row .val{width:52px;text-align:right;color:var(--text)}
+.bar-row .val i{font-style:normal;color:var(--dim)}
+#hudTR{top:12px;right:12px;width:250px;text-align:right}
+#hudTR .card{padding:10px 12px}
+.money-row{display:flex;justify-content:flex-end;gap:14px;font-family:var(--mono);font-size:13px}
+.money-row b{color:var(--hold);font-weight:700}
+.clock{font-family:var(--mono);font-size:22px;letter-spacing:.06em;color:var(--text)}
+.clock small{font-size:10px;color:var(--dim);letter-spacing:.2em;display:block}
+/* The weather line, under the clock. Deliberately quieter than the queue: it
+   is information about the day rather than a thing demanding to be answered,
+   and it is on screen every second of every shift. */
+.sky{margin-top:5px;display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.queue{margin-top:7px;display:flex;align-items:center;justify-content:flex-end;gap:7px;
+  font-family:var(--mono);font-size:11px;color:var(--hold);letter-spacing:.06em}
+.queue[hidden]{display:none}
+.qdot{width:7px;height:7px;border-radius:50%;background:var(--hold);
+  box-shadow:0 0 8px var(--hold);animation:qpulse 1.1s ease-in-out infinite}
+@keyframes qpulse{50%{opacity:.25;transform:scale(.7)}}
+@media(prefers-reduced-motion:reduce){.qdot{animation:none}}
+/* THE WRITTEN QUEUE IS THE SAME ROW IN A DIFFERENT COLOUR, and its dot does
+   not pulse. That is the difference between the two queues said in CSS: amber
+   and blinking is a phone ringing eight feet away, blue and still is an email
+   that has been there since half nine and will be there at five. A second
+   pulsing dot on this card would say they were the same kind of urgent. */
+.queue.written{color:var(--brand);margin-top:3px}
+.queue.written .qdot{background:var(--brand);box-shadow:0 0 8px var(--brand);animation:none}
+
+/* ---------- the job tracker ----------
+   The objective plus the open jobs, in one box under the right-hand card. It
+   is a list of live things, so it is built to be got out of the way: each job
+   folds to its title, and the whole box folds to its header — which then says
+   what is being tracked, so a folded tracker is still a sentence.
+   Height is capped and the LIST is what scrolls: the objective and the header
+   are the two things that must never be the part that scrolls off. */
+#tracker{top:calc(12px + var(--hudr-h,104px) + 8px);right:12px;width:250px;
+  display:flex;flex-direction:column;
+  max-height:calc(100% - var(--hudr-h,104px) - 250px)}
+#tracker .card{min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:0}
+.tk-head{display:flex;align-items:center;gap:6px;padding:8px 10px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.tk-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Folded, the header carries the tracked job's name — so the smallest the box
+   goes is still the one line worth having. It stops being a label and becomes
+   that name: mono capitals at .2em tracking is a heading, and it truncated
+   "Printer of Doom" to "PRINTER OF …" in the width a folded box has.
+   The collapse-to-titles button goes with the titles it would collapse. */
+#tracker.folded .tk-lbl{color:var(--good);font-family:var(--ui);font-size:12px;
+  letter-spacing:.01em;text-transform:none}
+#tracker.folded .tk-body,#tracker.folded #tkTitles{display:none}
+#tracker.folded #tkFold{transform:rotate(-90deg)}
+/* The open-job count means nothing once the label itself is a job's name — a
+   number sitting right after "📍 Printer o…" reads like part of the same
+   fact ("step 3"?) rather than the unrelated one it is. */
+#tracker.folded .tk-n{display:none}
+.tk-n{flex:0 0 auto;color:var(--hold);letter-spacing:.06em}
+.tk-n:empty{display:none}
+.tk-b{flex:0 0 auto;width:22px;height:22px;line-height:1;border-radius:6px;cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-soft);color:var(--dim);font-size:11px;
+  display:flex;align-items:center;justify-content:center;pointer-events:auto;transition:.14s}
+.tk-b:hover{color:var(--text);border-color:var(--brand);background:rgba(77,163,255,.12)}
+.tk-b:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
+#tracker.titles #tkTitles{color:var(--brand);border-color:var(--brand)}
+.tk-body{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.tk-obj{padding:0 10px 9px;font-size:12px;line-height:1.35;color:var(--text)}
+/* Feathered at the bottom, the same trick the notification box and the tab
+   strip use: a job sliced flat by the edge of the box looks like a rendering
+   fault, a job fading out looks like there is another one below it. The padding
+   matches the feather so the last job, scrolled to, clears it. */
+.tk-list{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;
+  border-top:1px dashed var(--line);padding:4px 4px 14px;
+  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 14px),transparent 100%);
+  mask-image:linear-gradient(180deg,#000 calc(100% - 14px),transparent 100%)}
+.tk-list::-webkit-scrollbar{width:0}
+.tk-list:empty{display:none}
+/* A job is a title row you can fold and a pin you can track it with. Two
+   buttons side by side rather than one inside the other, which is not a thing
+   a button may contain. */
+.tk-q{display:flex;align-items:flex-start;gap:4px;border-radius:9px;padding:1px;
+  border:1px solid transparent}
+.tk-q+.tk-q{margin-top:2px}
+.tk-q.on{border-color:rgba(90,212,138,.45);background:rgba(90,212,138,.08)}
+.tk-title{flex:1;min-width:0;text-align:left;cursor:pointer;pointer-events:auto;
+  background:none;border:0;padding:5px 6px;border-radius:8px;font-family:inherit}
+.tk-title:hover{background:rgba(255,255,255,.05)}
+.tk-title:focus-visible{outline:2px solid var(--hold);outline-offset:-2px}
+.tk-nm{display:flex;gap:6px;align-items:baseline;font-size:12px;color:var(--text)}
+.tk-nm b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-nm i{flex:0 0 auto;font-style:normal;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.06em}
+.tk-q.on .tk-nm b{color:var(--good)}
+/* The current step, which is the only one of them you can act on. Capped at two
+   lines rather than left to wrap freely: the full text is one tap away in the
+   Jobs panel, and an unbounded step is what let a single job run the tracker
+   the length of the screen. */
+.tk-step{margin-top:3px;font-size:11px;line-height:1.35;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#tracker.titles .tk-step,.tk-q.shut .tk-step{display:none}
+/* The pin is the one control whose STATE matters more than its label — it is
+   how you tell, at a glance, which job (if any) the compass on screen belongs
+   to. A faint tint on a card that is already dark read as "slightly less
+   transparent", not "on". Tracked is now a solid filled chip; everything else
+   about it — position, tap target, aria-pressed — is unchanged. */
+.tk-pin{flex:0 0 auto;width:26px;align-self:stretch;min-height:26px;cursor:pointer;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.04);border:1px solid transparent;border-radius:9px;
+  font-size:12px;opacity:.62;filter:grayscale(.4);
+  transition:opacity .15s,background .15s,border-color .15s,transform .09s,filter .15s}
+.tk-pin:hover{opacity:1;filter:none;background:rgba(255,255,255,.09)}
+.tk-pin:active{transform:scale(.88)}
+.tk-pin:focus-visible{outline:2px solid var(--hold);outline-offset:-2px}
+.tk-q.on .tk-pin{opacity:1;filter:none;background:var(--good);border-color:var(--good);
+  box-shadow:0 0 0 3px rgba(90,212,138,.2)}
+.tk-title:active{background:rgba(255,255,255,.08)}
+.tk-b:active{transform:scale(.9)}
+@media(prefers-reduced-motion:reduce){.tk-pin:active,.tk-b:active{transform:none}}
+.tk-empty{padding:8px 10px;font-size:11px;color:var(--dim)}
+#minimapWrap{position:absolute;right:12px;bottom:96px;z-index:5}
+/* The map is behind the minimap, so the minimap is a button. It keeps the
+   canvas's own border rather than growing one of its own — the thing you are
+   pressing is the map, and a button drawn round a map is a second frame. */
+#minimapBtn{display:block;padding:0;border:0;background:none;cursor:pointer;line-height:0;
+  border-radius:8px;pointer-events:auto}
+#minimapBtn:hover #minimap,#minimapBtn:focus-visible #minimap{border-color:var(--brand)}
+#minimapBtn:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+#minimapBtn:active{transform:scale(.98)}
+@media(prefers-reduced-motion:reduce){#minimapBtn:active{transform:none}}
+#minimap{display:block;border-radius:8px;border:1px solid var(--line);background:rgba(11,15,22,.85);
+  transition:border-color .14s}
+#hudBottom{left:0;right:0;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+/* ---- the gun readout ----
+   One line above the prompt: what is in your hand, and what is left in it. It
+   is `hidden` for all but a few minutes of a shift, so it is laid out to sit
+   in the same column as everything else in #hudBottom and take no space when
+   it is not there. */
+/* `display:flex` beats the `hidden` attribute's own `display:none`, which is
+   how an empty pill ends up sitting over the office for the whole shift. */
+#gunHud[hidden]{display:none}
+#gunHud{display:flex;align-items:center;gap:8px;pointer-events:none;
+  background:rgba(21,27,37,.9);border:1px solid var(--line-soft);border-radius:999px;
+  padding:5px 12px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.gh-e{font-size:13px;line-height:1}
+.gh-n{color:var(--text)}
+.gh-a{letter-spacing:.12em;color:var(--good)}
+.gh-a.rl{color:var(--hold);letter-spacing:.04em}
+#prompt{opacity:0;transform:translateY(8px);transition:.18s;font-size:14px;padding:8px 14px;
+  background:rgba(21,27,37,.94);border:1px solid var(--brand);border-radius:999px;
+  box-shadow:0 0 24px -6px var(--brand);pointer-events:none}
+#prompt.on{opacity:1;transform:none}
+#prompt.urgent{border-color:var(--hold);box-shadow:0 0 26px -4px var(--hold);animation:promptRing .9s ease-in-out infinite}
+@keyframes promptRing{50%{box-shadow:0 0 34px 0 var(--hold)}}
+@media(prefers-reduced-motion:reduce){#prompt.urgent{animation:none}}
+#keyhints{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;pointer-events:auto}
+#keyhints button{display:inline-flex;align-items:center;gap:5px;
+  background:rgba(21,27,37,.72);border:1px solid var(--line-soft);border-radius:7px;
+  padding:5px 9px;font-size:11px;color:var(--dim);cursor:pointer;font-family:var(--mono);transition:.14s}
+#keyhints button:hover{color:var(--text);border-color:var(--brand);background:rgba(77,163,255,.1)}
+.kh-i{font-size:12px;line-height:1;opacity:.8}
+#zoneName{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);
+  font-size:30px;letter-spacing:.35em;text-transform:uppercase;color:#fff;opacity:0;pointer-events:none;
+  text-shadow:0 4px 30px #000;z-index:4}
+#zoneName.show{animation:zoneFade 2.4s ease forwards}
+@keyframes zoneFade{0%{opacity:0;letter-spacing:.5em}20%{opacity:.95;letter-spacing:.35em}
+  70%{opacity:.95}100%{opacity:0;letter-spacing:.3em}}
+
+/* Toasts — a fixed-height scrollback, not a growing stack.
+   A stack of notifications grew downwards into the play area and pushed the
+   thing you were reading further from where you were looking, which on a phone
+   is most of the screen. The box below never changes size: entries scroll
+   inside it, newest at the bottom, and the mask fades them out at both ends so
+   they slide away instead of popping. Scroll up for what you missed. */
+/* THE NOTIFICATIONS ARE NOT HERE ANY MORE. They were a fixed-height scrollback
+   with a peek chip standing in for it while it was faded, and the whole thing —
+   the band, the window, the chip, the fade, the hold-while-reading — is gone.
+   What replaced it is two elements in css/comms.css with two different jobs: an
+   alert that points into a record, and a record that is a place you can go. The
+   z-order note that used to be here still holds and is restated there, because
+   the band is still the bottom of the stack: the HUD (5), the controls (6),
+   dialogue (20), the call (25), the panels and the console (26) and the exit
+   interview (28) all cover it. */

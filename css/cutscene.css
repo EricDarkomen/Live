@@ -1,0 +1,234 @@
+/* ============================================================
+   THE OPENING
+
+   A cutscene, not a form. Everything else between the title and the shift is a
+   piece of the company's paperwork — a laminated sign with a hanging tab, which
+   is the joke — and the opening was drawn the same way: twelve identical cards,
+   each a 64px emoji over a paragraph, with the same chrome the HR name field
+   wears. Twelve of anything identical is a slideshow, and a slideshow is the
+   one shape that tells the player none of this is worth reading.
+
+   So the chrome moves INTO the letterbox. The bars are not decoration: the skip
+   lives in the top one and the progress and the hint live in the bottom one, so
+   the frame between them holds nothing but the writing and the building. That
+   is the whole layout, and it is why there is no card border anywhere in here.
+
+   Behind it is the game's own renderer (see body.cinema, in hud.css) drawing
+   the real fourth floor. Which means every rule in this file has to work over
+   an arbitrary, moving, mostly-dark photograph of an office — hence the grade
+   and the scrim, and hence the caption having a ground of its own rather than
+   trusting the floor underneath it to be dark where the text is.
+   ============================================================ */
+#cutscene{
+  /* Not the flex column every other screen is: the layers stack, and each one
+     places itself. Padding would inset the letterbox from the edges it is the
+     edges of. */
+  display:none;padding:0;overflow:hidden;background:none;text-align:left;
+  /* #game is a LATER sibling with no z-index of its own, so with the world
+     switched on behind the opening the office painted straight over the whole
+     letterbox — a shot with no film on it. Nothing else needs one: this is the
+     only screen that is ever up at the same time as the game. */
+  z-index:2;
+  --cut-bar:clamp(26px,7.5vh,84px);
+  --cut-pad:clamp(18px,4.5vw,56px);
+}
+#cutscene.on{display:block;animation:fadeIn .5s ease}
+
+/* ---------- the ground, and the grade over the world ---------- */
+/* The dark the opening starts in. It is the ONLY thing showing until a beat
+   names a camera, and it fades out from under the first one that does. */
+#cutGround{position:absolute;inset:0;
+  background:radial-gradient(1200px 700px at 50% 35%,#182233,var(--ink) 72%);
+  transition:opacity .9s ease}
+#cutscene.world #cutGround{opacity:0}
+/* A strip light passing overhead, once every nine seconds. The first beat has
+   no building behind it and a flat black rectangle for twenty seconds of
+   reading reads as a page that has failed to load. */
+#cutGround::after{content:"";position:absolute;inset:-20% -60%;
+  background:linear-gradient(100deg,transparent 42%,rgba(120,170,255,.055) 50%,transparent 58%);
+  animation:cutSweep 9s linear infinite}
+@keyframes cutSweep{from{transform:translateX(-38%)}to{transform:translateX(38%)}}
+
+/* The grade over the office once it is showing. Two jobs: hold the floor back
+   far enough that white text reads over it wherever the camera happens to be,
+   and put a corner-darkening on it so a top-down game reads as a shot. */
+#cutGrade{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;
+  background:
+    linear-gradient(180deg,rgba(6,9,14,.80),rgba(6,9,14,.42) 30%,rgba(6,9,14,.54) 56%,rgba(6,9,14,.93)),
+    radial-gradient(115% 88% at 50% 44%,rgba(4,6,10,.10) 24%,rgba(4,6,10,.84))}
+#cutscene.world #cutGrade{opacity:1}
+
+/* ---------- the letterbox ---------- */
+#cutBars .cut-bar{position:absolute;left:0;right:0;height:var(--cut-bar);
+  background:#05070b;transition:transform .75s cubic-bezier(.22,.61,.36,1)}
+#cutBars .cut-bar:first-child{top:0;transform:translateY(-100%);
+  box-shadow:inset 0 -1px 0 rgba(255,255,255,.055)}
+#cutBars .cut-bar:last-child{bottom:0;transform:translateY(100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055)}
+#cutscene.framed #cutBars .cut-bar{transform:none}
+
+/* ---------- the writing ---------- */
+/* The frame between the bars, with the caption in the lower part of it — where
+   a caption goes, and where it is not sitting on top of whatever the camera is
+   looking at. */
+#cutBody{position:absolute;left:0;right:0;top:var(--cut-bar);bottom:var(--cut-bar);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:0 var(--cut-pad) clamp(14px,3.4vh,40px);pointer-events:none}
+#cutCard{display:flex;gap:clamp(12px,2.2vw,22px);align-items:flex-start;
+  width:min(780px,100%)}
+/* Every beat re-runs this, which is what makes a change of beat read as a
+   change of shot rather than as text being replaced in place. */
+#cutCard.in{animation:cutRise .42s cubic-bezier(.22,.61,.36,1)}
+@keyframes cutRise{from{opacity:0;transform:translateY(11px)}to{opacity:1;transform:none}}
+
+/* The emoji is a PLATE, not a floating glyph. At 64px on its own over an office
+   it read as a sticker; in a bordered square it reads as the thing the shot is
+   about, and it gives the caption a left edge to hang off. */
+.cut-emoji{flex:0 0 auto;width:clamp(46px,8vw,70px);height:clamp(46px,8vw,70px);
+  display:grid;place-items:center;font-size:clamp(26px,4.6vw,40px);line-height:1;
+  border:1px solid var(--line);border-radius:12px;
+  background:linear-gradient(180deg,rgba(34,43,59,.86),rgba(11,15,22,.92));
+  box-shadow:0 18px 40px -22px #000}
+.cut-say{flex:1 1 auto;min-width:0;
+  /* A two-row grid with BOTH copies of the text in the second cell, so the
+     typed line is laid over the finished one and the box is the size of the
+     sentence from the first frame. Absolute positioning would do it too and
+     would have to be told about the padding. */
+  display:grid;grid-template-columns:minmax(0,1fr);
+  /* Its own ground. The floor behind this is a moving photograph and the one
+     thing that must never happen is a sentence over a light desk. */
+  background:linear-gradient(180deg,rgba(9,12,18,.62),rgba(9,12,18,.82));
+  border-left:2px solid rgba(77,163,255,.55);
+  border-radius:0 10px 10px 0;padding:12px 16px 14px;
+  backdrop-filter:blur(2px)}
+.cut-label{grid-area:1/1}
+.cut-text{grid-area:2/1}
+.cut-label{font-family:var(--mono);font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--hold);margin-bottom:7px}
+.cut-text{font-size:clamp(15px,2.2vw,20px);line-height:1.58;color:var(--text);
+  text-align:left;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+/* The finished sentence, invisible, holding the box open. Without it the
+   caption grows a line at a time as the words arrive and the whole lower third
+   jumps under the reader. It is the same element in the same grid cell, so it
+   wraps to exactly the same shape. */
+.cut-ghost{visibility:hidden}
+/* The caret only exists while there is more to come, so its disappearance is
+   what says the line is finished. */
+#cutscene.typing #cutText::after{content:"";display:inline-block;width:.5em;height:1em;
+  margin-left:.08em;vertical-align:-.14em;background:var(--hold);animation:cutCaret 1s steps(1) infinite}
+@keyframes cutCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+/* ---- somebody speaking ----
+   Four of the twelve beats are one line of dialogue, and three of those are two
+   words. Given a paragraph's worth of card each, Big Ron's exchange — which is
+   the best-timed thing in the opening — read as four essays. A spoken line gets
+   size and space instead, and loses the block it does not need. */
+#cutscene.k-line #cutCard{align-items:center}
+#cutscene.k-line .cut-say{background:none;border-left:0;padding:0 4px;backdrop-filter:none}
+#cutscene.k-line .cut-text{font-size:clamp(21px,3.6vw,34px);line-height:1.34;
+  text-shadow:0 2px 10px rgba(0,0,0,.9)}
+#cutscene.k-line .cut-emoji{border-radius:50%;
+  width:clamp(54px,9vw,84px);height:clamp(54px,9vw,84px);font-size:clamp(30px,5.4vw,48px)}
+
+/* ---- the last card ----
+   Display type, centred, no plate. "SURVIVE THE SHIFT" is the title of the
+   game you are about to play and it was set at the same size as a sentence
+   about a fire evacuation notice. */
+/* The grade deliberately leaves the middle of the frame alone, which is the
+   one place this card puts its type. Take the floor further down under it. */
+#cutscene.k-title #cutGrade{background:
+  linear-gradient(180deg,rgba(6,9,14,.88),rgba(4,6,10,.66) 38%,rgba(4,6,10,.70) 62%,rgba(6,9,14,.95)),
+  radial-gradient(120% 92% at 50% 46%,rgba(4,6,10,.28) 22%,rgba(4,6,10,.88))}
+#cutscene.k-title #cutBody{align-items:center}
+#cutscene.k-title #cutCard{display:block;text-align:center}
+#cutscene.k-title .cut-emoji{display:none}
+#cutscene.k-title .cut-say{background:none;border-left:0;padding:0;backdrop-filter:none}
+#cutscene.k-title .cut-label{text-align:center;letter-spacing:.34em;margin-bottom:14px}
+#cutscene.k-title .cut-text{font-family:var(--mono);font-weight:700;text-align:center;
+  font-size:clamp(24px,5.2vw,52px);line-height:1.18;letter-spacing:.01em;
+  text-shadow:0 0 40px rgba(77,163,255,.35),0 3px 14px rgba(0,0,0,.9)}
+
+/* ---------- letting go ----------
+   The opening does not cut to a HUD. The bars open, the grade lifts off the
+   office and the caption goes, and only then does Game.begin() run — so the
+   last thing that happens is the camera being handed over on the frame it
+   already arrived at. After #cutscene.world's rule, which it has to beat, and
+   at the same weight: later wins.
+
+   Nothing is waited on here except a timer that matches these durations. Get
+   them out of step and the shift starts under a letterbox that is still open,
+   or the office pops in half a second before the film ends. */
+#cutscene.leaving #cutGrade{opacity:0}
+#cutscene.leaving #cutBody,#cutscene.leaving #cutFoot,#cutscene.leaving .cut-skip{opacity:0;transition:opacity .3s ease}
+
+/* ---------- the chrome, which lives in the bars ---------- */
+#cutFoot{position:absolute;left:0;right:0;bottom:0;height:var(--cut-bar);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 var(--cut-pad) env(safe-area-inset-bottom);
+  opacity:0;transition:opacity .5s ease .25s;pointer-events:none}
+#cutscene.framed #cutFoot{opacity:1}
+/* The ticks SHARE whatever the hint leaves, rather than being 14px each. There
+   are eighteen beats and a 320px phone has about 280px of bar: at a fixed width
+   the row pushed the hint out to "Tap to co…", and it would do it again the day
+   somebody adds a nineteenth. Flexing means the number of beats is the
+   opening's business and not this file's. */
+.cut-dots{flex:1 1 auto;min-width:0;display:flex;gap:4px;align-items:center}
+.cut-dots i{flex:1 1 0;min-width:3px;max-width:14px;height:3px;border-radius:2px;
+  background:var(--line);transition:background .3s ease,max-width .3s ease}
+.cut-dots i.done{background:#4a5b7d}
+.cut-dots i.now{background:var(--hold);max-width:26px}
+.cut-hint{flex:0 0 auto;color:var(--dim);font-size:12px;margin:0;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52%}
+
+/* The skip. Always there, from the first frame — a skip you have to discover is
+   not a skip. In the top bar, on the right, clear of everything: the screen
+   itself advances the beat on a press, so this is the one thing in here that
+   must not be mistaken for the rest of the surface. 44px of height either way,
+   because on a phone it is the smallest thing on the screen and the only one
+   with a consequence. */
+.cut-skip{position:absolute;top:0;right:var(--cut-pad);height:var(--cut-bar);
+  min-height:44px;margin-top:env(safe-area-inset-top);
+  display:flex;align-items:center;gap:2px;padding:0 14px;
+  background:none;border:0;cursor:pointer;
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);opacity:0;transition:opacity .5s ease .35s,color .15s}
+#cutscene.framed .cut-skip{opacity:1}
+.cut-skip:hover{color:var(--hold)}
+.cut-skip:focus-visible{outline:2px solid var(--hold);outline-offset:-4px;color:var(--hold)}
+.cut-skip:active{transform:translateY(1px)}
+
+/* ---------- how to play, on the same screen ----------
+   Boot.help() has always borrowed this section for the induction page, and a
+   wall of instructions is not a cutscene: no letterbox, no camera, no typing —
+   the laminated sign it was, back again, and scrolling, because it is long. */
+#cutscene.plain{display:none}
+#cutscene.plain.on{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow-y:auto;padding:24px;
+  padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+#cutscene.plain #cutGround{opacity:1}
+#cutscene.plain #cutGrade,#cutscene.plain #cutBars,#cutscene.plain #cutFoot,
+#cutscene.plain .cut-skip,#cutscene.plain .cut-ghost{display:none}
+#cutscene.plain #cutBody{position:static;display:block;padding:0;pointer-events:auto}
+#cutscene.plain #cutCard{display:block;width:min(760px,94vw);text-align:center;
+  background:linear-gradient(180deg,var(--panel),var(--ink2));
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 30px 80px -30px #000,inset 0 1px 0 rgba(255,255,255,.05);
+  padding:22px;animation:none}
+#cutscene.plain .cut-emoji{width:auto;height:auto;border:0;background:none;box-shadow:none;
+  font-size:56px;margin-bottom:6px;display:block}
+#cutscene.plain .cut-say{background:none;border-left:0;padding:0;backdrop-filter:none}
+#cutscene.plain .cut-label{text-align:center;letter-spacing:.22em;
+  border-bottom:1px dashed var(--line);padding-bottom:12px;margin-bottom:14px}
+#cutscene.plain .cut-text{font-size:clamp(14px,2.2vw,16px);line-height:1.62}
+.cut-text .who{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--hold);
+  display:block;margin-bottom:6px}
+
+/* Reduced motion takes the drifting light and the rise; the typewriter is
+   turned off in Cut itself, because a caret ticking across a line is motion
+   whatever CSS says about it. */
+@media (prefers-reduced-motion:reduce){
+  #cutGround::after{animation:none}
+  #cutCard.in{animation:none}
+  #cutBars .cut-bar,#cutGround,#cutGrade,#cutFoot,.cut-skip{transition:none}
+  #cutscene.typing #cutText::after{animation:none}
+}

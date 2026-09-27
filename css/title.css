@@ -1,0 +1,225 @@
+/* ============================================================
+   The title screen
+
+   A wallboard, a switchboard behind it, and the noticeboard by the lift
+   scrolling along the bottom. Four layers, back to front:
+
+     #titleFx      the switchboard — a canvas, drawn by engine/title.js
+     #titleGrade   the grade over it: scanlines, a vignette, a screen
+     .hero         the lettering, the menu and the live wallboard
+     #titleFoot    the ticker and the small print
+
+   The first two are position:fixed rather than absolute on purpose. .screen
+   scrolls on a short viewport — a phone in landscape — and a backdrop that
+   scrolls with the content is a backdrop that slides off the top of its own
+   screen the moment somebody flicks it.
+   ============================================================ */
+
+#titleScreen{
+  /* Deeper and colder than the shared screen gradient, with the light coming
+     from where the strip light on the canvas is. */
+  background:
+    radial-gradient(1100px 620px at 50% 8%,rgba(77,163,255,.10),transparent 62%),
+    radial-gradient(900px 700px at 50% 100%,rgba(180,140,255,.06),transparent 70%),
+    linear-gradient(180deg,#0f1620,var(--ink) 55%,#080b10);
+  /* Deliberately NOT setting justify-content here. .screen centres, and the
+     short-viewport block in responsive.css switches that to flex-start so a
+     phone in landscape can scroll instead of losing the top of the hero off
+     the top of its own screen. An id beats a class, so repeating the centre
+     here — which is what this rule did first — quietly undid that fix. */
+}
+#titleFx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* The grade. Scanlines at 3px, a vignette, and a very slight screen-door — it
+   is a monitor bolted to a ceiling, not a web page. */
+#titleGrade{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    repeating-linear-gradient(180deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 90% at 50% 45%,transparent 40%,rgba(0,0,0,.55) 100%);
+  mix-blend-mode:multiply;opacity:.85;
+}
+/* The strip light on the fourth floor has never been right. Twice in eleven
+   seconds, for a frame and a half. */
+#titleFlicker{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:rgba(190,215,255,.055);opacity:0;
+  animation:striplight 11s steps(1,end) infinite;
+}
+@keyframes striplight{
+  0%,90%,100%{opacity:0}
+  90.6%{opacity:1}
+  91.2%{opacity:0}
+  92.4%{opacity:.7}
+  93%{opacity:0}
+}
+
+#titleScreen .hero{position:relative;z-index:2;max-width:min(860px,100%);width:100%}
+
+/* ---------- the strip across the top ---------- */
+.hero-strip{
+  display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:20px;
+}
+.hero-strip b{color:var(--hold);font-weight:400}
+.hero-live{display:inline-flex;align-items:center;gap:7px;color:var(--bad)}
+.hero-live i{width:7px;height:7px;border-radius:50%;background:var(--bad);
+  box-shadow:0 0 0 0 rgba(255,95,86,.6);animation:onair 2.2s ease-out infinite}
+@keyframes onair{0%{box-shadow:0 0 0 0 rgba(255,95,86,.55)}70%,100%{box-shadow:0 0 0 9px rgba(255,95,86,0)}}
+
+/* ---------- the handset ---------- */
+.phone-icon{
+  position:relative;display:inline-block;font-size:clamp(40px,6.4vw,58px);
+  /* Not line-height:1 — an emoji glyph is taller than its own line box in
+     every engine that has one, and the handset then sits on top of the C. */
+  line-height:1.15;margin-bottom:14px;animation:ringle 3.2s ease-in-out infinite;
+}
+/* Two rings, a fifth of a second apart, bursting on the shake rather than
+   politely pulsing all the way through it. */
+.phone-icon i{
+  position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;
+  border:1px solid var(--hold);border-radius:50%;opacity:0;
+  animation:ringout 3.2s ease-out infinite;
+}
+.phone-icon .ring-2{animation-delay:.24s}
+@keyframes ringle{0%,86%,100%{transform:rotate(0)}88%{transform:rotate(-12deg)}90%{transform:rotate(12deg)}
+  92%{transform:rotate(-10deg)}94%{transform:rotate(10deg)}96%{transform:rotate(0)}}
+@keyframes ringout{0%,85%{transform:scale(.4);opacity:0}88%{opacity:.55}100%{transform:scale(2.6);opacity:0}}
+
+/* ---------- the lettering ----------
+   Laminated, and printed slightly out of register: a blue plate a couple of
+   pixels one way and an amber one the other. It is the same trick every sign in
+   this building was made with, and it is why the title now reads as an object
+   in the world rather than a heading on a page. */
+.title-line1{
+  font-family:var(--mono);font-size:clamp(30px,7.6vw,68px);font-weight:700;
+  letter-spacing:.035em;line-height:.95;color:var(--text);
+  text-shadow:
+    2px 0 0 rgba(77,163,255,.36),
+    -2px 0 0 rgba(255,179,71,.16),
+    0 0 38px rgba(77,163,255,.28);
+}
+.title-line2{
+  font-family:var(--mono);font-size:clamp(21px,5.2vw,46px);font-weight:700;
+  color:var(--hold);letter-spacing:.09em;line-height:1.08;margin-top:2px;
+  text-shadow:0 0 30px rgba(255,179,71,.32),-2px 0 0 rgba(255,95,86,.18);
+  animation:signflicker 9s steps(1,end) infinite;
+}
+/* The second line is the bit of the sign that has gone. */
+@keyframes signflicker{
+  0%,82%,100%{opacity:1}
+  83%{opacity:.42}
+  83.7%{opacity:1}
+  85%{opacity:.6}
+  85.6%{opacity:1}
+}
+/* The line under it is a phone line: something goes along it every few seconds. */
+.title-rule{
+  position:relative;overflow:hidden;height:1px;margin:18px auto 0;width:min(540px,86%);
+  background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+.title-rule::after{
+  content:"";position:absolute;top:0;left:-34%;width:34%;height:100%;
+  background:linear-gradient(90deg,transparent,var(--brand),transparent);
+  animation:linesweep 5.2s ease-in-out infinite;
+}
+@keyframes linesweep{0%{left:-34%}58%,100%{left:100%}}
+
+.tagline{margin-top:16px;font-size:clamp(14px,2.4vw,19px);color:var(--text)}
+.tagline small{display:block;color:var(--dim);font-size:13px;margin-top:6px;font-style:italic}
+
+/* ---------- the menu ---------- */
+.title-menu{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px}
+.title-menu .btn{position:relative;padding:12px 20px 12px 30px;font-size:15px}
+/* The marker sits in padding reserved for it, so the label does not jump
+   sideways as the selection moves down the menu. */
+.title-menu .btn::before{
+  content:"▸";position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  color:var(--hold);opacity:0;transition:opacity .12s;
+}
+.title-menu .btn.sel::before{opacity:1}
+.title-menu .btn.sel{border-color:var(--brand);
+  box-shadow:0 0 0 1px rgba(77,163,255,.22),0 12px 34px -16px var(--brand)}
+.title-menu .btn:disabled::before{content:"·";color:var(--dim)}
+
+/* ---------- the wallboard ----------
+   The thing bolted above the desks. Bordered, backed, and slightly luminous,
+   because on a real floor it is the only object in the room emitting light. */
+.board{
+  margin:26px auto 0;width:min(560px,100%);
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(27,34,48,.78),rgba(10,14,20,.78));
+  box-shadow:0 30px 70px -34px #000,inset 0 1px 0 rgba(255,255,255,.05);
+  overflow:hidden;
+}
+@supports (backdrop-filter:blur(4px)){ .board{backdrop-filter:blur(4px)} }
+.board-head{
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--dim);padding:9px 14px;border-bottom:1px dashed var(--line);
+  display:flex;justify-content:space-between;gap:10px;
+}
+.board-head b{color:var(--brand);font-weight:400}
+.board-cells{display:grid;grid-template-columns:repeat(3,1fr)}
+.cell{padding:12px 8px 13px;text-align:center;border-left:1px solid var(--line-soft)}
+.cell:first-child{border-left:0}
+.cell-n{
+  display:block;font-family:var(--mono);font-size:clamp(24px,5.4vw,34px);line-height:1;
+  color:var(--text);font-variant-numeric:tabular-nums;transition:color .3s;
+  text-shadow:0 0 22px rgba(77,163,255,.22);
+}
+.cell-n.warn{color:var(--hold);text-shadow:0 0 22px rgba(255,179,71,.3)}
+.cell-n.bad{color:var(--bad);text-shadow:0 0 22px rgba(255,95,86,.3)}
+.cell-l{display:block;margin-top:7px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.board-note{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);padding:8px 14px;border-top:1px dashed var(--line);
+  background:rgba(0,0,0,.22);
+}
+
+/* ---------- the foot: ticker, then the small print ---------- */
+#titleFoot{
+  position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom));
+  z-index:2;pointer-events:none;
+}
+.ticker{
+  position:relative;overflow:hidden;border-top:1px solid var(--line-soft);
+  border-bottom:1px solid var(--line-soft);background:rgba(0,0,0,.3);
+  padding:7px 0;margin-bottom:10px;
+  /* Feathered at both ends so lines arrive and leave rather than appearing. */
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+}
+.ticker-run{display:flex;width:max-content;animation:tickerrun 96s linear infinite}
+.tk-item{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#7d8ba6;
+  white-space:nowrap;padding-right:34px;position:relative;
+}
+.tk-item::after{content:"▸";position:absolute;right:12px;color:var(--hold);opacity:.55}
+/* The list is written into the page twice; half the width is exactly one copy. */
+@keyframes tickerrun{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.legal{
+  font-family:var(--mono);font-size:10px;color:#5a6782;letter-spacing:.08em;
+  padding:0 16px;text-align:center;
+}
+.legal .copyright{display:block;margin-top:5px;color:#6b7a96}
+/* The block stays click-through so it cannot steal a tap from the menu; the
+   licence link is the one thing in it that has to remain clickable. */
+.legal a{color:inherit;pointer-events:auto;text-decoration:underline;text-underline-offset:2px}
+.legal a:hover{color:var(--brand)}
+
+/* ---------- calm ----------
+   Everything above that moves, stopped. The canvas is handled in engine/title.js
+   — it draws one frame and stops ticking, because a stylesheet cannot turn off a
+   loop. What is left is the same screen with the same information on it, which
+   is the test: nothing here is only conveyed by movement. */
+@media (prefers-reduced-motion:reduce){
+  .phone-icon,.phone-icon i,.title-line2,.title-rule::after,.hero-live i,.ticker-run{animation:none}
+  #titleFlicker{display:none}
+  .ticker-run{transform:none}
+}
+body.calm-title .phone-icon,body.calm-title .phone-icon i,body.calm-title .title-line2,
+body.calm-title .title-rule::after,body.calm-title .hero-live i,body.calm-title .ticker-run{animation:none}
+body.calm-title #titleFlicker{display:none}

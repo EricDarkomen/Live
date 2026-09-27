@@ -1,0 +1,123 @@
+/* ============================================================
+   The arcade — the shell around whatever minigame is running.
+   engine/arcade.js owns the canvas; this owns everything round it.
+
+   Its phone rules live HERE rather than in responsive.css, which is
+   otherwise the rule: responsive.css is last so its media queries win, and
+   nothing in it mentions the arcade, so there is nothing here for it to
+   win against. One component, one file — and the day responsive.css does
+   want a say, it still gets the last word.
+   ============================================================ */
+
+/* Above the panel and the call, below the report: a minigame is optional and
+   the end of the shift is not. */
+#arcade{position:absolute;inset:0;z-index:27;display:none;align-items:center;justify-content:center;
+  background:rgba(6,9,14,.92);backdrop-filter:blur(3px);padding:14px}
+#arcade.on{display:flex;animation:fadeIn .2s ease}
+
+/* The height is DECLARED, not left to the content. Every row in here sizes to
+   what is in it and a canvas has nothing in it — so an auto-height column gave
+   the stage whatever was left of nothing, which on a 390x844 phone was a
+   186px-tall game under 300px of chrome. It takes the overlay's height up to a
+   ceiling, and the stage takes what the four fixed rows leave.
+   Against the OVERLAY, not the viewport: under mobile browser chrome a vh is
+   taller than the page you can actually see. */
+.mg{width:min(560px,100%);height:min(720px,100%);max-height:100%;
+  display:flex;flex-direction:column;overflow:hidden}
+
+/* The bar of live numbers. Two cells, so a long left-hand string can never
+   push the score off the right edge. */
+.mg-hud{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--dim);
+  border-bottom:1px solid var(--line);background:rgba(0,0,0,.2)}
+.mg-hud span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mgHudR{color:var(--hold);flex:0 0 auto}
+
+/* The canvas is the game and gets everything left over. `min-height:0` because
+   a flex child will not shrink below its content otherwise, and a canvas that
+   refuses to shrink pushes the pads off the bottom of a phone. */
+.mg-stage{position:relative;flex:1 1 auto;min-height:0;background:var(--ink)}
+#mgView{display:block;width:100%;height:100%;touch-action:none}
+
+/* The card before and after a round, over the board rather than instead of it:
+   what you are about to play, and what you just played, are the same picture. */
+.mg-card{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;padding:18px;text-align:center;
+  background:linear-gradient(180deg,rgba(13,17,23,.86),rgba(13,17,23,.96));
+  overflow-y:auto;overscroll-behavior:contain}
+.mg-card.on{display:flex;animation:fadeIn .18s ease}
+.mg-card .mg-k{font-size:34px;line-height:1}
+.mg-card h3{font-size:19px;letter-spacing:.02em}
+.mg-blurb{font-size:13px;color:var(--dim);max-width:38ch}
+.mg-goal{font-size:13px;color:var(--text);max-width:38ch}
+.mg-help{list-style:none;font-family:var(--mono);font-size:11px;color:var(--dim);
+  display:flex;flex-direction:column;gap:3px}
+.mg-meta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--hold)}
+.mg-score{font-family:var(--mono);font-size:32px;color:var(--hold);line-height:1.1}
+.mg-score small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+/* The breakdown on the card after a round. A grid rather than a list, so four
+   short facts read as four facts and not as a paragraph. */
+.mg-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:6px 10px;
+  width:min(340px,100%);margin-top:2px}
+.mg-sum div{border:1px solid var(--line);border-radius:6px;padding:5px 6px;background:rgba(0,0,0,.24)}
+.mg-sum dt{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.mg-sum dd{font-family:var(--mono);font-size:14px;color:var(--text);margin-top:2px}
+
+.mg-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+
+/* The touch half of the key contract. A pad press IS the key press, so a game
+   is written once against key codes and never learns that a thumb exists.
+   Hidden on a fine pointer, where the keyboard is the control. */
+.mg-pads{display:none;gap:6px;padding:8px;border-top:1px solid var(--line);background:rgba(0,0,0,.22)}
+.mg-pads.none{display:none!important}
+.mg-pads button{flex:1 1 0;min-width:0;min-height:52px;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;
+  letter-spacing:.02em;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  transition:transform .07s,border-color .12s,background .12s}
+/* The glass has no press of its own, so the button has to have one — the same
+   confirmation the E button and the d-pad get. */
+.mg-pads button.down{transform:scale(.94);border-color:var(--brand);background:var(--panel2)}
+@media (pointer:coarse){ .mg-pads{display:flex} }
+@media (prefers-reduced-motion:reduce){ .mg-pads button.down{transform:none} }
+
+.mg-foot{display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.mg-hint{flex:1 1 auto;min-width:0;font-family:var(--mono);font-size:10px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mg-foot .btn{flex:0 0 auto}
+
+/* ---- phones ----
+   Every row above the canvas costs canvas, which is the same arithmetic the
+   call card is built on. The hint line is the first thing to go: it is a
+   restatement of the pads, which are right there under a thumb. */
+@media (max-width:820px),(max-height:520px){
+  #arcade{padding:8px}
+  .mg{width:100%}
+  .mg-hud{padding:5px 10px;font-size:10px}
+  .mg-hint{display:none}
+  .mg-foot{padding:6px 8px;justify-content:flex-end}
+  .mg-card h3{font-size:17px}
+  .mg-card .mg-k{font-size:28px}
+  .mg-score{font-size:26px}
+}
+/* Landscape spends width to buy height back, exactly as the HUD bar does: the
+   card lays out in a row so a 342px-high screen is not all chrome. */
+/* Landscape spends width to buy height back, exactly as the HUD bar does — and
+   here every pixel of chrome is a pixel of playfield. A phone on its side gives
+   the shell about 374px and the four fixed rows were taking 162 of them, which
+   left a four-lane rhythm game a hundred pixels to fall through. Trimmed, they
+   take about a hundred. */
+@media (max-height:460px) and (orientation:landscape){
+  #arcade{padding:5px}
+  .mg .sign-title{padding:5px 10px;font-size:10px}
+  .mg-hud{padding:3px 10px}
+  .mg-card{flex-direction:row;flex-wrap:wrap;gap:6px 16px;padding:10px}
+  .mg-card .mg-k{font-size:22px}
+  .mg-help{display:none}
+  .mg-sum{width:auto;flex:1 1 240px;grid-template-columns:repeat(4,1fr)}
+  .mg-pads{padding:5px;gap:5px}
+  .mg-pads button{min-height:40px;font-size:12px}
+  .mg-foot{padding:4px 8px}
+  .mg-foot .btn{padding:4px 9px;font-size:11px}
+}

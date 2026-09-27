@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="dark">
+<title>Editor</title>
+<!-- PROJECT-SIDE, and published as its OWN page beside the game — never inside
+     it. scripts/release.sh stages what each page in PUBLIC_PAGES declares, and
+     fails the release outright if index.html ever loads a line of editor/. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="editor/editor.css?v=c29a337">
+</head>
+<body>
+
+<!-- The tool icons, once, as symbols. Drawn rather than typed: at 16px 🚪 ✋ ▦ ▤
+     are emoji on some platforms and glyphs on others, and half of them have no
+     character at all — a "place an object" plus, an eraser, a four-way pan. A
+     <symbol> is also the only arrangement in which the same icon can appear in
+     the dock and in the help sheet without being written out twice. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-select" viewBox="0 0 20 20"><path d="M5 3l10 7-4.3.9L13 17.4l-2 .8-2.3-6.4L5 15z" fill="currentColor"/></symbol>
+  <symbol id="i-room" viewBox="0 0 20 20"><path d="M3 4h14v12H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 8h14M8 8v8" stroke="currentColor" stroke-width="1.2" opacity=".6"/></symbol>
+  <symbol id="i-door" viewBox="0 0 20 20"><path d="M6 3h8v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="11.6" cy="10.2" r="1" fill="currentColor"/><path d="M3 17h14" stroke="currentColor" stroke-width="1.2" opacity=".55"/></symbol>
+  <symbol id="i-object" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-erase" viewBox="0 0 20 20"><path d="M8.4 3.6l7.9 7.9-4.8 4.8H6.6l-3-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.6 16.3h9.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-entry" viewBox="0 0 20 20"><path d="M6 17V3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M6 3.6h9l-2.4 3.3L15 10H6z" fill="currentColor"/></symbol>
+  <symbol id="i-counter" viewBox="0 0 20 20"><path d="M3 7h14v3H3z" fill="currentColor"/><path d="M5 10v6M15 10v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-pan" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.3"/><path d="M10 2.2l2.2 2.6h-4.4zM10 17.8l2.2-2.6h-4.4zM2.2 10l2.6-2.2v4.4zM17.8 10l-2.6 2.2v-4.4z" fill="currentColor"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 20 20"><path d="M10 2.6l7 3.6-7 3.6-7-3.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.4 10.2L10 13.6l6.6-3.4M3.4 13.7L10 17.1l6.6-3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity=".65"/></symbol>
+  <symbol id="i-more" viewBox="0 0 20 20"><circle cx="4.6" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="15.4" cy="10" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 20 20"><path d="M6.4 6.6H12a4.4 4.4 0 010 8.8H6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8.8 3.4L5.2 6.6l3.6 3.2z" fill="currentColor"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 20 20"><path d="M13.6 6.6H8a4.4 4.4 0 000 8.8h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M11.2 3.4l3.6 3.2-3.6 3.2z" fill="currentColor"/></symbol>
+  <symbol id="i-levels" viewBox="0 0 20 20"><path d="M3 5.4l4.7-2 4.6 2 4.7-2v11.2l-4.7 2-4.6-2-4.7 2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7.7 3.4v11.2M12.3 5.4v11.2" stroke="currentColor" stroke-width="1.3" opacity=".6"/></symbol>
+  <symbol id="i-jobs" viewBox="0 0 20 20"><path d="M4 4.5h12M4 10h12M4 15.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55"/><path d="M3.4 4.5l1.2 1.2 2-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.4 10l1.2 1.2 2-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-talk" viewBox="0 0 20 20"><path d="M3 5.2A1.7 1.7 0 014.7 3.5h10.6A1.7 1.7 0 0117 5.2v6.1a1.7 1.7 0 01-1.7 1.7H8l-4 3.5v-3.5a1.7 1.7 0 01-1-1.7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.6 8.2h6.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/></symbol>
+  <symbol id="i-things" viewBox="0 0 20 20"><path d="M10 2.6l6.4 3.2v8L10 17.4 3.6 13.8v-8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.6 5.8L10 9.2l6.4-3.4M10 9.2v8.2" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".65"/></symbol>
+  <symbol id="i-day" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 5.6V10l3 1.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-prog" viewBox="0 0 20 20"><path d="M10 2.4l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7L3.2 7.4l4.7-.7z" fill="currentColor"/></symbol>
+  <symbol id="i-calls" viewBox="0 0 20 20"><path d="M6.6 3.2c.6-.5 1.5-.4 1.9.3l1.1 1.8c.3.5.2 1.2-.3 1.6l-1 .8c-.2.2-.3.5-.2.8a7.6 7.6 0 003.4 3.4c.3.1.6 0 .8-.2l.8-1c.4-.5 1.1-.6 1.6-.3l1.8 1.1c.7.4.8 1.3.3 1.9l-1 1.1c-.6.7-1.6.9-2.5.6C9.6 15.7 6 12.1 4.9 8.1c-.3-.9-.1-1.9.6-2.5z" fill="currentColor"/></symbol>
+  <symbol id="i-art" viewBox="0 0 20 20"><path d="M3 4.5h14v11H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 12.4l3.6-3.3 3 2.7 3.2-3.4L17 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="7.1" cy="7.6" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="i-arcade" viewBox="0 0 20 20"><path d="M3.4 3.2h13.2v8.4H3.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.2 5.8h2.4M7.4 4.6v2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="5.6" r="1.1" fill="currentColor"/><path d="M5 14.2h10a1.6 1.6 0 011.6 1.6v1.4H3.4v-1.4A1.6 1.6 0 015 14.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-all" viewBox="0 0 20 20"><path d="M3 4.5h6v5H3zM11 4.5h6v3h-6zM3 12h6v3.5H3zM11 10h6v5.5h-6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pick" viewBox="0 0 20 20"><path d="M5.6 8l4.4 4.4L14.4 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 20 20"><path d="M3 7V3h4M17 7V3h-4M3 13v4h4M17 13v4h-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div id="app" data-mode="levels">
+
+  <!-- ONE row, on every screen. It used to be two horizontally-scrolling strips
+       because fifteen controls had to fit a 390px phone; the tools and the zoom
+       float over the map now, so what is left is a level, an undo pair and two
+       menus — which fits a 320px screen without scrolling at all. -->
+  <header id="bar">
+    <span class="brand">🗺️ <b id="edBrandName">Game</b> editor</span>
+
+    <!-- Which of the three documents. A segmented control where there is room
+         for one and a single button behind a menu where there is not — the same
+         field shown twice, exactly like the layer switches below. -->
+    <div class="modes fine-only" id="edModes" role="group" aria-label="What to edit">
+      <button data-mode="levels" class="on" title="The building"><svg class="ic"><use href="#i-levels"/></svg><b>Levels</b></button>
+      <button data-mode="jobs" title="The quests"><svg class="ic"><use href="#i-jobs"/></svg><b>Jobs</b></button>
+      <button data-mode="talk" title="Who everybody is and what they say"><svg class="ic"><use href="#i-talk"/></svg><b>People</b></button>
+      <button data-mode="things" title="How objects are furnished and what they do"><svg class="ic"><use href="#i-things"/></svg><b>Objects</b></button>
+      <button data-mode="zones" title="What a room is made of — colours, textures and floors"><svg class="ic"><use href="#i-room"/></svg><b>Rooms</b></button>
+      <button data-mode="office" title="Events, chat, email, the opening and the endings"><svg class="ic"><use href="#i-day"/></svg><b>The day</b></button>
+      <button data-mode="prog" title="Items, shops, skills and achievements"><svg class="ic"><use href="#i-prog"/></svg><b>Rewards</b></button>
+      <button data-mode="calls" title="Callers, moves, tells and bosses — the call itself"><svg class="ic"><use href="#i-calls"/></svg><b>Calls</b></button>
+      <button data-mode="art" title="Tilesets and character sheets"><svg class="ic"><use href="#i-art"/></svg><b>Art</b></button>
+      <button data-mode="games" title="The minigames: pads, wording, and what opens each one"><svg class="ic"><use href="#i-arcade"/></svg><b>Arcade</b></button>
+    </div>
+    <!-- WHAT YOU ARE EDITING — the mode and the subject as one control, because
+         they are one question with two halves. Shown wherever the segmented
+         control and the level select are not, which is any window under 1000px
+         and every phone. It replaced an icon with no word on it and a <select>
+         that had 80px to say "CALLHALL Services · Fourth Floor" in: the two
+         most important pieces of state on the page were the two least legible.
+         Pressing it opens the picker, which is the same field a third time —
+         nine modes, then this mode's subjects with a filter over them, which a
+         native select cannot do at seventy object kinds. -->
+    <button id="edPick" class="what" aria-haspopup="dialog" title="What you are editing">
+      <svg class="ic w-i"><use href="#i-levels"/></svg>
+      <span class="w-t"><span class="w-k">Levels</span><span class="w-n">…</span></span>
+      <svg class="ic w-c" aria-hidden="true"><use href="#i-pick"/></svg>
+    </button>
+
+    <label class="fld" id="edSubjectLbl">Level
+      <select id="edSubject" aria-label="Level"></select>
+    </label>
+
+    <div class="hist">
+      <button id="edUndo" title="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+      <!-- Redo is in the overflow menu on a phone, with the name of the thing
+           it would put back. A 320px bar has room for about four things, and a
+           button that is disabled nine times in ten is not one of them. -->
+      <button id="edRedo" class="fine-only" title="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
+    </div>
+
+    <span class="spacer"></span>
+
+    <!-- Desktop keeps the layer switches in the open; a phone gets the same four
+         behind one button, because a checkbox row is four targets' worth of a
+         bar that has room for five things in total. -->
+    <div class="toggles" id="edToggles">
+      <label title="Tile grid"><input type="checkbox" id="edGrid" checked> grid</label>
+      <label title="Room and door outlines"><input type="checkbox" id="edPlan" checked> plan</label>
+      <label title="Highlight what validation found"><input type="checkbox" id="edFaults" checked> faults</label>
+      <label title="Where the colleagues are sent (WP)"><input type="checkbox" id="edWps"> waypoints</label>
+    </div>
+    <button id="edLayers" class="coarse-only" title="Layers" aria-label="Layers"><svg class="ic"><use href="#i-layers"/></svg></button>
+
+    <!-- What state the whole game is in: what is on the bench and what every
+         check found, added up across all nine documents. The bar is where a
+         build status belongs — it is the one thing that is true of the page
+         rather than of whatever you happen to be looking at. On a phone it is
+         in the overflow menu and at the top of the picker instead. -->
+    <button id="edProject" class="status fine-only" title="What is on the bench, and what the checks found">
+      <svg class="ic"><use href="#i-all"/></svg><span class="pill" id="edProjectN"></span>
+    </button>
+    <button id="edHelp" class="ghost fine-only" title="Tools, gestures and shortcuts">?</button>
+    <button id="edRevert" class="warn fine-only" title="Throw away every change to this level">Revert</button>
+    <!-- Published beside the game, so there is somewhere to go back to. A plain
+         link, not a script: the game is index.html and must stay something this
+         page never has to know about. -->
+    <a class="back fine-only" href="index.html" title="Open the game">▶ the game</a>
+    <button id="edMore" class="coarse-only" title="More" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button>
+  </header>
+
+  <main id="stage">
+    <canvas id="view" aria-label="The level being edited"></canvas>
+    <!-- R.init() measures and rescales this on the way past. The editor never
+         draws a minimap; it exists so the renderer can initialise unchanged. -->
+    <canvas id="minimap" width="168" height="118" hidden></canvas>
+
+    <!-- The tools float OVER the map rather than sitting in the bar: a rail down
+         the side on a desktop, a strip along the bottom under the thumb on a
+         phone. That is the whole reason the bar fits one row now, and it is why
+         no tool is ever more than one tap away on any screen. -->
+    <div id="dock">
+      <div class="tools" id="edTools" role="toolbar" aria-label="Tools">
+        <button data-tool="select" class="on" title="Select and drag  (V)"><svg class="ic"><use href="#i-select"/></svg><b>Select</b></button>
+        <button data-tool="room" title="Drag out a room  (R)"><svg class="ic"><use href="#i-room"/></svg><b>Room</b></button>
+        <button data-tool="door" title="Place a door  (D)"><svg class="ic"><use href="#i-door"/></svg><b>Door</b></button>
+        <button data-tool="object" title="Place from the palette  (O)"><svg class="ic"><use href="#i-object"/></svg><b>Object</b></button>
+        <button data-tool="erase" title="Delete what is on the tile  (X)"><svg class="ic"><use href="#i-erase"/></svg><b>Erase</b></button>
+        <button data-tool="entry" title="Place or move an arrival point  (E)"><svg class="ic"><use href="#i-entry"/></svg><b>Entry</b></button>
+        <button data-tool="counter" title="Drag out a counter  (C)"><svg class="ic"><use href="#i-counter"/></svg><b>Counter</b></button>
+        <button data-tool="pan" title="Drag to move around  (H)"><svg class="ic"><use href="#i-pan"/></svg><b>Pan</b></button>
+      </div>
+      <!-- What the tool in your hand will actually do: the object it will place,
+           or the zone it will paint. It used to be a toast that had already gone
+           by the time you looked, and a Zone select at the far end of a strip
+           that scrolled off a phone entirely. Ordered by CSS rather than by the
+           markup, because it belongs under the rail on a desktop and above the
+           strip on a phone, and those are the same element. -->
+      <button id="edCtx" class="ctx" hidden></button>
+    </div>
+
+    <div id="zoomer">
+      <button id="edOut" title="Zoom out  (−)">−</button>
+      <span id="edZoomV">100%</span>
+      <button id="edIn" title="Zoom in  (+)">+</button>
+      <button id="edFit" title="Fit the whole level  (F)"><svg class="ic"><use href="#i-fit"/></svg></button>
+    </div>
+
+    <div id="hint"><kbd>1</kbd>–<kbd>8</kbd> tools · <kbd>alt</kbd>-click samples · <kbd>?</kbd> for the rest</div>
+    <div id="readout"></div>
+
+    <!-- The other two documents' workspaces, over the map rather than instead of
+         it: the canvas keeps its size and the renderer keeps its camera, so
+         coming back to Levels is not a reload. View.frame() stops drawing while
+         one of these is up. -->
+    <div class="work" id="jobsWork"></div>
+    <div class="work" id="talkWork"></div>
+    <div class="work" id="thingsWork"></div>
+    <div class="work" id="zonesWork"></div>
+    <div class="work" id="officeWork"></div>
+    <div class="work" id="progWork"></div>
+    <div class="work" id="callsWork"></div>
+    <div class="work" id="artWork"></div>
+    <div class="work" id="gamesWork"></div>
+  </main>
+
+  <aside id="side">
+    <!-- The strip scrolls when six tabs will not fit 320px; the fold toggle sits
+         BESIDE it rather than in it, or it is pinned over whichever tab happens
+         to be at the right-hand edge. -->
+    <div class="tabrow">
+      <nav class="tabs" id="edTabs" role="tablist">
+        <button data-tab="inspect" class="on">Inspect</button>
+        <button data-tab="read" hidden>Read</button>
+        <button data-tab="check">Check <span class="pill" id="edFaultN"></span></button>
+        <button data-tab="palette">Palette</button>
+        <button data-tab="level">Level</button>
+        <button data-tab="export">Export</button>
+      </nav>
+      <!-- Phone only. The panel is a bottom sheet there, and a sheet that cannot
+           be got out of the way is a sheet that has taken half the map. -->
+      <button id="edSheet" class="sheet-toggle" title="Collapse the panel" aria-label="Collapse the panel">▾</button>
+    </div>
+    <div class="pane on" id="paneInspect"></div>
+    <div class="pane" id="paneRead"></div>
+    <div class="pane" id="paneCheck"></div>
+    <div class="pane" id="panePalette"></div>
+    <div class="pane" id="paneLevel"></div>
+    <div class="pane" id="paneExport"></div>
+  </aside>
+
+</div>
+
+<!-- How art gets in. A file the person chose is handed to the page by the
+     browser and works everywhere the editor does — including off file://,
+     where fetching that same file is refused outright. -->
+<input type="file" id="edFile" accept="image/png,image/webp,image/gif" hidden>
+
+<!-- The game, unchanged and in the order index.html loads it: the editor edits
+     the real data through the real builder and previews it with the real
+     renderer, so what you see here is what the player gets. It deliberately
+     does NOT load engine/boot.js — that starts a shift. -->
+<script src="art/sprites/manifest.js?v=c29a337"></script>
+<script src="data/game.js?v=c29a337"></script>
+<script src="data/world.js?v=c29a337"></script>
+<script src="data/roads.js?v=c29a337"></script>
+<script src="data/levels.js?v=c29a337"></script>
+<script src="data/street.js?v=c29a337"></script>
+<script src="data/npcs.js?v=c29a337"></script>
+<script src="data/items.js?v=c29a337"></script>
+<script src="data/callers.js?v=c29a337"></script>
+<script src="data/office.js?v=c29a337"></script>
+<script src="data/acts.js?v=c29a337"></script>
+<script src="engine/core.js?v=c29a337"></script>
+<script src="engine/acts.js?v=c29a337"></script>
+<script src="engine/controls.js?v=c29a337"></script>
+<script src="engine/audio.js?v=c29a337"></script>
+<script src="engine/state.js?v=c29a337"></script>
+<script src="engine/sky.js?v=c29a337"></script>
+<script src="engine/world.js?v=c29a337"></script>
+<script src="engine/collide.js?v=c29a337"></script>
+<script src="engine/levels.js?v=c29a337"></script>
+<script src="engine/ui.js?v=c29a337"></script>
+<script src="engine/progress.js?v=c29a337"></script>
+<script src="engine/office.js?v=c29a337"></script>
+<script src="engine/dialogue.js?v=c29a337"></script>
+<script src="engine/combat.js?v=c29a337"></script>
+<script src="engine/npc.js?v=c29a337"></script>
+<script src="engine/sprites.js?v=c29a337"></script>
+<script src="engine/faces.js?v=c29a337"></script>
+<script src="engine/look.js?v=c29a337"></script>
+<script src="engine/cars.js?v=c29a337"></script>
+<script src="engine/peds.js?v=c29a337"></script>
+<script src="engine/signals.js?v=c29a337"></script>
+<script src="engine/guns.js?v=c29a337"></script>
+<script src="engine/render.js?v=c29a337"></script>
+<script src="engine/panels.js?v=c29a337"></script>
+<script src="engine/menus.js?v=c29a337"></script>
+<script src="engine/arcade.js?v=c29a337"></script>
+<!-- The minigame library. The editor never runs one; it loads them because
+     the whole-project checks read their source — a reward() that hands out an
+     achievement is a call site, and one this page cannot see is one it would
+     report as unearnable writing. -->
+<script src="minigames/holdmusic.js?v=c29a337"></script>
+<script src="minigames/inbox.js?v=c29a337"></script>
+<script src="minigames/patch.js?v=c29a337"></script>
+<script src="engine/input.js?v=c29a337"></script>
+
+<!-- The editor itself. -->
+<script src="editor/ask.js?v=c29a337"></script>
+<script src="editor/pop.js?v=c29a337"></script>
+<script src="editor/hist.js?v=c29a337"></script>
+<script src="editor/writing.js?v=c29a337"></script>
+<script src="editor/doc.js?v=c29a337"></script>
+<script src="editor/validate.js?v=c29a337"></script>
+<script src="editor/jobs.js?v=c29a337"></script>
+<script src="editor/talk.js?v=c29a337"></script>
+<script src="editor/things.js?v=c29a337"></script>
+<script src="editor/zones.js?v=c29a337"></script>
+<script src="editor/office.js?v=c29a337"></script>
+<script src="editor/prog.js?v=c29a337"></script>
+<script src="editor/calls.js?v=c29a337"></script>
+<script src="editor/art.js?v=c29a337"></script>
+<script src="editor/games.js?v=c29a337"></script>
+<script src="editor/emit.js?v=c29a337"></script>
+<script src="editor/mode.js?v=c29a337"></script>
+<script src="editor/project.js?v=c29a337"></script>
+<script src="editor/keep.js?v=c29a337"></script>
+<script src="editor/publish.js?v=c29a337"></script>
+<script src="editor/apply.js?v=c29a337"></script>
+<script src="editor/view.js?v=c29a337"></script>
+<script src="editor/tools.js?v=c29a337"></script>
+<script src="editor/panels.js?v=c29a337"></script>
+<script src="editor/jobsui.js?v=c29a337"></script>
+<script src="editor/talkui.js?v=c29a337"></script>
+<script src="editor/thingsui.js?v=c29a337"></script>
+<script src="editor/zonesui.js?v=c29a337"></script>
+<script src="editor/officeui.js?v=c29a337"></script>
+<script src="editor/progui.js?v=c29a337"></script>
+<script src="editor/callsui.js?v=c29a337"></script>
+<script src="editor/artui.js?v=c29a337"></script>
+<script src="editor/gamesui.js?v=c29a337"></script>
+<script src="editor/boot.js?v=c29a337"></script>
+</body>
+</html>

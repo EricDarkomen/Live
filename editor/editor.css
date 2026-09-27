@@ -1,0 +1,1161 @@
+/* The editor's own styling. Deliberately shares nothing with css/ — the game's
+   stylesheets are a game's stylesheets (a fixed full-bleed app with a mobile
+   layout and safe-area insets), and a tool wants a window with a map in it.
+   Nothing here is loaded by index.html and nothing in css/ is loaded by
+   editor.html, so neither can drag the other around.
+
+   The shape of the page, and the one decision everything else follows from:
+   the MAP is the document and everything else floats over it or sits beside it.
+   The tools are a rail on the map rather than a row in the bar, the zoom is a
+   pill on the map, and the bar is left with a level, an undo pair and a menu —
+   which is what makes the same layout work on a 320px phone and a 1440px
+   desktop instead of two layouts that have to agree with each other. */
+
+:root {
+  --bg: #0b0f16;
+  --panel: #141a25;
+  --panel2: #1a2130;
+  --sunk: #10151f;
+  --line: #262f3f;
+  --line2: #334054;
+  --ink: #e3e9f4;
+  --dim: #8b99b3;
+  --dimmer: #5f6c85;
+  --accent: #4da3ff;
+  --accent-ink: #06111f;
+  --good: #5ad48a;
+  --warn: #ffb347;
+  --bad: #ff5f56;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+  --side: 340px;
+  --r: 8px;
+  --r-sm: 6px;
+  /* One shadow, used by everything that floats, so a popover and the tool rail
+     read as the same distance off the map. */
+  --lift: 0 10px 30px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .04) inset;
+  --glass: rgba(18, 24, 34, .88);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+
+/* A thumb dragged across a tool selects its labels instead of using it, and a
+   long press on the canvas raises the magnifier. Both prefixes are written out
+   rather than left to the unprefixed property: Safari before 16.4 does not
+   honour `user-select` without `-webkit-`, and Chromium mirrors one into the
+   other so getComputedStyle cannot tell you that you got it wrong. Inputs are
+   exempt further down — the whole point of a textarea here is selecting it. */
+#bar, #side, #stage, #edAsk, .pop {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* A tapped list row flashes a grey slab the size of its own text otherwise —
+   the browser's tap highlight, which reads as the row having gone wrong. The
+   game turns it off in css/base.css for the same reason. */
+html { -webkit-tap-highlight-color: transparent; }
+input, textarea, .pane code, #edOut2 {
+  -webkit-user-select: text;
+  user-select: text;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.45 var(--ui);
+  /* `auto`, not `hidden`. Nothing on this page ever overflows a window of a
+     sensible size — but see the min-height below: in a frame shorter than that
+     the page has to be reachable by scrolling rather than clipped off. */
+  overflow: auto;
+}
+
+#app {
+  height: 100dvh;
+  /* A tool needs room, and `100dvh` alone cannot ask for any.
+     Hosted inside a frame that is sized to its content, a page whose height is
+     purely a fraction of the viewport can never grow: it reports exactly the
+     height it was given, the host keeps it there, and an editor that wants a
+     canvas and a side panel arrives as a squashed strip. The floor is what the
+     page asks for when the viewport will not say. */
+  min-height: 640px;
+  display: grid;
+  grid-template-columns: 1fr var(--side);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "bar bar" "stage side";
+}
+
+/* ================= the bar =================
+   Five things: which level, undo, the layers, help, and the way out. Everything
+   that used to be here is either on the map now (tools, zoom, what the brush is
+   holding) or behind one of the two menus. */
+#bar {
+  grid-area: bar;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 46px;
+  padding: 6px 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  background: linear-gradient(var(--panel), #121824);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+#bar .brand { font-weight: 600; letter-spacing: .2px; color: var(--dim); }
+#bar .brand b { color: var(--ink); }
+#bar .spacer { flex: 1; }
+#bar select { max-width: 220px; }
+
+.fld { display: flex; align-items: center; gap: 6px; color: var(--dimmer); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .6px; }
+
+/* ---- controls ---- */
+select, input, textarea, button {
+  font: inherit; color: var(--ink);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 5px 8px;
+}
+select { background-image: none; }
+textarea { font-family: var(--mono); font-size: 12px; line-height: 1.5; width: 100%; resize: vertical; }
+/* Source, not prose: soft-wrapping an exported block breaks the indentation
+   that tells you where it goes. */
+textarea.code { white-space: pre; overflow-x: auto; background: var(--sunk); }
+input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--accent); padding: 0; }
+input[type=number] { width: 68px; }
+button { cursor: pointer; transition: border-color .12s, background .12s, color .12s; }
+button:hover { border-color: var(--line2); background: #202839; }
+button.warn { color: var(--bad); }
+button.warn:hover { border-color: var(--bad); }
+button.ghost { color: var(--dim); background: transparent; }
+button.ghost:hover { color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.primary:hover { background: #63b0ff; border-color: #63b0ff; }
+button:disabled { opacity: .35; cursor: default; }
+button:disabled:hover { background: var(--panel2); border-color: var(--line); }
+
+/* Icons are drawn, not typed — see the <symbol> block in editor.html. Sized in
+   one place so a button never has to know how big its icon is. */
+.ic { width: 18px; height: 18px; display: block; fill: none; }
+
+.hist { display: flex; gap: 3px; }
+.hist button { padding: 5px 9px; }
+
+.back {
+  display: flex; align-items: center;
+  color: var(--dim); text-decoration: none;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 5px 10px; font-size: 12px;
+}
+.back:hover { color: var(--ink); border-color: var(--line2); }
+
+/* ---- what you are editing ----
+   A phone's answer to "where am I", and the way somewhere else. Two lines
+   because it is two facts — the mode and the subject — and the widest thing in
+   the bar because between them they are the only state on it. Everything else
+   in the bar is an icon; this is the one control carrying words. */
+.what {
+  /* Shown only where the segmented control is not — see the swap below. It is
+     `display: flex` when it is shown, which is what the swap sets. */
+  display: none;
+  flex: 1 1 auto; min-width: 0; max-width: 320px;
+  align-items: center; gap: 8px;
+  justify-content: flex-start; text-align: left;
+  padding: 4px 8px;
+}
+.what .w-i { flex: 0 0 auto; color: var(--accent); }
+.what .w-c { flex: 0 0 auto; width: 14px; height: 14px; color: var(--dimmer); margin-left: auto; }
+.what .w-t { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.what .w-k { font: 9px/1 var(--ui); letter-spacing: .7px; text-transform: uppercase; color: var(--dimmer); }
+.what .w-n { font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Not the file's version. A dot rather than a word: the chip has about twenty
+   characters and every one of them is being used to say what this is. */
+.what.dirty .w-k::after { content: ' •'; color: var(--warn); }
+
+/* What state the whole game is in, in the bar. The layout is on a CLASS, not
+   on the id: `#edProject { display: flex }` outranks `.fine-only`'s
+   `display: none`, so the id version put the button on a phone's bar as well
+   — where it costs a fifth of the chip and the same thing is already in the
+   overflow menu. */
+.status { display: flex; align-items: center; gap: 5px; }
+.status .pill:empty { display: none; }
+/* The same fact where there is no room for a number. */
+#bar button.dot { position: relative; }
+#bar button.dot::after {
+  content: ''; position: absolute; top: 5px; right: 5px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warn);
+}
+
+.toggles { display: flex; gap: 4px; }
+.toggles label {
+  display: flex; align-items: center; gap: 5px; cursor: pointer;
+  color: var(--dim); font-size: 12px;
+  padding: 4px 8px; border-radius: var(--r-sm);
+  border: 1px solid transparent;
+}
+.toggles label:hover { background: var(--panel2); border-color: var(--line); color: var(--ink); }
+
+/* Which of the two sets of controls is showing. A phone gets the menus; a mouse
+   gets everything in the open, because there is room for it and a menu you have
+   to open is a control you have to remember. */
+.coarse-only { display: none; }
+
+/* ================= the map =================
+   Everything else on this page is chrome for this. */
+#stage { grid-area: stage; position: relative; overflow: hidden; background: #05080d; }
+#view { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+#minimap { display: none; }
+
+/* ---- the tool dock ----
+   A rail down the left of the map, not a row in the bar. Two things follow from
+   that and both are the point: the bar fits one row on a phone, and the tool you
+   want is always on screen rather than at the far end of a strip that scrolls. */
+#dock {
+  position: absolute; z-index: 4;
+  left: 12px; top: 12px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+#dock .tools {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+  backdrop-filter: blur(8px);
+}
+#dock .tools button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  width: 56px; min-height: 44px;
+  padding: 5px 2px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--dim);
+}
+#dock .tools button b { font: 500 9px/1 var(--ui); letter-spacing: .2px; }
+#dock .tools button:hover { background: var(--panel2); color: var(--ink); border-color: var(--line); }
+#dock .tools button.on {
+  background: var(--accent); border-color: var(--accent);
+  color: var(--accent-ink); font-weight: 600;
+}
+#dock .tools button.on b { font-weight: 700; }
+
+/* What the tool in your hand is holding. Below the rail on a desktop, above the
+   strip on a phone — ordered rather than moved, because it is one element. */
+.ctx {
+  order: 2;
+  display: flex; align-items: center; gap: 7px;
+  max-width: 190px; min-height: 38px;
+  padding: 5px 10px 5px 7px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+  backdrop-filter: blur(8px);
+  text-align: left;
+}
+.ctx[hidden] { display: none; }
+.ctx:hover { border-color: var(--accent); background: var(--glass); }
+.ctx .cx-e { font-size: 19px; line-height: 1; width: 22px; text-align: center; flex: 0 0 auto; }
+.ctx .cx-swatch { width: 16px; height: 16px; border-radius: 4px; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.22); }
+.ctx .cx-t { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ctx .cx-k { font: 9px/1 var(--ui); letter-spacing: .7px; text-transform: uppercase; color: var(--dimmer); }
+.ctx .cx-n { font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- zoom ---- */
+#zoomer {
+  position: absolute; z-index: 4;
+  right: 12px; top: 12px;
+  display: flex; align-items: center; gap: 2px;
+  padding: 4px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+  backdrop-filter: blur(8px);
+}
+#zoomer button {
+  min-width: 34px; min-height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; background: transparent; color: var(--dim);
+  font-size: 15px; line-height: 1; padding: 0;
+}
+#zoomer button:hover { background: var(--panel2); color: var(--ink); border-color: var(--line); }
+#zoomer span {
+  min-width: 46px; text-align: center;
+  color: var(--dim); font: 11px var(--mono);
+}
+
+/* ---- what is under the pointer ---- */
+/* z-index 7 puts the readout over the .work workspaces at 6, and that is not a
+   nicety: Side.say() is the editor's only way of saying "Copied", "Reverted" or
+   "that is not valid JSON", and in nine of the ten modes it was painting
+   behind the workspace. Pressing Copy on a phone appeared to do nothing at all.
+   #hint stays under everything — it only ever describes the map. */
+#hint { z-index: 3; }
+#readout { z-index: 7; }
+#hint, #readout {
+  position: absolute;
+  padding: 5px 10px;
+  background: rgba(10, 14, 20, .84);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--dim);
+  font: 11px/1.5 var(--mono);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+#hint { right: 12px; bottom: 12px; max-width: min(380px, 60%); white-space: normal; text-align: right; }
+#readout {
+  left: 12px; bottom: 12px; color: var(--ink);
+  max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+kbd {
+  font: 10px var(--mono);
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 3px; padding: 0 4px; color: var(--ink);
+}
+
+/* ================= the side panel ================= */
+#side {
+  grid-area: side;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.tabrow { display: flex; border-bottom: 1px solid var(--line); background: #121824; }
+.tabs { display: flex; flex: 1 1 auto; min-width: 0; }
+.tabs button {
+  flex: 1; border: 0; border-radius: 0;
+  background: transparent; color: var(--dim);
+  padding: 10px 4px; font-size: 12px;
+}
+.tabs button:hover { color: var(--ink); background: transparent; }
+.tabs button.on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.pill {
+  display: inline-block; min-width: 16px;
+  border-radius: 8px; padding: 0 5px;
+  font: 10px var(--mono); background: var(--line);
+}
+.pill.warn { background: var(--warn); color: #241703; }
+.pill.bad { background: var(--bad); color: #2a0806; }
+
+.pane { display: none; padding: 14px; overflow-y: auto; flex: 1; min-height: 0; }
+.pane.on { display: block; }
+.pane h3 {
+  margin: 0 0 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 7px;
+}
+.pane h3 .h-e { font-size: 18px; line-height: 1; }
+.pane h4 {
+  margin: 18px 0 7px; font-size: 10px; color: var(--dimmer);
+  text-transform: uppercase; letter-spacing: .8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.pane h4::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.pane code { font: 12px var(--mono); color: var(--accent); }
+.pane p { margin: 0 0 10px; }
+
+.frow { display: grid; grid-template-columns: 76px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.frow > span:first-child { color: var(--dim); font-size: 12px; }
+.frow input:not([type=checkbox]):not([type=number]), .frow select { width: 100%; }
+
+.note {
+  margin: 12px 0; padding: 9px 11px;
+  background: var(--sunk); border-left: 2px solid var(--line2);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  color: var(--dim); font-size: 12px;
+}
+.note.bad { border-left-color: var(--bad); }
+.note.warn { border-left-color: var(--warn); }
+.empty { color: var(--dim); font-size: 12px; }
+.ok { color: var(--good); }
+.btns { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.btns.spread { justify-content: space-between; }
+
+.stat {
+  display: flex; gap: 6px; margin-bottom: 12px;
+}
+.stat div {
+  flex: 1; padding: 8px 9px; text-align: center;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+}
+.stat b { display: block; font: 15px var(--mono); color: var(--ink); }
+.stat span { font-size: 10px; color: var(--dimmer); text-transform: uppercase; letter-spacing: .5px; }
+.stat b.good { color: var(--good); }
+.stat b.bad { color: var(--bad); }
+
+ul.faults, ul.list { list-style: none; margin: 0; padding: 0; }
+ul.faults li, ul.list li {
+  padding: 8px 10px; margin-bottom: 5px;
+  background: var(--panel2); border-radius: var(--r-sm);
+  border-left: 2px solid var(--line);
+  cursor: pointer; font-size: 12px;
+}
+ul.faults li:hover, ul.list li:hover { border-left-color: var(--accent); background: #202839; }
+ul.faults li.error { border-left-color: var(--bad); }
+ul.faults li.warn { border-left-color: var(--warn); }
+ul.list li.on { border-left-color: var(--accent); background: #22304a; }
+ul.faults em, ul.list em {
+  display: block; color: var(--dim); font-style: normal;
+  font-family: var(--mono); font-size: 11px; margin-top: 2px;
+}
+ul.list li .li-e { margin-right: 5px; }
+
+/* A search box that stays put while its results scroll under it. */
+.seek {
+  position: sticky; top: -14px; z-index: 2;
+  margin: -14px -14px 10px; padding: 12px 14px 10px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.seek input { width: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.chips button {
+  padding: 3px 9px; font-size: 11px; border-radius: 20px;
+  color: var(--dim); background: var(--sunk);
+}
+.chips button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* ---- palette ---- */
+.pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.pal button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 9px 4px; text-align: center; background: var(--panel2);
+}
+.pal button.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.pal .pe { font-size: 21px; line-height: 1; }
+.pal .pn {
+  font-size: 10px; color: var(--dim); line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ================= the mode switch =================
+   Three documents, one shell. A segmented control where there is room for one;
+   on a phone the same field is one button and a menu. */
+.modes { display: flex; gap: 2px; padding: 3px; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r); }
+.modes button {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid transparent; background: transparent; color: var(--dim);
+}
+.modes button b { font: 500 12px/1 var(--ui); }
+.modes button:hover { color: var(--ink); background: var(--panel2); }
+.modes button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.modes button.on b { font-weight: 700; }
+
+/* The map's own furniture belongs to the map. */
+#app:not([data-mode="levels"]) #dock,
+#app:not([data-mode="levels"]) #zoomer,
+#app:not([data-mode="levels"]) #edToggles,
+#app:not([data-mode="levels"]) #edLayers,
+#app:not([data-mode="levels"]) #hint { display: none; }
+
+/* ================= the other two workspaces =================
+   Over the map rather than instead of it: the canvas keeps its size and the
+   camera keeps its place, so coming back to Levels is not a reload. */
+.work {
+  position: absolute; inset: 0; z-index: 6;
+  display: none; overflow-y: auto;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+#app[data-mode="jobs"] #jobsWork,
+#app[data-mode="talk"] #talkWork,
+#app[data-mode="things"] #thingsWork,
+#app[data-mode="zones"] #zonesWork,
+#app[data-mode="office"] #officeWork,
+#app[data-mode="prog"] #progWork,
+#app[data-mode="calls"] #callsWork,
+#app[data-mode="art"] #artWork,
+#app[data-mode="games"] #gamesWork { display: block; }
+
+.work-head { margin-bottom: 14px; }
+.work-head h2 { margin: 0; font-size: 17px; }
+.work-sub { display: block; margin-top: 3px; color: var(--dimmer); font-size: 12px; }
+
+/* One column of rows on a phone, two or three on a wide window: the job list is
+   thirteen rows and the node list can be forty, and a single column of forty on
+   a 1440px screen is a lot of scrolling past a lot of white. */
+ul.rows { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); align-content: start; }
+ul.rows li { margin: 0; position: relative; }
+ul.rows li.error { border-left-color: var(--bad); }
+ul.rows li.warn { border-left-color: var(--warn); }
+ul.rows li b { display: block; font-size: 13px; }
+/* A node's gist is the first thing it says, so it is set as speech. A job's is
+   its giver and its numbers, which are facts and stay in the mono column. */
+ul.nodes em { font-family: var(--ui); font-size: 12px; }
+.badge {
+  position: absolute; top: 8px; right: 8px;
+  min-width: 18px; padding: 0 5px; border-radius: 9px;
+  font: 10px/18px var(--mono); text-align: center;
+  background: var(--line); color: var(--ink);
+}
+.badge.error { background: var(--bad); color: #2a0806; }
+.badge.warn { background: var(--warn); color: #241703; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.tag {
+  padding: 1px 6px; border-radius: 10px;
+  font: 10px/16px var(--ui); color: var(--dim); background: var(--sunk);
+  border: 1px solid var(--line);
+}
+.tag.in { color: var(--accent); border-color: rgba(77,163,255,.4); }
+.tag.warn { color: var(--warn); border-color: rgba(255,179,71,.4); }
+.tag.code { color: var(--dimmer); font-family: var(--mono); }
+
+/* Five modes is more label than a 1200px bar has room for, and an icon with a
+   tooltip is a worse control than an icon with a word under it — so the labels
+   go and the icons stay in a row, rather than the row scrolling. */
+@media (max-width: 1240px) {
+  .modes button b { display: none; }
+  .modes button { padding: 4px 8px; }
+}
+
+/* ---- a person's day ---- */
+.day { display: flex; flex-direction: column; gap: 5px; }
+.stop { display: flex; align-items: center; gap: 6px; }
+.stop input[type=time] { flex: 0 0 auto; font-family: var(--mono); }
+.stop select { flex: 1 1 auto; min-width: 0; }
+.stop button { flex: 0 0 auto; min-width: 32px; min-height: 30px; padding: 0 6px; }
+
+/* ---- what an act actually is ---- */
+.actsrc {
+  margin: 0; padding: 9px 10px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
+  font: 11px/1.5 var(--mono); color: var(--dim);
+  white-space: pre; overflow-x: auto; max-height: 260px; overflow-y: auto;
+}
+
+/* ---- two views of one thing ---- */
+.segs { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 12px;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r); }
+.segs button { padding: 5px 14px; border: 1px solid transparent; background: transparent; color: var(--dim); font-size: 12px; }
+.segs button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+/* ================= the flow =================
+   The shape of a conversation as an indented outline, not a node graph. A graph
+   wants a canvas, a pan, a zoom and a layout pass; an outline is text, it reads
+   at 320px, and the nesting IS the branching. The indent is capped: past about
+   six levels another 12px per branch costs more width than the depth is worth,
+   and a deep thread on a phone would be a column one word wide. */
+.flow { margin-bottom: 18px; }
+.flow.orphans { opacity: .8; }
+.flow-h {
+  font: 10px/1 var(--ui); text-transform: uppercase; letter-spacing: .8px;
+  color: var(--dimmer); margin-bottom: 8px;
+}
+.flow-h b { color: var(--accent); font-size: 11px; letter-spacing: 0; text-transform: none; }
+.fl-n, .fl-r, .fl-end, .fl-loop, .fl-miss {
+  /* The cap. `min()` rather than a media query because it is the same rule on
+     every screen — it is about the depth, not the device. */
+  margin-left: min(calc(var(--d) * 11px), 72px);
+  border-left: 2px solid var(--line);
+  padding-left: 9px;
+}
+.fl-n {
+  display: block; width: calc(100% - min(calc(var(--d) * 11px), 72px));
+  text-align: left; margin-bottom: 3px;
+  padding: 6px 9px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--panel2); border: 1px solid var(--line); border-left-width: 2px;
+}
+.fl-n:hover { border-left-color: var(--accent); }
+.fl-n.on { border-left-color: var(--accent); background: #22304a; }
+.fl-n.error { border-left-color: var(--bad); }
+.fl-n.warn { border-left-color: var(--warn); }
+.fl-n b { font-size: 12px; }
+.fl-n em { display: block; font-style: normal; color: var(--dim); font-size: 11.5px; margin-top: 2px; }
+.fl-r { padding: 4px 0 4px 9px; margin-bottom: 3px; }
+.fl-you { font-size: 12px; color: var(--ink); font-style: italic; }
+.fl-r em { display: block; font-style: normal; color: var(--dimmer); font: 10px var(--mono); }
+.fl-end, .fl-loop, .fl-miss { padding: 3px 0 3px 9px; font-size: 11px; color: var(--dimmer); margin-bottom: 5px; }
+.fl-loop {
+  display: block; width: calc(100% - min(calc(var(--d) * 11px), 72px));
+  text-align: left; background: transparent; border: 0;
+  border-left: 2px dashed var(--line2); border-radius: 0;
+  color: var(--accent); font: 11px var(--ui); cursor: pointer;
+}
+.fl-loop:hover { border-left-color: var(--accent); background: var(--panel2); }
+.fl-miss { color: var(--bad); }
+
+/* ================= the art importer =================
+   The workspace is the sheet itself. Everything here is in service of seeing
+   pixels honestly: a chequerboard behind the transparency, integer zoom, and
+   smoothing off — pixel art resampled at 1.37x is pixel art you cannot slice,
+   because the seam you are looking for is one pixel wide. */
+.drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-align: center;
+  min-height: 240px; padding: 28px 20px;
+  border: 2px dashed var(--line2); border-radius: 12px;
+  background: var(--sunk); color: var(--dim);
+}
+.drop.over { border-color: var(--accent); background: #16202e; }
+.drop b { font-size: 15px; color: var(--ink); }
+.drop small { max-width: 46ch; font-size: 12px; line-height: 1.5; color: var(--dimmer); }
+.drop small.warnline { color: var(--warn); opacity: .85; }
+
+.artbar { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+.artbar .spacer { flex: 1; }
+.artbar button { min-width: 34px; min-height: 32px; }
+.artbar span { min-width: 34px; text-align: center; font: 11px var(--mono); color: var(--dim); }
+.artwrap {
+  overflow: auto; max-width: 100%;
+  padding: 10px;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r);
+}
+#artView { display: block; image-rendering: pixelated; cursor: crosshair; }
+
+/* ================= a step, and a reply =================
+   Both are one thing made of several fields, and both have a partner that must
+   move with them — a step and its tracker target, a reply and where it goes. So
+   both are a card with the partner inside it rather than two lists side by
+   side, which is exactly the fault the check exists to catch. */
+.step {
+  margin-bottom: 8px; padding: 9px 10px;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-sm);
+}
+.step-h { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.step-n {
+  flex: 1; font: 600 11px var(--mono); color: var(--dimmer);
+}
+.step-h button { min-width: 30px; min-height: 28px; padding: 0 6px; font-size: 12px; line-height: 1; }
+/* The base textarea is monospace because most of them here hold source. A step
+   and a reply are the two that hold what the PLAYER reads, and prose set in a
+   terminal font is prose you cannot judge. */
+.step textarea:not(.code) { font-family: var(--ui); font-size: 13px; }
+.step textarea { min-height: 46px; }
+.step-t { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.step-lbl { color: var(--dimmer); font-size: 11px; flex: 0 0 auto; }
+.step-t select, .step-t input { flex: 1 1 120px; min-width: 0; }
+.step .code { font-family: var(--mono); font-size: 11px; }
+
+/* Where the writing touches a job. */
+.wire { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+.wire-k { flex: 0 0 74px; font: 11px var(--mono); color: var(--accent); }
+.wire-none { color: var(--dimmer); font-size: 12px; font-style: normal; }
+.wire ul { flex: 1; min-width: 0; }
+ul.tight li { padding: 5px 8px; margin-bottom: 3px; font-size: 11px; }
+ul.tight li b { font-family: var(--mono); font-weight: 400; }
+
+/* ================= reading a conversation =================
+   The Read tab. Not a mock-up of the game's dialogue box — this is for judging
+   the writing, so it is set as prose, wide, with the replies as what they are:
+   the things you could say next. */
+.trail { margin: 10px 0; padding-left: 10px; border-left: 2px solid var(--line); }
+.trail-you { color: var(--dim); font-size: 12px; font-style: italic; margin-bottom: 4px; }
+.said {
+  margin: 10px 0; padding: 12px 14px;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r);
+}
+.said-who {
+  display: flex; align-items: center; gap: 8px;
+  font: 600 11px var(--ui); letter-spacing: .6px; color: var(--dim);
+  margin-bottom: 8px;
+}
+.said-who span { margin-left: auto; font: 10px var(--mono); color: var(--dimmer); letter-spacing: 0; }
+.said p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
+.said p:last-child { margin-bottom: 0; }
+.said-code { margin-top: 8px; font: 10px var(--mono); color: var(--warn); }
+.replies { display: flex; flex-direction: column; gap: 5px; }
+.replies button {
+  display: block; width: 100%; text-align: left;
+  padding: 9px 11px; font-size: 12.5px; line-height: 1.45;
+}
+.replies button small { display: block; margin-top: 3px; color: var(--dimmer); font: 10px var(--mono); }
+
+/* ================= popovers =================
+   The layer switches, the zone list, the overflow menu. A <div> rather than a
+   <dialog>, because these are not modal: you point at a thing on the map and
+   then reach for the menu, and a backdrop would take the map away in between. */
+.pop {
+  position: fixed; z-index: 60;
+  min-width: 190px; max-width: min(280px, calc(100vw - 20px));
+  max-height: min(70vh, 460px); overflow-y: auto;
+  padding: 6px;
+  background: var(--glass);
+  border: 1px solid var(--line2);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+  backdrop-filter: blur(12px);
+}
+.pop .pop-h {
+  padding: 6px 8px 4px; font: 9px/1 var(--ui);
+  text-transform: uppercase; letter-spacing: .8px; color: var(--dimmer);
+}
+.pop button, .pop label, .pop a {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  min-height: 38px; padding: 6px 9px;
+  border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--ink);
+  font-size: 13px; text-align: left; text-decoration: none;
+  cursor: pointer;
+}
+.pop button:hover, .pop label:hover, .pop a:hover { background: var(--panel2); }
+.pop button.warn { color: var(--bad); }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 5px 2px; }
+.pop .sw { width: 15px; height: 15px; border-radius: 4px; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.22); }
+.pop .tick { margin-left: auto; color: var(--accent); font-size: 13px; }
+.pop small { display: block; color: var(--dimmer); font-size: 11px; }
+
+/* ================= asking something ================= */
+#edAsk {
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 18px 20px;
+  min-width: 340px; max-width: min(560px, 94vw);
+  max-height: 88dvh; overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+}
+#edAsk::backdrop { background: rgba(5, 8, 13, .68); }
+#edAsk h3 { margin: 0 0 12px; font-size: 15px; }
+#edAsk h4 { margin: 16px 0 6px; font-size: 10px; color: var(--dimmer); text-transform: uppercase; letter-spacing: .8px; }
+#edAsk p { margin: 0 0 14px; color: var(--dim); font-size: 12px; }
+#edAsk .frow { grid-template-columns: 92px 1fr; }
+#edAsk .btns { justify-content: flex-end; margin-top: 18px; }
+#edAsk button { padding: 7px 15px; }
+#edAsk button[value=ok] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+#edAsk button[value=ok].warn { background: var(--bad); border-color: var(--bad); color: #2a0806; }
+#edAsk button.ghost { color: var(--dim); }
+
+/* ================= the picker =================
+   Nine modes and this mode's subjects, in one sheet. The modes are tiles rather
+   than a row of icons, because ten pictures with no words is a memory test and
+   this is the one place with room for both — but an icon BESIDE its word rather
+   than over it: stacked they were 113px each, and five rows of that pushed the
+   subject list, which is what the sheet is for, off a 568px phone entirely. */
+.pickmodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 4px; }
+.pickmodes button {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 36px; padding: 5px 6px;
+  background: var(--panel2); color: var(--dim); text-align: left;
+}
+.pickmodes button span { font-size: 11px; line-height: 1.2; }
+.pickmodes button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.pickmodes .ic { width: 15px; height: 15px; flex: 0 0 auto; color: currentColor; }
+.pickblurb { margin: 8px 0 0; color: var(--dim); font-size: 12px; line-height: 1.4; }
+/* Every row above the list costs list. */
+.pick h4 { margin: 11px 0 5px; }
+.pickfind { width: 100%; margin-bottom: 6px; }
+.picklist { margin: 0 -4px; padding: 0 4px; }
+/* A scrollable region is keyboard-focusable, and the browser's own ring on a
+   box this size reads as an error state. Same accent as every other focus on
+   the page, inset so it does not sit under the dialog's edge. */
+.picklist:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+
+/* Where there is height to divide up, the list is the part that gives it: the
+   tiles and the filter stay where you left them and only the names scroll —
+   a filter that scrolls off the top of what it is filtering is a filter you
+   have to go back up for, and a Close button below the bottom of the phone is
+   a sheet you cannot get out of.
+
+   Below that — a phone on its side, 342px — there is no height to divide: the
+   chrome alone is 270 of it. So the whole sheet scrolls instead, which is what
+   every other dialog on this page already does. */
+@media (min-height: 560px) {
+  #edAsk.picking[open] { display: flex; flex-direction: column; overflow: hidden; }
+  #edAsk.picking form { display: flex; flex-direction: column; min-height: 0; }
+  #edAsk.picking .pick { display: flex; flex-direction: column; min-height: 0; }
+  #edAsk.picking .pickmodes, #edAsk.picking .pickblurb, #edAsk.picking .stat,
+  #edAsk.picking .pickall, #edAsk.picking h4, #edAsk.picking .pickfind { flex: 0 0 auto; }
+  .picklist { flex: 1 1 auto; min-height: 96px; overflow-y: auto; }
+}
+.pickitems { margin-bottom: 4px; }
+.pickitems li[hidden] { display: none; }
+.pickitems b { font-weight: 500; font-size: 13px; }
+/* Edited and not exported, on a subject in the list and on the mode tile that
+   holds it. The same dot in both places, because it is the same fact. */
+.edited { color: var(--warn); margin-left: 5px; font-size: 15px; line-height: 1; }
+.pickmodes button .edited { margin-left: 2px; }
+.pickitems li { display: flex; align-items: center; gap: 4px; }
+.pickitems li b { flex: 1 1 auto; min-width: 0; }
+.pickitems li em { flex: 0 0 auto; }
+/* A subject that is not there any more: on the list because taking it out of
+   the file is still a thing to do, but not a way anywhere. */
+/* A found line is prose, not a tag: it goes UNDER the name rather than beside
+   it, one line, clipped. The bench's rows are the other shape — a short label
+   and a shorter note — and stay side by side. */
+.pickitems li.findrow { display: block; }
+.findrow b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Specific enough to beat `ul.list em`, which is monospace because most of what
+   it holds is ids. A found line is the writing, and prose set in a terminal
+   font is prose you cannot judge — the same call the step and reply boxes make. */
+.pickitems li.findrow em {
+  display: block; margin-top: 2px;
+  font-family: var(--ui); font-size: 11.5px; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pickitems li.dead { cursor: default; opacity: .7; }
+.pickitems li.dead:hover { border-left-color: var(--line); background: var(--panel2); }
+.pickitems li.dead b { text-decoration: line-through; }
+
+/* The way from "what am I editing" to "what state is any of it in". */
+.pickall {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  margin: 10px 0 2px; padding: 9px 11px; text-align: left;
+  background: var(--sunk);
+}
+.pickall .ic { flex: 0 0 auto; color: var(--accent); }
+.pickall small { display: block; color: var(--dimmer); font-size: 11px; margin-top: 1px; }
+
+/* The whole-game sheet: a file heading over the subjects that go into it, and
+   a document heading over that document's faults. */
+.pfile {
+  display: flex; align-items: center; gap: 6px;
+  margin: 10px 0 5px; font: 11px var(--ui); color: var(--dim);
+}
+.pfile code { font: 11px var(--mono); color: var(--accent); }
+.pfile .ic { width: 15px; height: 15px; color: var(--dim); }
+/* The list's own button, under the list, not out at the dialog's right edge
+   with Close. */
+#edAsk .picklist .btns { justify-content: flex-start; margin-top: 10px; }
+/* Close is the way out of a picker, not its verb — nothing here is confirmed by
+   pressing it. The accent belongs on the thing you came to choose. */
+#edAsk button[value=ok].ghost {
+  background: transparent; border-color: var(--line);
+  color: var(--dim); font-weight: 400;
+}
+
+/* The help sheet: a table of what each tool does, keyed by the same icon the
+   dock draws, so the answer to "which one is that" is the picture itself. */
+.keys { display: flex; flex-direction: column; gap: 9px; font-size: 12px; }
+.keys .k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.keys .k > span { flex: 1 1 170px; min-width: 0; }
+.keys .ic { width: 17px; height: 17px; color: var(--accent); flex: 0 0 auto; }
+.keys i { font-style: normal; color: var(--dim); }
+.keys kbd { margin-left: auto; white-space: nowrap; }
+.keys hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 3px 0; }
+
+/* Focus has to be visible: this is a tool operated with both hands, and the
+   dialog is the one place a keyboard is the fastest way through. */
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ================= it did not start =================
+   Deliberately loud and deliberately not dependent on anything the editor sets
+   up: this is what is on screen when the setup is what failed. */
+#edDead {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--bg); color: var(--ink);
+  padding: 40px; overflow: auto;
+  font: 14px/1.6 var(--ui);
+}
+#edDead h2 { color: var(--bad); margin: 0 0 12px; font-size: 18px; }
+#edDead pre {
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 12px; overflow-x: auto; font: 12px/1.5 var(--mono); color: var(--dim);
+}
+#edDead .hint { color: var(--dim); font-size: 12px; }
+
+.sheet-toggle { display: none; }
+
+/* ================= narrow =================
+   Below this there is not enough room for a canvas and a panel side by side, so
+   the panel goes under the map rather than beside it. */
+@media (max-width: 960px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; grid-template-areas: "bar" "stage" "side"; }
+  #side { border-left: 0; border-top: 1px solid var(--line); }
+  #bar .brand { display: none; }
+}
+
+/* ================= short =================
+   An embedded frame, or a laptop in a video call. Every row above the canvas
+   costs canvas, so the chrome gives its padding back — and the rail gives up its
+   labels before it gives up a tool. */
+@media (max-height: 700px) {
+  #bar { padding: 4px 10px; gap: 6px; font-size: 12px; min-height: 40px; }
+  #bar .brand { display: none; }
+  #hint { display: none; }
+  #dock { top: 8px; left: 8px; }
+  #dock .tools button { width: 42px; min-height: 38px; }
+  #dock .tools button b { display: none; }
+  #zoomer { top: 8px; right: 8px; }
+}
+
+/* ================= a phone =================
+   The map is the document, so it gets the screen: one bar row, a tool strip
+   along the bottom where the thumb already is, and a panel that folds away to
+   its tab strip. Nothing scrolls sideways — the arrangement that made that
+   necessary (fifteen controls in a bar) is gone. */
+/* ---------- ten modes in one row ----------
+   The segmented control was five labelled buttons and comfortable; at nine it
+   was 777px, and with the subject select, the undo pair and the layer switches
+   the bar wanted 1855px — wider than any desktop this is ever opened on. It
+   scrolled sideways, which is the exact thing the dock was rebuilt to stop.
+   At ten it is wider still, and the tenth cost nothing because the first fold
+   below fires at 1900 and takes every label with it: what a new mode adds above
+   that threshold is one 40px icon, not one 86px button.
+
+   So the bar folds in four steps, and every threshold below was measured
+   rather than guessed: at each one the bar is wider than the viewport until
+   the rule fires.
+
+     under 2000   the mode labels go. Every button already carries its name as
+                  a title and an aria-label, and ten icons in a row read as a
+                  mode picker on their own. Saves 461px: the labelled control is
+                  867px and the icons alone are 406.
+
+                  It was 1900 at nine modes and had to move at ten, because ten
+                  labelled buttons take the bar to exactly 1989px and the widest
+                  width the suite sweeps is 1920. Measured, not guessed — the
+                  suite fails on a single pixel of sideways scroll, which is how
+                  this was found in the first place.
+     under 1500   the four layer checkboxes fold into #edLayers, the button
+                  that already exists for them on a phone. The same field shown
+                  twice, which is how they were built. Saves 300px.
+     under 1150   the wordmark drops to its icon. Saves 100px.
+
+   Below 700, or on any coarse pointer, the whole segmented control becomes one
+   button and the rules further down take over. */
+@media (max-width: 2000px) {
+  #edModes button b { display: none; }
+  #edModes button { padding-left: 9px; padding-right: 9px; }
+}
+@media (max-width: 1500px) {
+  #app[data-mode="levels"] #edToggles { display: none; }
+  #app[data-mode="levels"] #edLayers { display: inline-flex; }
+}
+@media (max-width: 1150px) {
+  #bar .brand b, #bar .brand { font-size: 0; }
+  #bar .brand { gap: 0; }
+}
+/* And under 1240 there is no room for ten of anything. Below that the
+   segmented control and the level select are both replaced by ONE control —
+   the identity chip — because they are two halves of one question and the
+   picker behind it answers both, at any length: a menu can be as long as it
+   likes and a filter can be typed into, which is what ten modes and seventy
+   object kinds need and a 200px select cannot give.
+
+   Keyed on the width AND on a coarse pointer, not on the pointer alone. A
+   small laptop window is a fine pointer under 1240px, and the version that
+   hid the segmented control there without showing anything in its place left
+   that window with no way to change mode at all.
+
+   The threshold moved from 1000 to 1240 when the bar gained the whole-game
+   button: ten mode icons and a 220px select are 669px of a 1024px bar, and
+   the chip does the same job in 320. Measured, like every other step here —
+   the suite sweeps seven widths and fails on a pixel of sideways scroll. */
+@media (max-width: 1240px), (pointer: coarse) {
+  #edModes, #edSubjectLbl { display: none; }
+  #edPick { display: flex; }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  html, body { overscroll-behavior: none; }
+  #app { min-height: 0; }               /* a phone's viewport is the floor here */
+
+  /* A grid track and a flex item both default to `min-width: auto` — "never
+     smaller than my content" — so anything that must be allowed to shrink has to
+     be told so all the way up the chain, or the page is built for a viewport
+     nobody has. */
+  #app > *, #bar, #stage, #side, .tabrow, .tabs, .fld { min-width: 0; }
+
+  .coarse-only { display: flex; align-items: center; justify-content: center; }
+  .fine-only, #edToggles { display: none; }
+
+  #bar { gap: 6px; padding: 6px 8px; flex-wrap: nowrap; }
+  #bar .spacer { display: none; }
+  /* 40px, because a 25px button is a button you miss. */
+  #bar button, #bar select, .back { min-height: 40px; }
+  #bar button { min-width: 38px; padding: 5px 6px; justify-content: center; }
+  /* Everything else in the bar is a 38px square; this one takes what is left.
+     At 320px that is about 170px against the 80px the level select had, which
+     is the difference between "CALLHALL Services · Fourth…" and "CALLH". */
+  #bar .what { min-width: 0; padding: 4px 4px 4px 8px; justify-content: flex-start; }
+  .hist { gap: 4px; }
+
+  /* ---- the tool strip ----
+     Eight tools across the bottom of the map, sized to the screen rather than
+     scrolled: at 320px that is 38px each, which is a target a thumb hits. */
+  #dock {
+    left: 6px; right: 6px; top: auto;
+    bottom: calc(6px + env(safe-area-inset-bottom));
+    align-items: stretch; gap: 6px;
+  }
+  #dock .tools { flex-direction: row; gap: 1px; padding: 3px; }
+  #dock .tools button {
+    flex: 1 1 0; min-width: 0; width: auto; min-height: 44px;
+    padding: 4px 1px; gap: 2px;
+  }
+  /* The short-viewport rule above drops the rail's labels, and a phone is a
+     short viewport — but this is not that rail. Eight labels fit across 320px
+     at eight pixels, and a bare icon strip is a memory test. */
+  #dock .tools button b { display: block; font-size: 8px; letter-spacing: -.1px; }
+  #dock .tools .ic { width: 17px; height: 17px; }
+  .ctx { order: -1; align-self: flex-start; max-width: 100%; min-height: 40px; }
+
+  #zoomer { top: 8px; right: 8px; padding: 3px; }
+  #zoomer button { min-width: 36px; min-height: 36px; }
+  #zoomer span { min-width: 40px; font-size: 10px; }
+
+  /* The map is the thing. It gets what is left, and what is left is most of the
+     screen once the sheet below is folded away. */
+  #stage { min-height: 46vh; }
+  #hint { display: none; }
+  #readout {
+    font-size: 10px; left: 8px; right: 8px; max-width: none;
+    /* Clear of the tool strip, which is what is at the bottom of the map now. */
+    bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* ---- the panel as a bottom sheet ----
+     Open it takes a fixed share of the screen; folded it is the tab strip and
+     nothing else, which is the difference between an editor with a map in it and
+     an editor with a form in it. */
+  #side { max-height: 46vh; }
+  #app.sheet-shut #side { max-height: none; }
+  #app.sheet-shut .pane { display: none; }
+
+  /* The strip scrolls sideways when the tabs do not fit — five of them do not,
+     at 320px. The fold toggle is outside that scroll, so it is always in the
+     same place and never sits on top of whichever tab happened to scroll under
+     it. Losing a tab off the right-hand edge is what the strip's own
+     scrollIntoView on every switch is for. */
+  .tabs { overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; font-size: 12px; }
+  .sheet-toggle {
+    display: block; flex: 0 0 auto;
+    min-width: 44px; color: var(--dim);
+    border-left: 1px solid var(--line);
+    background: #121824;
+  }
+  #app.sheet-shut .sheet-toggle { transform: rotate(180deg); }
+
+  .pane { padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .work { padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .drop { min-height: 180px; padding: 20px 14px; }
+  .artbar button { min-height: 38px; min-width: 40px; }
+  ul.rows { grid-template-columns: 1fr; }
+  .step-h button { min-width: 38px; min-height: 36px; }
+  .replies button { min-height: 44px; }
+  .wire { display: block; }
+  .wire-k { display: block; margin-bottom: 3px; }
+  .seek { top: -12px; margin: -12px -12px 10px; padding: 10px 12px; }
+  .pal { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+  .pal button { min-height: 64px; }
+  ul.faults li, ul.list li { padding: 11px 10px; }
+  .frow { grid-template-columns: 70px 1fr; }
+  .frow input, .frow select { min-height: 38px; }
+  .btns button { min-height: 40px; padding: 0 14px; }
+  .chips button { min-height: 32px; }
+  #edAsk { min-width: 0; width: min(94vw, 460px); padding: 16px; }
+  #edAsk button { min-height: 42px; }
+  .pop { padding: 5px; }
+  .pop button, .pop label, .pop a { min-height: 44px; }
+}
+
+/* ================= a phone on its side =================
+   342px of height and no more. Width is the thing there is spare of, so the tool
+   strip stands up as a two-column rail at the edge and gives its 50px back to
+   the map — the same trade the game's own landscape HUD makes. */
+@media (pointer: coarse) and (max-height: 480px), (max-width: 700px) and (max-height: 480px) {
+  #bar { min-height: 0; padding: 4px 8px; }
+  #bar button, #bar select { min-height: 36px; }
+  /* Height is the scarce axis here and width is what there is spare of, so the
+     two lines of the identity chip become one. */
+  #bar .what .w-t { flex-direction: row; align-items: baseline; gap: 7px; }
+  #bar .what .w-k { flex: 0 0 auto; }
+  #dock {
+    left: calc(6px + env(safe-area-inset-left)); right: auto;
+    top: 50%; bottom: auto; transform: translateY(-50%);
+    align-items: flex-start;
+  }
+  #dock .tools {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+  }
+  #dock .tools button { width: 40px; min-height: 38px; flex: 0 0 auto; }
+  #dock .tools button b { display: none; }
+  .ctx { order: 2; max-width: 150px; min-height: 34px; padding: 4px 8px 4px 6px; }
+  .ctx .cx-k { display: none; }
+  #stage { min-height: 0; }
+  #side { max-height: 44vh; }
+  #readout { bottom: 6px; left: calc(96px + env(safe-area-inset-left)); right: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* Two small numeric fields on one row — a move's costs. Without this the second
+   label wraps onto its own line and the pair reads as one control with a stray
+   box underneath it. */
+.pair { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pair label { display: flex; align-items: center; gap: 5px; color: var(--dimmer); font-size: 12px; }
+.pair input { width: 68px; min-width: 0; }
+
+/* Thirteen dark navy-greys are told apart by looking at them, so the room list
+   carries its own colours: floor, wall and tint, in that order. */
+.swatch { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: -2px; }
+.swatch i { width: 10px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,.14); }
+.pair input[type="color"] {
+  width: 34px; height: 30px; padding: 2px; flex: 0 0 auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.pair input:not([type="color"]) { flex: 1 1 auto; width: auto; min-width: 0; font-family: var(--mono); }
+
+/* ---- what a room is made of ----
+   Floor and wall tiles, as tiles. `floor.sub` against `floor.herring` is a
+   decision made entirely by eye and it used to be a <select> of forty strings;
+   these are the bitmaps the renderer bakes, tinted through the room's own
+   colours, so the swatch IS the floor. Three to a row at 340px, and the caption
+   is under it rather than beside it because the picture is the control. */
+.mats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 2px 0 6px; }
+.mats.read { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 190px; }
+/* The drawn surfaces under an atlas tile that wins over them: still there,
+   still choosable, and visibly not what you are looking at on the map. */
+.mats.muted { opacity: .5; }
+.mats.muted:hover, .mats.muted:focus-within { opacity: 1; }
+.mat {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 5px 3px 4px; min-width: 0;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--dim); font: inherit; font-size: 10px; cursor: pointer;
+}
+.mats.read .mat { cursor: default; }
+.mat:hover { border-color: var(--line2); color: var(--ink); }
+.mat.on { border-color: var(--accent); color: var(--ink); box-shadow: 0 0 0 1px var(--accent) inset; }
+.mat b { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A fixed box whatever the bake came out at, so a row of swatches is a grid
+   rather than a staircase. The canvas inside is 2× a tile. */
+.mat-p {
+  display: block; width: 40px; height: 40px; border-radius: 3px; overflow: hidden;
+  background: var(--panel2); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35) inset;
+}
+.mats.small .mat-p { width: 34px; height: 34px; }
+.mat-p canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.matnote { color: var(--dimmer); font-size: 11px; margin: -2px 0 10px; }
+.matnote code { font-family: var(--mono); color: var(--dim); }
+
+/* Which way round an object is drawn. Four buttons rather than a number,
+   because "2" is not a direction anybody can picture. */
+.turns { display: inline-flex; gap: 4px; }
+.turns button {
+  min-width: 30px; padding: 4px 0; line-height: 1;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--dim); font-size: 13px; cursor: pointer;
+}
+.turns button:hover { border-color: var(--line2); color: var(--ink); }
+.turns button.on { border-color: var(--accent); color: var(--ink); box-shadow: 0 0 0 1px var(--accent) inset; }
+
+/* A button that reads as a link, for the one action that belongs inside a
+   sentence rather than beside it. */
+.linky {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--accent);
+  text-decoration: underline; cursor: pointer; min-height: 0;
+}
+.linky:hover { color: var(--ink); }
+
+/* Six numeric effects on an item. A grid rather than six rows, because each is
+   a word and a small number and stacking them costs a screen for nothing. */
+.effs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; margin: 6px 0 2px; }
+.effs label { display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  color: var(--dimmer); font-size: 12px; }
+.effs input { width: 62px; min-width: 0; }
+.card-btns { display: inline-flex; gap: 4px; margin-left: auto; }
+.card-btns button { min-width: 28px; min-height: 26px; padding: 0 5px; font-size: 12px; line-height: 1; }
+.hintlet { font-family: var(--mono); font-size: 11px; color: var(--dimmer); margin-left: 6px; }

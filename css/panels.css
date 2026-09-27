@@ -1,0 +1,127 @@
+/* panels */
+#panel{position:absolute;inset:0;z-index:26;display:none;align-items:center;justify-content:center;
+  padding:14px;background:radial-gradient(120% 100% at 50% 40%,rgba(10,14,22,.84),rgba(4,6,10,.95))}
+#panel.on{display:flex;animation:fadeIn .2s ease}
+.pn{width:min(1000px,97vw);height:min(760px,100%);display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:10px 12px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.tab{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid transparent;
+  border-radius:8px;padding:6px 11px 6px 9px;font-size:12px;
+  color:var(--dim);cursor:pointer;font-family:var(--mono);letter-spacing:.06em;transition:.14s}
+.tab:hover{color:var(--text);border-color:var(--line-soft);background:rgba(255,255,255,.03)}
+.tab.on{color:var(--ink);background:linear-gradient(180deg,#63b3ff,var(--brand));border-color:var(--brand);
+  font-weight:700;box-shadow:0 6px 16px -8px rgba(77,163,255,.7)}
+/* The icon carries less weight than the label until a tab is selected — a row
+   of eight equally bold glyphs read as noise before you have picked one. */
+.tab-i{font-size:14px;line-height:1;opacity:.7;filter:grayscale(.25)}
+.tab.on .tab-i{opacity:1;filter:none}
+/* A count used to be " (3)" appended to the label — a badge reads at a glance
+   without lengthening the string a scrolling phone row has to make room for. */
+.tab-n{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0;
+  min-width:15px;height:15px;padding:0 4px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--hold);color:#1a1206}
+.tab.on .tab-n{background:rgba(13,17,23,.32);color:var(--ink)}
+.pn-body{flex:1;overflow-y:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.item{background:rgba(34,43,59,.55);border:1px solid var(--line);border-radius:9px;padding:10px;
+  cursor:pointer;transition:.12s;text-align:left;width:100%}
+.item:hover{border-color:var(--brand);transform:translateY(-2px)}
+.item .ih{display:flex;gap:8px;align-items:center}
+.item .ie{font-size:24px}
+.item .it{font-weight:700;font-size:13px}
+.item .idesc{font-size:11px;color:var(--dim);margin-top:6px;font-style:italic;line-height:1.4}
+.item .ieff{font-size:11px;color:var(--good);margin-top:5px;font-family:var(--mono)}
+.rar{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:2px 6px;
+  border-radius:4px;margin-left:auto}
+.rar.common{color:var(--dim);border:1px solid var(--line)}
+.rar.rare{color:var(--brand);border:1px solid var(--brand)}
+.rar.legendary{color:var(--hold);border:1px solid var(--hold);box-shadow:0 0 14px -6px var(--hold)}
+/* ---- the map ----
+   The canvas takes whatever is left of the panel after the heading and the
+   legend, and it is the CSS size only: Atlas.panel() sets the pixel size from
+   the screen's own ratio, because a map laid out in CSS pixels and drawn in
+   device pixels is a map with soft edges on every phone there is. `min-height`
+   rather than a ratio — the shape of the map is the shape of the level, and
+   the canvas is the window it is fitted into rather than a frame round it. */
+.mp-wrap{flex:1;min-height:min(58vh,520px);display:flex}
+#mapCv{flex:1;width:100%;height:100%;border-radius:10px;border:1px solid var(--line);
+  background:rgba(8,11,17,.6)}
+/* The legend. One row that wraps, in the same monospace the rest of the HUD
+   labels itself in, and every swatch is the colour the map actually draws —
+   see Atlas.pins(). A legend whose colours are copied by hand is a legend that
+   goes wrong the first time anybody changes one. */
+.mp-key{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 2px 0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--dim)}
+.mp-key span{display:inline-flex;align-items:center;gap:6px}
+.mp-key i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.mp-you{background:#fff;clip-path:polygon(100% 50%,14% 100%,38% 50%,14% 0)}
+.mp-out{background:#4da3ff;border-radius:999px!important}
+.mp-pin{background:#5ad48a}
+.mp-npc{background:rgba(180,140,255,.85)}
+.mp-car{background:rgba(90,212,138,.9)}
+.mp-ring{background:#ffb347}
+.mp-here{color:var(--brand)}
+/* The panel body is a column for this one tab: the map has to be able to take
+   the height that is left, and a block layout will not give it any. */
+.pn-body:has(.mp-wrap){display:flex;flex-direction:column}
+
+.h2{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+  margin:16px 0 8px;border-bottom:1px dashed var(--line);padding-bottom:5px}
+.h2:first-child{margin-top:0}
+.quest{background:rgba(34,43,59,.5);border:1px solid var(--line);border-left:3px solid var(--hold);
+  border-radius:9px;padding:11px 13px;margin-bottom:9px}
+.quest.done{border-left-color:var(--good);opacity:.72}
+.quest h4{font-size:14px;margin-bottom:3px}
+.quest .giver{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.quest .step{font-size:12px;color:var(--text);margin-top:6px}
+.quest .step:before{content:"▸ ";color:var(--brand)}
+.quest .rw{font-size:11px;color:var(--hold);margin-top:6px;font-family:var(--mono)}
+.tree{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.branch{background:rgba(11,15,22,.45);border:1px solid var(--line);border-radius:10px;padding:11px}
+.branch h4{font-size:13px;margin-bottom:9px;font-family:var(--mono);letter-spacing:.1em}
+.skill{display:flex;gap:8px;align-items:center;padding:7px;border-radius:7px;border:1px solid transparent;
+  cursor:pointer;transition:.12s}
+.skill:hover{background:rgba(77,163,255,.1);border-color:var(--line)}
+.skill .sn{font-size:12.5px;flex:1}
+.skill .pips{font-family:var(--mono);font-size:11px;color:var(--hold);letter-spacing:.1em}
+.skill.maxed .pips{color:var(--good)}
+.skill.locked{opacity:.5}
+.ach{display:flex;gap:10px;align-items:center;background:rgba(34,43,59,.4);border:1px solid var(--line);
+  border-radius:9px;padding:9px 11px}
+.ach.got{border-color:var(--hold);background:rgba(255,179,71,.08)}
+.ach .ae{font-size:24px;filter:grayscale(1);opacity:.4}
+.ach.got .ae{filter:none;opacity:1}
+.ach .at{font-size:13px;font-weight:700} .ach .ad{font-size:11px;color:var(--dim)}
+.chat-msg{display:flex;gap:9px;margin-bottom:11px}
+.chat-msg .cf{font-size:20px}
+.chat-msg .cn{font-family:var(--mono);font-size:11px;color:var(--brand);letter-spacing:.08em}
+.chat-msg .ct{font-size:13.5px;line-height:1.45}
+.chat-ch{font-family:var(--mono);color:var(--hold);font-size:12px;margin:14px 0 10px;letter-spacing:.14em}
+.mail{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:9px;padding:12px;margin-bottom:10px}
+.mail .from{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.06em}
+.mail .subj{font-size:14px;font-weight:700;margin:5px 0 7px;color:var(--brand)}
+.mail .body{font-size:13px;line-height:1.55;white-space:pre-line}
+.setting{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.setting .sl{flex:1;font-size:14px}
+.setting .sd{font-size:11px;color:var(--dim)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.stat-box{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:9px;padding:10px}
+.stat-box .sv{font-family:var(--mono);font-size:21px;color:var(--hold)}
+.stat-box .sk{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono)}
+.stat-box .sn{font-size:11px;color:var(--dim);margin-top:4px;font-style:italic}
+.empty{color:var(--dim);font-style:italic;font-size:13px;padding:18px;text-align:center}
+
+/* report / ending */
+#ending{position:absolute;inset:0;z-index:28;display:none;align-items:center;justify-content:center;
+  padding:16px;background:rgba(6,9,14,.9)}
+#ending.on{display:flex}
+.rep{width:min(660px,96vw);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.rep-body{padding:18px;overflow-y:auto}
+.rep-row{display:flex;justify-content:space-between;padding:6px 0;
+  border-bottom:1px dotted #2a3448;font-size:13.5px}
+.rep-row span:last-child{font-family:var(--mono);color:var(--hold)}
+.verdict{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:9px;background:rgba(77,163,255,.07);text-align:center}
+.verdict .vt{font-family:var(--mono);font-size:20px;color:var(--brand);letter-spacing:.06em}
+.verdict .vn{font-size:11px;color:var(--dim);margin-top:8px;font-style:italic}
+.ending-title{font-family:var(--mono);font-size:clamp(22px,5vw,40px);letter-spacing:.08em;color:var(--hold)}
+.ending-text{font-size:16px;line-height:1.7;margin:16px 0;max-width:620px}

@@ -1,0 +1,554 @@
+This project is licensed in four parts, because it contains four kinds of
+thing.  Read the part that covers the file you are interested in.
+
+  1. The game — engine, editor, code, writing, design.  © 2026 Grant van Zyl,
+     licensed CC BY-NC-ND 4.0.  Everything except the files listed in parts 2,
+     3 and 4.
+
+  2. The character sprite art and the world atlas.  Third-party pixel art by
+     the Liberated Pixel Cup community, licensed OGA-BY 3.0 (some contributions
+     CC0).  NOT covered by part 1 — see below.
+
+  3. The CC-BY-SA 3.0 sheets: art/sprites/sanitary.png, art/sprites/wood.png,
+     art/sprites/frontage.png and art/sprites/roofs.png.  Third-party pixel art
+     by Matthew Nash and by bluecarrot16 and others.  ShareAlike, so it carries an obligation parts
+     1 and 2 do not, and each work is kept in a file of its own for exactly
+     that reason — see below.
+
+  4. The CC-BY-SA 4.0 sheets: art/sprites/victorian.png and
+     art/sprites/cars.png.  Third-party pixel art — the first compiled by
+     bluecarrot16 from many LPC contributors, the second by tokka — licensed
+     CC-BY-SA 4.0.  ShareAlike again, but a different version of it, which is
+     why they are not part 3 — see below.  Two separate works on the same
+     terms, in two separate files.
+
+The split is deliberate.  Part 1's NoDerivatives term is ours to place on our
+own work; it is not ours to place on somebody else's art, and doing so would
+misrepresent the terms that art actually carries.  Parts 2, 3 and 4 are
+separate from each other for the mirror-image reason: a ShareAlike term is not
+ours to place on another artist's work, and packing two sets into one sheet
+would do precisely that.
+
+Parts 3 and 4 are separate from EACH OTHER because CC-BY-SA 3.0 and CC-BY-SA
+4.0 are not the same licence.  They differ in ways that reach exactly what a
+licence section has to get right — how an Adaptation may be relicensed, and
+how attribution and notice must be given — so one section covering both would
+be wrong about one of them.  Neither is "the ShareAlike part"; each is its own.
+
+
+===============================================================================
+PART 1 — THE GAME
+===============================================================================
+
+Copyright © 2026 Grant van Zyl. All rights reserved.
+
+This game and the engine and editor it is built on — including its source
+code, written dialogue, characters, and design — is the work of Grant van Zyl
+and is
+licensed under the Creative Commons Attribution-NonCommercial-NoDerivatives
+4.0 International Licence (CC BY-NC-ND 4.0).
+
+Full legal code: https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+Summary:         https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+In plain terms
+--------------
+
+You are free to:
+
+  * Share — copy and redistribute this work in any medium or format,
+    and link to it, for any non-commercial purpose.
+
+Under the following terms:
+
+  * Attribution — you must give appropriate credit to Grant van Zyl,
+    provide a link to this licence, and indicate if changes were made.
+
+  * NonCommercial — you may not use this work, or any part of it, for
+    commercial purposes.
+
+  * NoDerivatives — if you remix, transform, or build upon this work,
+    you may not distribute the modified material.
+
+  * No additional restrictions — you may not apply legal terms or
+    technological measures that legally restrict others from doing
+    anything the licence permits.
+
+
+===============================================================================
+PART 2 — THE CHARACTER SPRITE ART
+===============================================================================
+
+The character sprites are not our work and are not licensed under Part 1.
+They are pixel art from the Liberated Pixel Cup (LPC) community, assembled
+from the Universal LPC Spritesheet Character Generator.
+
+Which files this covers
+-----------------------
+
+  * art/sprites/*.png — the sprite sheets themselves.  At the time of writing
+    that is art/sprites/people.png (the characters), art/sprites/world.png
+    (floors, furniture and wall items), and every file in art/sprites/parts/,
+    which are the same LPC character layers one component per file — a build
+    and skin, eyes, legs, shoes, a top, a cardigan, hair, a beard — for the
+    character creator to stack in the browser.  These are the files to take if
+    you want the art; they are the art, in unencumbered form, and nothing has
+    to be extracted from anything else to get at them.
+
+  * art/CREDITS.md and art/LICENSE-OGA-BY-3.0.txt, which are the attribution
+    and the licence text that OGA-BY 3.0 requires to travel with the art.
+
+Which files this does NOT cover
+-------------------------------
+
+  * art/sprites/manifest.js, despite living in the same directory.  It contains
+    no art: it is a list of rectangles, sizes and names, generated by
+    tools/build-sprites.mjs, describing where in those PNGs each sprite sits.
+    That description is our work and is Part 1 material.
+
+  * art/sprites/cars.png.  That is Part 4: ShareAlike, and kept out of
+    every Part 2 sheet for the reason assertOnePart() exists.
+
+  * index.html and data/*.js.  The art is loaded from the PNGs above at
+    runtime; no encoded copy of it is embedded in any of them.
+
+Earlier releases of this game embedded the art as base64 inside index.html and
+shipped a single art/sprites.png beside it.  Neither arrangement still exists.
+If you are reading a copy of this licence that describes them, it is out of
+date; the files named above are the ones that matter.
+
+Licence
+-------
+
+OGA-BY 3.0 (the OpenGameArt.org Attribution License 3.0), with some
+contributions additionally or alternatively available under CC0.
+
+  Full legal code:  art/LICENSE-OGA-BY-3.0.txt (included with this project)
+  Canonical URI:    https://static.opengameart.org/OGA-BY-3.0.txt
+
+OGA-BY 3.0 is CC-BY 3.0 with the clause prohibiting technological measures
+removed.  It requires attribution.  It has no ShareAlike or copyleft term, and
+it does not require works that incorporate the art to adopt its licence
+(section 4(a): "this does not require the Collection apart from the Work
+itself to be made subject to the terms of this License").
+
+Every layer used here was selected because it is offered under OGA-BY 3.0 or
+CC0.  Many LPC assets are offered only under CC-BY-SA 3.0 and/or GPL 3.0; none
+of those were used in the files THIS Part covers.  That choice is what keeps
+this Part's obligation to attribution alone.
+
+ShareAlike assets are used elsewhere in the project, each in a file of its own,
+under its own terms.  They are Parts 3 and 4.  tools/build-sprites.mjs refuses to pack
+ShareAlike art into a Part 2 sheet — assertOnePart() — because doing so would
+make that sheet an Adaptation of a ShareAlike work and force every OGA-BY
+contribution in it into a licence its artists did not choose.
+
+Attribution
+-----------
+
+The artists, the assets used, and the source URLs are listed in art/CREDITS.md.
+That file is generated from the LPC generator's own sheet definitions rather
+than written by hand, because attributing dozens of layered contributions
+correctly is not something to do from memory.
+
+Changes were made
+-----------------
+
+Required by OGA-BY 3.0 section 3(b), and stated here plainly: the original
+artwork has been modified.  Layers were composited into single character
+sprites, recoloured using the LPC palette definitions, cropped to the walking
+and standing frames only, and packed into a single atlas image.  No original
+LPC sheet is reproduced here intact.
+
+No endorsement
+--------------
+
+Attribution does not imply that any LPC contributor, OpenGameArt.org, or the
+Liberated Pixel Cup endorses this game or is connected with it.
+
+
+===============================================================================
+PART 3 — THE SHAREALIKE SHEETS
+===============================================================================
+
+Four files, kept apart from Part 2 and from each other on purpose.
+
+Which files this covers
+-----------------------
+
+  * art/sprites/sanitary.png — the wall tile and the toilet pan drawn in the
+    building's washrooms.  Two rectangles, cut from the Public Toilet Tileset
+    and packed into a sheet of their own.
+
+  * art/sprites/wood.png — the bench the town sits on and the clock on the
+    wall.  Two rectangles, cut from the layered form of [LPC] Wooden Furniture
+    and packed into a sheet of their own.
+
+  * art/sprites/frontage.png — the shop windows along the parade.  Four
+    rectangles, cut from [LPC] Windows & Doors and packed into a sheet of their
+    own.
+
+  * art/sprites/roofs.png — the roofs of the town, seen from above.  Sixty-five
+    rectangles: five corner-matched sets of thirteen tiles each, cut from
+    [LPC] Roofs and packed into a sheet of their own.
+
+    Each sheet holds ONE work by ONE set of artists.  They are four files
+    rather than one for the same reason none of them is packed into world.png:
+    a sheet is an Adaptation of everything in it, and two unrelated ShareAlike
+    works sharing a file would make each an Adaptation of the other's art with
+    no way to say afterwards which artist's term reached which pixel.
+
+Which files this does NOT cover
+-------------------------------
+
+  * art/sprites/victorian.png and art/sprites/cars.png.  Those are
+    Part 4 — also ShareAlike, and also not this.  CC-BY-SA 3.0 and CC-BY-SA 4.0
+    are different licences; see Part 4 for what turns on the difference.
+
+  * art/sprites/world.png, art/sprites/people.png, art/sprites/town.png,
+    art/sprites/streets.png, art/sprites/faces.png and art/sprites/parts/.
+    Those are Part 2 and contain none of this art.  The build refuses to mix
+    them; see assertOnePart() in tools/build-sprites.mjs.
+
+  * art/sprites/manifest.js, for the same reason it is excluded from Part 2:
+    it is rectangles and names we generated, and contains no art.
+
+Licence
+-------
+
+CC-BY-SA 3.0 (Creative Commons Attribution-ShareAlike 3.0 Unported).
+
+  Canonical URI:  https://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+Section 4(a) permits the URI to stand in place of a copy of the licence text,
+which is why there is no local copy of it here as there is for OGA-BY 3.0.
+
+All four works are offered under CC-BY-SA 3.0 or GPL 3.0 (or GPL 3.0+), at the
+licensee's option; [LPC] Wooden Furniture offers CC-BY-SA 4.0 as well.  This
+project takes CC-BY-SA 3.0 for all four.  GPL 3.0 is the worse of the options here: its
+"preferred form for making modifications" would reach the build inputs, and
+tools/ is deliberately not published.  CC-BY-SA 4.0 is declined only because
+3.0 is the version this part already states and one version is simpler to
+honour than two; nothing is lost by it, as the 4.0 offer is an addition to the
+3.0 one rather than a replacement for it.
+
+Why this file is separate
+-------------------------
+
+ShareAlike attaches to Adaptations of the work.  art/sprites/sanitary.png is an
+Adaptation — the art has been cropped and repacked — so that file is offered
+under CC-BY-SA 3.0, and anyone may take it, change it and redistribute it on
+those terms.
+
+The game is not an Adaptation of it.  It is a Collection that includes the file
+whole and unmodified alongside independent works, and CC-BY-SA 3.0 section 4(a)
+says a Collection need not be made subject to this licence.  That is the same
+argument Part 2 already makes, quoting the same clause, for the OGA-BY sheets.
+
+Had this art been packed into world.png or town.png, that sheet would have
+become an Adaptation of a ShareAlike work and every OGA-BY contribution in it
+would have been dragged into a licence its artists never chose.  Hence the
+separate files, and hence the build-time assertion that keeps them separate.
+
+Attribution
+-----------
+
+art/sprites/sanitary.png
+
+  Original author:  Matthew Nash
+  Source:           https://opengameart.org/content/public-toilet-tileset
+  Title:            Public Toilet Tileset
+
+art/sprites/wood.png
+
+  Original authors: bluecarrot16, Baŝto, Lanea Zimmerman (Sharm),
+                    William Thompson, Tuomo Untinen (Reemax),
+                    Janna/Lilius/Jannax
+  Source:           https://opengameart.org/content/lpc-wooden-furniture
+  Title:            [LPC] Wooden Furniture
+
+art/sprites/frontage.png
+
+  Original authors: bluecarrot16, Lanea Zimmerman (Sharm),
+                    Daniel Armstrong (HughSpectrum), Casper Nilsson, Anamaris,
+                    Krusmira, Keith Karnage, Guido Bos, Talosaurus
+  Source:           https://opengameart.org/content/lpc-windows-doors
+  Title:            [LPC] Windows & Doors
+
+art/sprites/roofs.png
+
+  Original authors: bluecarrot16, Lanea Zimmerman (Sharm),
+                    Michele Bucelli (Buch), Casper Nilsson, Xenodora,
+                    keith karnage, NaRNeRZz, Talon (Talosaurus)
+  Source:           https://opengameart.org/content/lpc-roofs
+  Title:            [LPC] Roofs
+
+Changes were made
+-----------------
+
+Stated plainly, as section 4(c) requires: the original artwork has been
+modified.
+
+For sanitary.png: two rectangles — one wall tile and one toilet pan — were cut
+from the tileset and packed into a single indexed PNG.
+
+For wood.png: two pieces were cut from the dark-wood layer of the submission's
+layered form and packed into a single indexed PNG.  The bench was additionally
+SHORTENED — taken in two thirty-two pixel halves and joined, dropping the
+twenty-six unbroken pixels between them, so that it is two tiles long rather
+than nearly three.  The clock is the case from one layer with the dial from
+another stacked back onto it, which is how the submission ships it.
+
+For frontage.png: four rectangles — the same two-tile shopfront window in four
+of the submission's eleven frame colours — were cut from its single sheet and
+packed into one indexed PNG.  Nothing was recoloured or redrawn.
+
+For roofs.png: sixty-five rectangles were cut from the submission's single
+2048x2048 sheet and packed into one indexed PNG.  They are five of its
+corner-matched sets — the thirteen tiles of field, edge and corner that make up
+one roof material — chosen for colour and taken whole.  Nothing was recoloured
+or redrawn.  What the game draws ON TOP of them at run time (the weathering,
+and the plant, tanks, rooflights, aerials and chimney stacks) is drawn in code
+in engine/render.js and is no part of this art.
+
+No original sheet is reproduced here intact.
+
+Standing of this attribution
+----------------------------
+
+Recorded honestly because it should be re-checkable, and the two files do not
+stand in quite the same place.
+
+For sanitary.png, the author and the licence were reported by the project owner
+from the source page named above.  They could not be verified from inside the
+build environment at the time, which could not reach opengameart.org or
+web.archive.org; the PNG carries no tEXt chunk, and the name does not appear in
+the official Liberated Pixel Cup asset repository.
+
+For wood.png, frontage.png and roofs.png, the authors and the licences were
+read off the source pages and off the CREDITS-*.txt each submission ships
+beside its art, and they are written into tools/sheets/wood.mjs,
+tools/sheets/frontage.mjs and tools/sheets/roofs.mjs where
+they can be compared against those pages by anyone who opens them.  What the build re-checks is not the page but the
+BYTES: the sheet pins the sha256 of the archive it was cut from and refuses to
+build if the download no longer matches, so a re-upload under different terms
+stops the build rather than passing through it.  That is a guarantee about the
+art not having changed, not about the page having been read correctly; the
+reading is still a human's, and if it is wrong it should be corrected.
+
+The same notes are carried in art/CREDITS.md.
+
+If this attribution is wrong, it should be corrected rather than removed: the
+art is licensed, and the obligation is to credit the right person.
+
+No endorsement
+--------------
+
+Attribution does not imply that Matthew Nash, bluecarrot16, any other artist
+named above, OpenGameArt.org, or the Liberated Pixel Cup endorses this game or
+is connected with it.
+
+
+===============================================================================
+PART 4 — THE CC-BY-SA 4.0 SHEETS
+===============================================================================
+
+Two files, kept apart from Parts 2 and 3 on purpose — from Part 3 as well as
+from Part 2, which is the only thing here that is new.
+
+Two files rather than one, and they are also kept apart from EACH OTHER: they
+are two independent works from two different authors that happen to be offered
+on the same terms, so each carries its own attribution block below.  Sharing a
+part is not sharing a sheet, and nothing is packed into either of them.
+
+Which files this covers
+-----------------------
+
+  * art/sprites/victorian.png — the painted iron bench, the pillar box, the
+    cast-iron litter bin and the public clock standing in the old town.  Four
+    rectangles, cut from the market and street sheets of one OpenGameArt
+    submission and packed into a sheet of their own.
+
+  * art/sprites/cars.png — the vehicles: thirty top-down cars, vans,
+    buses and emergency vehicles on one sheet.  Reproduced WHOLE and
+    byte-for-byte as supplied; four of the thirty are drawn by the game.
+
+Which files this does NOT cover
+-------------------------------
+
+  * art/sprites/sanitary.png, art/sprites/wood.png, art/sprites/frontage.png
+    and art/sprites/roofs.png.  Those are Part 3 and contain none of this art.
+    ShareAlike does not make two works one work — which is also why the two
+    sheets this part covers are two sheets and not one.
+
+  * art/sprites/world.png, art/sprites/people.png, art/sprites/town.png,
+    art/sprites/streets.png, art/sprites/faces.png and art/sprites/parts/.
+    Those are Part 2.  The build refuses to mix any of these; see
+    assertOnePart() in tools/build-sprites.mjs.
+
+  * art/sprites/manifest.js, for the reason it is excluded from Parts 2 and 3:
+    it is rectangles and names we generated, and contains no art.
+
+Licence
+-------
+
+CC-BY-SA 4.0 (Creative Commons Attribution-ShareAlike 4.0 International).
+
+  Canonical URI:  https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Section 3(a)(2) permits the URI to stand in place of a copy of the licence
+text, which is why there is no local copy of it here as there is for
+OGA-BY 3.0.
+
+This work is offered under CC-BY-SA 4.0 and under nothing else.  There is no
+3.0 option to take and no GPL option to decline, which is the whole reason
+this part exists: the alternative to a fourth part was not using the art.
+
+Why this file is separate from Part 3
+-------------------------------------
+
+Both are ShareAlike, and it would be convenient to call them one thing.  They
+are not one thing.
+
+  * Relicensing.  4.0 section 3(b)(1) lets an Adaptation go out under a later
+    version of the same licence; 3.0 section 4(b) does not say that of 4.0,
+    because 4.0 did not exist when 3.0 was written.  A section that told a
+    downstream user which versions they may use would have to give two
+    different answers.
+
+  * Attribution and notice.  3.0 section 4(c) and 4.0 section 3(a) require
+    overlapping but differently-worded things, and 4.0 adds a 30-day cure
+    period for a breach (section 6(b)) that 3.0 has no equivalent of.
+
+  * Compatibility runs one way.  A 3.0 work may be adapted into a 4.0 one; the
+    reverse is not available.  Merging the two sheets would therefore quietly
+    put the Part 3 art under 4.0 — a relicensing this project has no business
+    performing on somebody else's work, in a file they never agreed to be
+    packed into.
+
+So: two ShareAlike parts, two sheets, and a build that refuses to put a crop
+from one anywhere near the other.  LICENCES_BY_PART in tools/lib/source.mjs is
+where a sheet's part is checked against what it actually contains.
+
+Why this file is separate from Part 2
+-------------------------------------
+
+The same argument Part 3 makes, unchanged: art/sprites/town.png is OGA-BY art,
+and packing a ShareAlike crop into it would make that whole sheet an Adaptation
+of a ShareAlike work and drag every OGA-BY contribution in it into a licence
+its artists never chose.
+
+The game is not an Adaptation of this file.  It is a Collection that includes
+it whole and unmodified alongside independent works, and CC-BY-SA 4.0 section
+1(f) read with section 4 says a Collection need not be made subject to this
+licence.  That is the same argument Parts 2 and 3 already make under the
+equivalent clauses of their own licences.
+
+Attribution — art/sprites/victorian.png
+---------------------------------------
+
+  Original authors:  bluecarrot16, Casper Nilsson, Lanea Zimmerman (Sharm),
+                     William Thompson, mold, AntumDeluge, Curt,
+                     Daniel Eddeland (daneeklu), caeles, George Bailey,
+                     Jetrel, Yar, Guido Bos, Ivan Voirol (Silver IV),
+                     Stephen Challener (Redshrike), the Open Surge team,
+                     Arthur Carvalho, Guilherme Vieira (n2liquid), NaRNeRZz,
+                     Diarandor, Armando Montero (ArMM1998),
+                     Tuomo Untinen (Reemax), Buch
+  Source:            https://opengameart.org/content/lpc-victorian-town-decorations
+  Title:             [LPC] Victorian Town Decorations
+
+That is the list the submission's own CREDITS-decorations-victorian.txt gives,
+in its own order, and it is reproduced in full because that file says it must
+be.  The submission is itself a compilation of earlier LPC works, each named
+with its own author and terms inside that credits file; anyone redistributing
+art/sprites/victorian.png should carry it, and art/CREDITS.md does.
+
+Changes were made — art/sprites/victorian.png
+---------------------------------------------
+
+Stated plainly, as section 3(a)(1)(B) requires: the original artwork has been
+modified.  Four rectangles — a bench, a pillar box, a litter bin and a clock on
+a post — were cut from two of the submission's three sheets and packed into a
+single indexed PNG.  No original sheet is reproduced here intact.
+
+Attribution — art/sprites/cars.png
+----------------------------------
+
+  Original author:   tokka
+  Source:            https://tokka.itch.io/top-down-car
+  Title:             Top Down Cars Sprite Pack — Basic Set
+
+No changes were made — art/sprites/cars.png
+-------------------------------------------
+
+Stated plainly, because section 3(a)(1)(B) only requires a statement where
+there are modifications and it is worth being clear that there are none: this
+sheet is the file as supplied, byte for byte.  Nothing was cropped out of it,
+nothing was repacked, and no part of it was re-encoded.
+
+The game draws four of its thirty vehicles, and recolours three of those four
+at runtime so that a car's paint can come from the game's own data rather than
+from the sheet.  That recolouring happens on a canvas while the game is
+running; it is not distributed, and no modified copy of this art exists in this
+repository or in anything released from it.  What is distributed is the file
+above, whole, alongside independent works — which is the Collection this part's
+"Why this file is separate from Part 2" section describes.
+
+Standing of this attribution — art/sprites/victorian.png
+--------------------------------------------------------
+
+The authors and the licence above were read off the source page named above and
+off the CREDITS-decorations-victorian.txt the submission ships inside its own
+archive, and they are written into tools/sheets/victorian.mjs where they can be
+compared against that page by anyone who opens it.
+
+What the build re-checks is not the page but the BYTES: the sheet pins the
+sha256 of the archive it was cut from and refuses to build if the download no
+longer matches, so a re-upload under different terms stops the build rather
+than passing through it.  That is a guarantee about the art not having changed,
+not about the page having been read correctly; the reading is still a human's,
+and if it is wrong it should be corrected rather than removed.
+
+The same note is carried in art/CREDITS.md.
+
+Standing of this attribution — art/sprites/cars.png
+---------------------------------------------------
+
+Weaker than the one above it, and said plainly rather than glossed over.
+
+This sheet did not arrive through tools/sheets/, so there is no pinned archive
+to re-download and no upstream credits file to re-parse.  It was uploaded
+straight into art/sprites/, and it carries no PNG metadata of any kind — no
+tEXt chunk, no author, no licence.  The source page named above is refused by
+the network the build and its sessions run behind, so the author and the
+licence could not be read off it from in here.  Both were REPORTED BY THE
+PROJECT OWNER from that page.
+
+What is checked mechanically is the same thing Part 3's sheet checks and no
+more: tools/lib/pinned.mjs records the sha256 of these bytes and the build
+stops if they ever change on disk.  That is a guarantee that the art has not
+moved underneath the attribution, not that the attribution is right.
+
+If it is wrong it should be corrected rather than removed — the art is
+licensed, and the obligation is to credit the right person.  The same note is
+carried in art/CREDITS.md.
+
+No endorsement
+--------------
+
+Attribution does not imply that tokka, any artist named above, itch.io,
+OpenGameArt.org, or the Liberated Pixel Cup endorses this game or is connected
+with it.
+
+
+===============================================================================
+NOTICES
+===============================================================================
+
+This is a work of fiction. Its places, people and companies are invented.
+Any resemblance to a real company, or to any real person living or dead, is
+coincidental.
+
+For permissions beyond the scope of the Part 1 licence, contact the copyright
+holder.

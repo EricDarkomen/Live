@@ -1,0 +1,157 @@
+/* touch controls */
+#touch{position:absolute;inset:0;z-index:6;display:none;pointer-events:none}
+#touch.on{display:block}
+/* While a conversation is up it covers the bottom of the screen — and with it
+   the pad. Hide the controls so they are not showing through as dead buttons. */
+body.talking #touch.on{display:none}
+/* Same for the full-screen overlays. They already swallow the taps; this just
+   stops the pad ghosting through their translucent backdrop. Falling back to a
+   faint pad behind a modal is harmless if :has() is missing. */
+#app:has(#combat.on) #touch.on,
+#app:has(#panel.on) #touch.on,
+#app:has(#ending.on) #touch.on{display:none}
+/* The stick's catchment. A thumb pressing "somewhere near the bottom-left" is
+   the actual gesture people make; a 150px pad you have to find first is not.
+   The zone is invisible and does nothing but claim the corner the thumb is
+   already resting in — the stick itself springs to wherever inside it you
+   landed. It stops well short of the E button's side, so the two thumbs never
+   contend for the same pixels.
+
+   The height is deliberately the 244px the interaction prompt sits above (see
+   the coarse-pointer block): the stick is clamped inside this box, so a zone
+   that stops where the prompt starts is a stick that can never be dragged up
+   over it. */
+#stickZone{position:absolute;left:0;bottom:0;width:min(58%,340px);height:min(50%,244px);
+  pointer-events:auto;touch-action:none}
+/* The base rests here and is moved to the thumb by an inline left/top, which
+   is cleared again on release — so the resting position, including which side
+   of the screen it is on, stays entirely in CSS where the southpaw mirror can
+   reach it. Set once per press, not per frame. */
+.stick{position:absolute;left:calc(18px + env(safe-area-inset-left));
+  bottom:calc(84px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;
+  pointer-events:none;opacity:.42;transition:opacity .18s}
+.stick::before{content:'';position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);background:rgba(9,12,18,.34)}
+/* The knob is dragged every frame, so it moves by transform and is deliberately
+   not eased: a transition here puts it permanently a tenth of a second behind
+   the thumb, which reads as the control being broken. */
+#stickKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;
+  border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(77,163,255,.62),rgba(77,163,255,.3));
+  border:2px solid var(--brand);box-shadow:0 8px 20px -10px rgba(77,163,255,.9);will-change:transform}
+.stick.grab{opacity:.96}
+body.southpaw .stick{left:auto;right:calc(18px + env(safe-area-inset-right))}
+/* ---- the second stick ----
+   The throttle, in the other bottom corner, and on screen only while there is
+   something to throttle. It mirrors the movement stick exactly — same zone
+   shape, same floating base, same knob — because the two thumbs should not
+   have to learn two different controls; the only difference is which axis is
+   read (see Cars.drive) and that this one is tinted amber so a glance can tell
+   them apart.
+
+   It sits BEHIND the E and menu buttons: the zone is earlier in the markup, so
+   a thumb landing on a button gets the button and a thumb landing anywhere
+   else in the corner gets the stick. That is what lets E stay exactly where it
+   has always been while the corner around it becomes a control. */
+#throttleZone{display:none;position:absolute;right:0;bottom:0;
+  width:min(50%,340px);height:min(50%,244px);pointer-events:auto;touch-action:none}
+body.driving #throttleZone{display:block}
+/* Exactly half each while both are out, so the two catchments tile the bottom
+   of the screen and cannot overlap. The movement zone is wider than half on
+   foot — where there is nothing on the right to contend with — and gives the
+   difference back the moment there is. A thumb landing in a strip claimed by
+   both would grab whichever is later in the markup, which is not a thing a
+   player can be expected to know. */
+body.driving #stickZone{width:min(50%,340px)}
+/* The d-pad already has forward and back on two of its four buttons, which is
+   the same fix by another route — so in that mode there is nothing for a
+   second stick to do and it stays away. */
+body.dpad-controls #throttleZone{display:none}
+/* Beside the buttons rather than under them. The stick springs to the thumb
+   wherever it lands, so this position is only ever the resting hint — but a
+   resting hint hidden behind the E button is not one. */
+#throttle,#throttleHint{left:auto;right:calc(98px + env(safe-area-inset-right));
+  bottom:calc(38px + env(safe-area-inset-bottom))}
+body.southpaw #throttle,body.southpaw #throttleHint{right:auto;left:calc(98px + env(safe-area-inset-left))}
+#throttleKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;
+  border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(255,179,71,.62),rgba(255,179,71,.28));
+  border:2px solid var(--hold);box-shadow:0 8px 20px -10px rgba(255,179,71,.9);will-change:transform}
+/* Which way is which, on the resting stick, so the first press is not a guess.
+   Hidden while it is being held: a label under a thumb is not a label. */
+#throttleHint{position:absolute;width:132px;height:132px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:9px 0;font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  color:rgba(255,179,71,.8);pointer-events:none;transition:opacity .18s}
+#throttleZone:has(.stick.grab) #throttleHint{opacity:0}
+/* ---- the aim stick ----
+   The right-hand corner's other job. Everything about it is the throttle's —
+   same zone, same floating base, same knob — because a thumb that has learned
+   one of them has learned both; what differs is that it is read as a BEARING
+   rather than as an axis, that pushing it past half fires, and that it is
+   green, which is the one colour in this palette that is neither the player's
+   blue nor the car's amber.
+
+   Never on screen at the same time as the throttle: you cannot drive and
+   shoot, which is both a control decision and the correct one. */
+#aimZone{display:none;position:absolute;right:0;bottom:0;
+  width:min(50%,340px);height:min(50%,244px);pointer-events:auto;touch-action:none}
+body.armed #aimZone{display:block}
+body.driving #aimZone{display:none}
+/* Both catchments tile the bottom of the screen exactly, as with the throttle:
+   the movement zone gives back the width it only has while the other corner is
+   empty. */
+body.armed #stickZone{width:min(50%,340px)}
+/* The d-pad player gets the stick anyway. There is no four-button way to aim
+   through three hundred and sixty degrees, and the whole point of the thing is
+   that it is analogue — so in d-pad mode the LEFT hand is four buttons and the
+   right hand is still a stick. */
+body.dpad-controls.armed #aimZone{display:block}
+#aim,#aimHint{left:auto;right:calc(98px + env(safe-area-inset-right));
+  bottom:calc(38px + env(safe-area-inset-bottom))}
+body.southpaw #aim,body.southpaw #aimHint{right:auto;left:calc(98px + env(safe-area-inset-left))}
+#aimKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;
+  border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(90,212,138,.62),rgba(90,212,138,.28));
+  border:2px solid var(--good);box-shadow:0 8px 20px -10px rgba(90,212,138,.9);will-change:transform}
+/* What it is for, on the resting stick, gone the moment a thumb is on it. */
+#aimHint{position:absolute;width:132px;height:132px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:rgba(90,212,138,.8);
+  pointer-events:none;transition:opacity .18s}
+#aimZone:has(.stick.grab) #aimHint{opacity:0}
+
+/* Getting out is the same button it has always been, in the same place, saying
+   what it does instead of which key it is. It is the one control that must not
+   move when the layout changes: a button that wanders is a button you press by
+   accident at thirty miles an hour. */
+body.driving #touchE{font-size:12px;letter-spacing:.06em}
+/* D-pad mode. Same footprint, same corner — for anyone who would rather have
+   four edges to find by feel than an analogue stick. */
+.dpad{display:none;position:absolute;left:calc(14px + env(safe-area-inset-left));
+  bottom:calc(76px + env(safe-area-inset-bottom));width:150px;height:150px;pointer-events:auto;touch-action:none}
+.dpad button{position:absolute;width:50px;height:50px;background:rgba(34,43,59,.8);border:1px solid var(--line);
+  border-radius:10px;color:var(--text);font-size:16px;touch-action:none}
+.dpad button:active{background:rgba(77,163,255,.35);border-color:var(--brand)}
+.dpad .u{left:50px;top:0}.dpad .d{left:50px;top:100px}.dpad .l{left:0;top:50px}.dpad .r{left:100px;top:50px}
+/* Exactly one of the two is ever on screen. Both live in the markup so the
+   switch is a class rather than a rebuild — see Hand.apply(). */
+body.dpad-controls #stickZone{display:none}
+body.dpad-controls .dpad{display:block}
+#touchE{position:absolute;right:calc(18px + env(safe-area-inset-right));
+  bottom:calc(96px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:50%;
+  background:rgba(77,163,255,.25);border:2px solid var(--brand);color:#fff;font-size:15px;
+  pointer-events:auto;font-family:var(--mono);touch-action:none}
+#touchE:active{background:rgba(77,163,255,.5)}
+#hudBottom{padding-bottom:env(safe-area-inset-bottom)}
+#hudTL{top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left))}
+#hudTR{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
+#touchMenu{position:absolute;right:calc(18px + env(safe-area-inset-right));
+  bottom:calc(182px + env(safe-area-inset-bottom));width:54px;height:54px;border-radius:50%;
+  background:rgba(21,27,37,.88);border:1px solid var(--line);color:var(--text);font-size:20px;
+  pointer-events:auto;touch-action:none}
+#touchMenu:active{border-color:var(--brand);background:rgba(77,163,255,.3)}
+/* Southpaw: the whole control layout mirrors. Left-handers were holding the
+   phone in the hand that had to reach across it for the pad. Nothing about the
+   controls changes except which side they are on, so this is pure CSS off a
+   body class — see Hand.apply(). */
+body.southpaw #stickZone{left:auto;right:0}
+body.southpaw .dpad{left:auto;right:calc(14px + env(safe-area-inset-right))}
+body.southpaw #touchE{right:auto;left:calc(18px + env(safe-area-inset-left))}
+body.southpaw #touchMenu{right:auto;left:calc(18px + env(safe-area-inset-left))}

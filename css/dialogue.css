@@ -1,0 +1,30 @@
+/* dialogue */
+#dialogue{position:absolute;left:0;right:0;bottom:0;z-index:20;display:none;padding:14px;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,rgba(5,7,11,.9),transparent)}
+#dialogue.on{display:block}
+.dlg{width:min(880px,96vw);margin:0 auto}
+.dlg-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px dashed var(--line)}
+.dlg-face{font-size:38px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+/* A sprite portrait is a window onto the atlas, not a glyph: nearest-neighbour
+   so the pixel art stays crisp at 2-3x, and flex-shrink:0 so a long role line
+   cannot squash the face. */
+.dlg-face.sprite{background-repeat:no-repeat;image-rendering:pixelated;flex:0 0 auto;position:relative}
+/* The expression is a second window onto a second sheet, laid over the first
+   one — see engine/faces.js. Absolute inside the portrait, sized and placed by
+   the script, and never a hit target: it is a face, not a control. */
+.dlg-face.sprite .expr{position:absolute;background-repeat:no-repeat;image-rendering:pixelated;pointer-events:none}
+.dlg-name{font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;font-size:13px;color:var(--hold)}
+.dlg-role{font-size:11px;color:var(--dim)}
+.dlg-mood{margin-left:auto;font-size:11px;color:var(--dim);font-family:var(--mono)}
+.dlg-text{padding:16px;font-size:16px;line-height:1.55;min-height:62px}
+.dlg-text .cursor{display:inline-block;width:8px;height:16px;background:var(--brand);vertical-align:-2px;animation:blink .8s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.dlg-choices{display:flex;flex-direction:column;gap:6px;padding:0 12px 12px}
+.choice{display:flex;gap:10px;align-items:flex-start;text-align:left;background:rgba(34,43,59,.6);
+  border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:14px;
+  transition:.12s;width:100%}
+.choice:hover,.choice.sel{border-color:var(--brand);background:rgba(77,163,255,.12);transform:translateX(3px)}
+.choice .num{font-family:var(--mono);font-size:11px;color:var(--hold);min-width:14px}
+.choice .tag{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim);white-space:nowrap}
+.dlg-cont{padding:0 16px 14px;font-size:12px;color:var(--dim);font-family:var(--mono)}
