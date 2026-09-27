@@ -61,7 +61,7 @@
      bar reads as part of the same visual system rather than a browser chrome. */
   #hudTop::before{content:"";position:absolute;left:0;right:0;height:2px;
     top:env(safe-area-inset-top);pointer-events:none;
-    background:linear-gradient(90deg,transparent,rgba(77,163,255,.5),transparent)}
+    background:linear-gradient(90deg,transparent,rgba(255,111,145,.5),transparent)}
   /* Out of the corners and into the row. The transform reset matters: the old
      landscape rule scaled both cards to 86% to make them fit, which is what a
      layout does when it has run out of layout. */
@@ -80,7 +80,7 @@
      rest of the card when you are nearly out of yourself. */
   .who-face{font-size:19px;line-height:1;padding:3px 4px;border-radius:9px;
     border:1px solid var(--line-soft);
-    background:radial-gradient(circle at 50% 35%,rgba(77,163,255,.26),rgba(77,163,255,.04))}
+    background:radial-gradient(circle at 50% 35%,rgba(255,111,145,.26),rgba(255,111,145,.04))}
   #hudTL.low .who-face{border-color:rgba(255,95,86,.55);
     background:radial-gradient(circle at 50% 35%,rgba(255,95,86,.34),rgba(255,95,86,.05))}
   /* The name gives way to the meters, not the other way round: a long name is
@@ -269,7 +269,7 @@
     background:linear-gradient(180deg,rgba(46,57,77,.86),rgba(26,33,47,.86));
     border-color:rgba(255,255,255,.11);
     box-shadow:0 7px 18px -9px #000,inset 0 1px 0 rgba(255,255,255,.08)}
-  .dpad button:active{background:rgba(77,163,255,.42);border-color:var(--brand);color:#fff}
+  .dpad button:active{background:rgba(255,111,145,.42);border-color:var(--brand);color:#fff}
   .dpad .u{left:49px;top:0}.dpad .d{left:49px;top:98px}
   .dpad .l{left:0;top:49px}.dpad .r{left:98px;top:49px}
 
@@ -290,11 +290,11 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 12px 30px -20px #000}
   /* Held, it comes up to full strength and rings itself in the brand colour, so
      the thing under your thumb is obviously the thing you are driving. */
-  .stick.grab::before{border-color:rgba(77,163,255,.45);
+  .stick.grab::before{border-color:rgba(255,111,145,.45);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 34px -12px var(--brand)}
   #stickKnob{border-color:rgba(178,216,255,.9);
-    background:radial-gradient(circle at 50% 28%,rgba(150,205,255,.95),rgba(77,163,255,.55) 58%,rgba(40,104,180,.45));
-    box-shadow:0 10px 24px -10px rgba(77,163,255,.95),inset 0 2px 7px rgba(255,255,255,.32)}
+    background:radial-gradient(circle at 50% 28%,rgba(150,205,255,.95),rgba(255,111,145,.55) 58%,rgba(40,104,180,.45));
+    box-shadow:0 10px 24px -10px rgba(255,111,145,.95),inset 0 2px 7px rgba(255,255,255,.32)}
 
   /* ---- E, and the menu -----------------------------------------------------
      E is the button this game is played with, and it was a flat blue disc that
@@ -303,13 +303,13 @@
      button that acts on it. Amber and ringing when the thing in front of you is
      a ringing phone, which is the one you are paid to notice. */
   #touchE{letter-spacing:.12em;
-    background:radial-gradient(circle at 50% 28%,rgba(122,190,255,.46),rgba(77,163,255,.17) 72%);
+    background:radial-gradient(circle at 50% 28%,rgba(122,190,255,.46),rgba(255,111,145,.17) 72%);
     border-color:rgba(140,200,255,.72);
-    box-shadow:0 12px 28px -14px rgba(77,163,255,.9),inset 0 1px 0 rgba(255,255,255,.22);
+    box-shadow:0 12px 28px -14px rgba(255,111,145,.9),inset 0 1px 0 rgba(255,255,255,.22);
     transition:transform .09s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease}
   #app:has(#prompt.on) #touchE{border-color:#dceaff;
-    background:radial-gradient(circle at 50% 28%,rgba(150,205,255,.6),rgba(77,163,255,.24) 72%);
-    box-shadow:0 0 0 3px rgba(77,163,255,.16),0 14px 32px -14px var(--brand),
+    background:radial-gradient(circle at 50% 28%,rgba(150,205,255,.6),rgba(255,111,145,.24) 72%);
+    box-shadow:0 0 0 3px rgba(255,111,145,.16),0 14px 32px -14px var(--brand),
       inset 0 1px 0 rgba(255,255,255,.3)}
   #app:has(#prompt.urgent) #touchE{border-color:var(--hold);
     background:radial-gradient(circle at 50% 28%,rgba(255,199,116,.55),rgba(255,179,71,.2) 72%);

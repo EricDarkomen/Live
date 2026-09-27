@@ -1,0 +1,242 @@
+'use strict';
+/* THE ISLAND'S OWN SYSTEMS — the parts of this game a table cannot say.
+ *
+ *   Garden   Rafa's twelve plots: plant a seed, wait, harvest the fruit.
+ *   Blender  fruit in, cocktails out, at The Driftwood.
+ *   Orders   the supply boat at the jetty wants things for the other islands.
+ *   Dates    ask somebody to the cove at sunset, and turn up.
+ *
+ * All of it keeps its state in G.flags, which the save already carries, and
+ * all of it tells time in ISLAND MINUTES — minutes since the first morning —
+ * so a mango planted on Tuesday afternoon is ready on Wednesday whatever the
+ * clock did overnight. Loaded after data/items.js and before data/acts.js,
+ * which is where the buttons that call it are. */
+
+const bag = id => P.inventory.filter(x => x === id).length;
+const bagTake = (id, n) => { for (let i = 0; i < n; i++) Item.take(id); };
+const qAt = (id, n) => Q.active(id) && G.quests[id].step === n;
+/* Bring a job up to step `n` if it is behind — doing a later thing first
+   (planting seeds you were given, say) still counts for the earlier steps. */
+const qTo = (id, n) => { for (let i = 0; i < 6 && Q.active(id) && G.quests[id].step < n; i++) Q.step(id); };
+const islandNow = () => (Math.max(1, G.day) - 1) * 1440 + G.minutes;
+
+/* ---------------- The garden ---------------- */
+/* t   island minutes from seed to ripe
+   n   how many you pick
+   xp  what picking them is worth */
+const CROPS = {
+  mint:       { t: 45,  n: 3, xp: 3 },
+  lime:       { t: 75,  n: 3, xp: 4 },
+  strawberry: { t: 100, n: 3, xp: 5 },
+  mango:      { t: 180, n: 2, xp: 7 },
+  pineapple:  { t: 260, n: 2, xp: 9 },
+  coconut:    { t: 420, n: 2, xp: 12 },
+};
+
+const Garden = {
+  plots() { return (G.flags.garden = G.flags.garden || {}); },
+  state(o) { return this.plots()[o.plot] || null; },
+  /* 0 bare · 1 seedling · 2 growing · 3 ripe */
+  stage(p) {
+    if (!p) return 0;
+    const f = (islandNow() - p.at) / CROPS[p.c].t;
+    return f >= 1 ? 3 : f >= .5 ? 2 : 1;
+  },
+  left(p) { return Math.max(0, Math.ceil(CROPS[p.c].t - (islandNow() - p.at))); },
+  look(o) {
+    const p = this.state(o), s = this.stage(p);
+    return s === 0 ? { e: '🟫', name: 'A garden plot' }
+      : s === 1 ? { e: '🌱', name: ITEMS[p.c].n + ' — just planted' }
+      : s === 2 ? { e: '🪴', name: ITEMS[p.c].n + ' — growing' }
+      : { e: ITEMS[p.c].e, name: ITEMS[p.c].n + ' — ripe!' };
+  },
+  /* Keep the plots on the ground looking like what is in them. Cheap: twelve
+     objects, only while you are on the island. */
+  refresh() {
+    if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
+    for (const o of World.objects) {
+      if (o.kind !== 'plot') continue;
+      const l = this.look(o);
+      o.e = l.e; o.name = l.name;
+    }
+  },
+  seeds() { return Object.keys(ITEMS).filter(k => ITEMS[k].crop && Item.has(k)); },
+  plant(o, seed) {
+    const c = ITEMS[seed].crop;
+    Item.take(seed);
+    this.plots()[o.plot] = { c, at: islandNow() };
+    Sfx.blip && Sfx.blip();
+    FX.burst(P.x, P.y, '🌱', 6);
+    UI.toast('🌱', 'Planted <b>' + ITEMS[c].n + '</b>. Ready in about ' + clockDur(CROPS[c].t) + '.');
+    qTo('q_garden', 2);
+    this.refresh();
+  },
+  harvest(o) {
+    const p = this.state(o);
+    const c = CROPS[p.c], n = c.n + (Math.random() < .3 ? 1 : 0);
+    for (let i = 0; i < n; i++) Item.give(p.c, true);
+    delete this.plots()[o.plot];
+    FX.burst(P.x, P.y, ITEMS[p.c].e, 10);
+    UI.toast(ITEMS[p.c].e, 'Picked <b>' + n + ' × ' + ITEMS[p.c].n + '</b>.', 'gold');
+    Player.xp(c.xp);
+    G.flags.harvests = (G.flags.harvests || 0) + 1;
+    if (G.flags.harvests >= 10) Ach.get('a_green');
+    qTo('q_garden', 3);
+    this.refresh();
+  },
+  act(o) {
+    const p = this.state(o), s = this.stage(p);
+    if (s === 3) {
+      insp(ITEMS[p.c].e, 'A garden plot', 'Ripe', ['Heavy, sweet and warm from the sun. Ready.'],
+        [{ t: 'Pick it all.', to: null, do: () => this.harvest(o) }, { t: 'Leave it a bit longer.', to: null }]);
+      return;
+    }
+    if (s > 0) {
+      insp(s === 1 ? '🌱' : '🪴', 'A garden plot', 'Growing', [
+        ITEMS[p.c].n + ', coming along. About ' + clockDur(this.left(p)) + ' to go.',
+        pick(['Watching it will not make it grow faster. You watch it anyway.', 'A gecko is sitting on it, supervising.', 'Rafa used to talk to his plants. You try it. It feels nice.'])]);
+      return;
+    }
+    const seeds = this.seeds();
+    insp('🟫', 'A garden plot', 'Bare', seeds.length
+      ? ['Rich red earth, turned over and ready. What are you planting?']
+      : ['Rich red earth, and nothing in it. Mama Coco sells seeds on the Promenade.'],
+      seeds.map(k => ({ t: 'Plant the ' + ITEMS[k].n.toLowerCase() + ' (' + bag(k) + ').', to: null, do: () => this.plant(o, k) }))
+        .concat([{ t: 'Leave it.', to: null }]));
+  }
+};
+/* "About an hour and a half", from island minutes. */
+function clockDur(m) {
+  m = Math.max(1, Math.round(m));
+  if (m < 60) return m + ' minutes';
+  const h = Math.floor(m / 60), r = m % 60;
+  return h + (h === 1 ? ' hour' : ' hours') + (r >= 15 ? (r >= 45 ? ' and three-quarters' : r >= 25 ? ' and a half' : ' and a quarter') : '');
+}
+setInterval(() => { try { Garden.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1500);
+
+/* ---------------- The blender ---------------- */
+const RECIPES = [
+  { out: 'mojito', in: { lime: 1, mint: 2 } },
+  { out: 'daiquiri', in: { strawberry: 2, lime: 1 } },
+  { out: 'sotb', in: { mango: 1, strawberry: 1 } },
+  { out: 'colada', in: { pineapple: 1, coconut: 1 } },
+  { out: 'sunset', in: { mango: 1, pineapple: 1, lime: 1 } },
+];
+const Blender = {
+  can(r) { return Object.keys(r.in).every(k => bag(k) >= r.in[k]); },
+  list(r) { return Object.keys(r.in).map(k => r.in[k] + ' ' + ITEMS[k].e).join(' + '); },
+  make(r) {
+    for (const k in r.in) bagTake(k, r.in[k]);
+    Item.give(r.out, true);
+    Sfx.coffee && Sfx.coffee();
+    FX.burst(P.x, P.y, ITEMS[r.out].e, 10);
+    UI.toast(ITEMS[r.out].e, 'You blend a <b>' + ITEMS[r.out].n + '</b>. It even has a little umbrella.', 'gold');
+    Player.xp(6);
+    G.flags.blended = (G.flags.blended || 0) + 1;
+    if (G.flags.blended >= 10) Ach.get('a_mixer');
+    if (Q.active('q_garden') && G.quests.q_garden.step >= 3) Q.complete('q_garden');
+    if (qAt('q_critic', 0) && P.inventory.filter(x => ITEMS[x] && ITEMS[x].drink).length >= 3) Q.step('q_critic');
+  },
+  open() {
+    const ok = RECIPES.filter(r => this.can(r));
+    insp('🍹', 'The blender', 'Rafa’s pride and joy', [
+      'A chrome blender older than you, with a dent where somebody once threw it at a man called Sterling.',
+      ok.length ? 'You have the fruit for something. What are we making?' : 'Rafa’s recipes are taped to the wall: ' + RECIPES.map(r => ITEMS[r.out].n + ' (' + this.list(r) + ')').join(' · ') + '. You do not have the fruit for any of them.'],
+      ok.map(r => ({ t: 'Blend a ' + ITEMS[r.out].n + ' — ' + this.list(r) + '.', to: null, do: () => this.make(r) }))
+        .concat([{ t: 'Leave it.', to: null }]));
+  }
+};
+
+/* ---------------- The supply boat ---------------- */
+/* Three orders on the board at a time, for the other islands. A new day tops
+   the board back up; a filled order pays its price and a bit of reputation. */
+const ORDER_POOL = [
+  { who: 'The Coral Resort', e: '🏨', want: { mojito: 2 }, pay: 55 },
+  { who: 'A wedding on Isla Perla', e: '💍', want: { daiquiri: 2, sotb: 1 }, pay: 95 },
+  { who: 'The fish market on San Tomás', e: '🐟', want: { lime: 6 }, pay: 32 },
+  { who: 'A yacht called “Wet Dream”', e: '🛥️', want: { sotb: 2 }, pay: 70 },
+  { who: 'Old Pepe’s cousin', e: '👴', want: { mango: 3 }, pay: 34 },
+  { who: 'The lighthouse keeper', e: '🗼', want: { coconut: 2, mint: 3 }, pay: 48 },
+  { who: 'A hen party on Cayo Rosa', e: '👰', want: { daiquiri: 3 }, pay: 80 },
+  { who: 'The monastery on the hill', e: '⛪', want: { strawberry: 4 }, pay: 30 },
+  { who: 'A film crew', e: '🎬', want: { colada: 1, mojito: 1 }, pay: 75 },
+  { who: 'The governor’s birthday', e: '🎩', want: { sunset: 1 }, pay: 90 },
+  { who: 'A nudist retreat (don’t ask)', e: '🌞', want: { pineapple: 2, lime: 2 }, pay: 55 },
+];
+const Orders = {
+  board() {
+    if (!G.flags.orders) this.refresh(true);
+    return G.flags.orders;
+  },
+  refresh(force) {
+    const now = G.flags.orders || [];
+    if (!force && now.length >= 3) return;
+    const have = new Set(now.map(o => o.i));
+    const pool = ORDER_POOL.map((o, i) => i).filter(i => !have.has(i) && (G.day > 1 || !ORDER_POOL[i].want.sunset));
+    while (now.length < 3 && pool.length) now.push({ i: pool.splice(Math.floor(Math.random() * pool.length), 1)[0] });
+    G.flags.orders = now;
+  },
+  can(o) { const w = ORDER_POOL[o.i].want; return Object.keys(w).every(k => bag(k) >= w[k]); },
+  words(o) { const w = ORDER_POOL[o.i].want; return Object.keys(w).map(k => w[k] + ' × ' + ITEMS[k].n).join(', '); },
+  fill(o) {
+    const d = ORDER_POOL[o.i];
+    for (const k in d.want) bagTake(k, d.want[k]);
+    G.flags.orders = G.flags.orders.filter(x => x !== o);
+    Player.mod({ money: d.pay, rep: 3 });
+    Player.xp(Math.round(d.pay / 3));
+    Sfx.cash && Sfx.cash();
+    UI.toast('⛵', 'Loaded for <b>' + d.who + '</b>. Teo tucks the cash into your hand and winks.', 'gold');
+    G.flags.shipped = (G.flags.shipped || 0) + 1;
+    if (G.flags.shipped >= 5) Ach.get('a_cargo');
+    if (qAt('q_boat', 1)) Q.complete('q_boat');
+  },
+  open() {
+    const b = this.board();
+    if (qAt('q_boat', 0)) Q.step('q_boat');
+    insp('📜', 'The order board', 'For the supply boat', [
+      b.length ? 'Orders pinned up for Captain Teo to take round the islands:' : 'Nothing pinned up. Teo says there will be more in the morning.']
+      .concat(b.map(o => ORDER_POOL[o.i].e + ' ' + ORDER_POOL[o.i].who + ' — ' + this.words(o) + ' · ' + cash(ORDER_POOL[o.i].pay))),
+      b.filter(o => this.can(o)).map(o => ({ t: 'Load up ' + ORDER_POOL[o.i].who + ' (' + cash(ORDER_POOL[o.i].pay) + ').', to: null, do: () => this.fill(o) }))
+        .concat([{ t: 'Walk away.', to: null }]));
+  }
+};
+
+/* ---------------- Dates ---------------- */
+/* Somebody who likes you enough will say yes to the cove at sunset. The date
+   is for TODAY, from 19:00; turn up at the lantern and it happens. */
+const DATE_LINES = {
+  mari: ['Mari kicks off her sandals and sits with her toes in the water. “Rafa used to say this cove was built for bad decisions.”', 'She leans her head on your shoulder. “I think I’d like to make one.”', 'The lantern flickers. Neither of you notices for quite a while.'],
+  kai: ['Kai turns up with two coconuts and a guitar he cannot play. He plays it anyway, badly, grinning the whole time.', '“I’m not usually nervous,” he says, and puts the guitar down, and does not seem nervous at all.', 'The tide comes in round your ankles. Neither of you moves.'],
+  jade: ['Jade arrives off-duty, hair down, still smelling of sun cream. “Don’t tell anyone I left the tower.”', 'She challenges you to a race to the rock and back and wins, obviously, and then pulls you under anyway.', 'Afterwards you lie on the warm sand, dripping, watching the first stars come out.'],
+  luca: ['Luca brings a blanket, a bottle of something Italian and absolutely no plan.', '“In Napoli we say the sea keeps secrets,” he murmurs. “So — tell me one.”', 'You tell him one. He tells you three. The lantern burns down to a glow.'],
+};
+const Dates = {
+  ask(id, who) {
+    G.flags.date = { id, day: G.day };
+    UI.objective('Meet ' + who + ' at the lantern in Lovers’ Cove after 19:00.');
+    UI.toast('💕', 'A date! <b>' + who + '</b>, the cove lantern, after sunset.', 'gold');
+  },
+  today(id) { const d = G.flags.date; return !!(d && d.id === id && d.day === G.day); },
+  lantern() {
+    const d = G.flags.date;
+    const m = G.minutes % 1440;
+    if (d && d.day === G.day && m >= 1140) {
+      const n = NPCS.find(x => x.id === d.id);
+      G.flags.date = null;
+      G.flags['dated_' + d.id] = (G.flags['dated_' + d.id] || 0) + 1;
+      Rel.add(d.id, 3);
+      Player.mod({ patience: 40, energy: 20 });
+      Ach.get('a_date');
+      if (Rel.get(d.id) >= 8) { Ach.get('a_kiss'); G.flags.partner = d.id; }
+      if (!Item.has('polaroid')) Item.give('polaroid');
+      if (d.id === 'jade' && qAt('q_jade', 1)) Q.complete('q_jade');
+      insp(n ? n.face : '💕', n ? n.name : 'Your date', 'Lovers’ Cove · sunset', DATE_LINES[d.id] || ['It is a lovely evening.']);
+      return true;
+    }
+    if (d && d.day === G.day) {
+      insp('🏮', 'The cove lantern', 'Waiting', ['It is not sunset yet. Your date said after seven. You fiddle with your hair.']);
+      return true;
+    }
+    return false;
+  }
+};

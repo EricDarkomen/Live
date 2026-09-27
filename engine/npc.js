@@ -2878,7 +2878,7 @@ const Guide = {
   restore() {
     this.clear();
     if (Track.aim()) return;
-    this.setObject('playerDesk', 'Your desk', 'foundDesk');
+    this.setObject('playerDesk', say('yourDesk'), 'foundDesk');
   },
   /* Called on arriving somewhere new. The same question as after a restore —
      what is owed, and where is it from here — asked against a different map,

@@ -171,7 +171,7 @@ const Game = {
         + ' Tap <span class="kbd">E</span> to interact.'
       : 'Move with <span class="kbd">WASD</span>. Interact with <span class="kbd">E</span>.')
       + ' ' + say('firstTip')), 900);
-    setTimeout(() => UI.toast('📞', say('phoneTip', { press: TOUCH ? 'tap' : 'press' })), 6000);
+    setTimeout(() => UI.toast('🛎️', say('phoneTip', { press: TOUCH ? 'tap' : 'press' })), 6000);
     setTimeout(() => { if (!Phones.ringing.length) Phones.ringRandom(); }, 12000);
   }
 };

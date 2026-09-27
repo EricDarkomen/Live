@@ -24,7 +24,7 @@
 .choice{display:flex;gap:10px;align-items:flex-start;text-align:left;background:rgba(34,43,59,.6);
   border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:14px;
   transition:.12s;width:100%}
-.choice:hover,.choice.sel{border-color:var(--brand);background:rgba(77,163,255,.12);transform:translateX(3px)}
+.choice:hover,.choice.sel{border-color:var(--brand);background:rgba(255,111,145,.12);transform:translateX(3px)}
 .choice .num{font-family:var(--mono);font-size:11px;color:var(--hold);min-width:14px}
 .choice .tag{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim);white-space:nowrap}
 .dlg-cont{padding:0 16px 14px;font-size:12px;color:var(--dim);font-family:var(--mono)}

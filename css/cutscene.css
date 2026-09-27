@@ -98,7 +98,7 @@
   /* Its own ground. The floor behind this is a moving photograph and the one
      thing that must never happen is a sentence over a light desk. */
   background:linear-gradient(180deg,rgba(9,12,18,.62),rgba(9,12,18,.82));
-  border-left:2px solid rgba(77,163,255,.55);
+  border-left:2px solid rgba(255,111,145,.55);
   border-radius:0 10px 10px 0;padding:12px 16px 14px;
   backdrop-filter:blur(2px)}
 .cut-label{grid-area:1/1}
@@ -146,7 +146,7 @@
 #cutscene.k-title .cut-label{text-align:center;letter-spacing:.34em;margin-bottom:14px}
 #cutscene.k-title .cut-text{font-family:var(--mono);font-weight:700;text-align:center;
   font-size:clamp(24px,5.2vw,52px);line-height:1.18;letter-spacing:.01em;
-  text-shadow:0 0 40px rgba(77,163,255,.35),0 3px 14px rgba(0,0,0,.9)}
+  text-shadow:0 0 40px rgba(255,111,145,.35),0 3px 14px rgba(0,0,0,.9)}
 
 /* ---------- letting go ----------
    The opening does not cut to a HUD. The bars open, the grade lifts off the

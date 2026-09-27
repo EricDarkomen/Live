@@ -86,7 +86,7 @@ Object.keys(BaseActs).forEach(k => { if (typeof Acts !== 'undefined' && !(k in A
    `RAPPORT_LAND` is the rapport at which it is offered. */
 const RAPPORT_LAND = 70;
 const BaseMoves = [
-  { id: 'land', e: '🤝', get n() { return say('land.n'); }, get d() { return say('land.d'); },
+  { id: 'land', e: '💋', get n() { return say('land.n'); }, get d() { return say('land.d'); },
     show: E => (E.rap || 0) >= RAPPORT_LAND, cost: {},
     run(E) { E.landed = true; return { dmg: 999, win: true, txt: say('land.txt') }; } }
 ];

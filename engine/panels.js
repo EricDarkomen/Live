@@ -107,7 +107,7 @@ const Interact = {
       : kind === 'npc' ? 'Talk to ' + best.name
       : kind === 'ped' ? 'Talk to ' + best.name
       : kind === 'car' ? 'Look at ' + best.name
-      : best.ringing ? 'ANSWER — ' + best.name
+      : best.ringing ? (TEXT['act.answer'] ? say('act.answer') : 'ANSWER') + ' — ' + best.name
       : (best.kind === 'chair' || best.use === 'playerDesk') ? 'Use ' + best.name
       /* A push button is the one piece of street furniture out there that
          DOES something, so it says so. "Inspect the crossing" is what you do
@@ -171,7 +171,7 @@ const Shop = {
   },
   buy(k) {
     const it = ITEMS[k];
-    if (P.money < it.v) { Sfx.deny(); UI.toast('💷', say('shop.poor')); return; }
+    if (P.money < it.v) { Sfx.deny(); UI.toast('💶', say('shop.poor')); return; }
     Player.mod({ money: -it.v }); Item.give(k); Sfx.cash(); Panels.render();
     /* A job that advances on buying something is HOOKS.bought in data/game.js. */
     Hook('bought', k, this.id);
@@ -190,7 +190,7 @@ const TABS = [
   /* The shift page, which used to be a screen that arrived at five whether you
      were at a desk or on a dual carriageway. It is a tab now, and a live one:
      today's figures whenever you ask for them. See Report in engine/menus.js. */
-  { id: 'shift', n: 'Shift', e: '🕔' },
+  { id: 'shift', get n() { return TEXT['tab.shift'] ? say('tab.shift') : 'Shift'; }, e: '💶' },
   { id: 'quests', n: 'Jobs', e: '🗂️' }, { id: 'inventory', n: 'Inventory', e: '🎒' }, { id: 'skills', n: 'Skills', e: '📈' },
   /* CHAT AND EMAIL USED TO BE TWO OF THESE and they are not administration.
      A portal tab is where you go to look something up about yourself — your
@@ -279,7 +279,7 @@ const Panels = {
       + '<span><i class="mp-pin"></i>What you are looking for</span>'
       + '<span><i class="mp-npc"></i>People</span>'
       + '<span><i class="mp-car"></i>Something you can drive</span>'
-      + '<span><i class="mp-ring"></i>A phone that is ringing</span>'
+      + '<span><i class="mp-ring"></i>A guest waiting at the bar</span>'
       + '</div>';
   },
   /* TODAY, AND WHETHER IT IS OVER YET. One page, two moods: during the shift it
@@ -335,7 +335,7 @@ const Panels = {
     for (const slot in P.equipment) {
       const id = P.equipment[slot]; if (!id) continue; any = true;
       const it = ITEMS[id];
-      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + slot + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + k).join(' · ') + '</div><div class="idesc">Click to unequip</div></button>';
+      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + (TEXT['slot.' + slot] ? say('slot.' + slot) : slot) + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + (TEXT['stat.' + k] ? say('stat.' + k) : k)).join(' · ') + '</div><div class="idesc">Click to unequip</div></button>';
     }
     if (!any) h += '<p class="empty">Nothing equipped.</p>';
     h += '</div><div class="h2">Carried (' + P.inventory.length + ')</div>';
@@ -346,7 +346,7 @@ const Panels = {
     Object.keys(counts).forEach(id => {
       const it = ITEMS[id];
       h += '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + (counts[id] > 1 ? ' ×' + counts[id] : '') + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
-        (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + k).join(' · ') + '</div>' : '') +
+        (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + (TEXT['stat.' + k] ? say('stat.' + k) : k)).join(' · ') + '</div>' : '') +
         '<div class="ieff" style="color:var(--dim)">' + (it.slot ? 'Click to equip' : it.use ? 'Click to use' : it.quest ? 'Quest item' : 'Click to examine') + '</div></button>';
     });
     return h + '</div>';
@@ -416,13 +416,13 @@ const Panels = {
   },
   r_settings() {
     const t = (on) => on ? 'On' : 'Off';
-    return '<div class="h2">Shift management</div>' +
-      '<div class="setting"><div class="sl">Save shift<div class="sd">Writes to this browser only.</div></div><button class="btn small" data-act="save">💾 Save</button></div>' +
-      '<div class="setting"><div class="sl">Load shift<div class="sd">Restore your last save.</div></div><button class="btn small" data-act="load">↻ Load</button></div>' +
+    return '<div class="h2">Your game</div>' +
+      '<div class="setting"><div class="sl">Save<div class="sd">Writes to this browser only.</div></div><button class="btn small" data-act="save">💾 Save</button></div>' +
+      '<div class="setting"><div class="sl">Load<div class="sd">Restore your last save.</div></div><button class="btn small" data-act="load">↻ Load</button></div>' +
       '<div class="setting"><div class="sl">New game<div class="sd">Erases everything and starts again.</div></div><button class="btn small" data-act="newgame">🗑️ New game</button></div>' +
       '<div class="h2">Audio</div>' +
       '<div class="setting"><div class="sl">Sound effects</div><button class="btn small" data-act="sound" aria-pressed="' + !!Sfx.on + '">' + t(Sfx.on) + '</button></div>' +
-      '<div class="setting"><div class="sl">Hold music<div class="sd">Plays during calls.</div></div><button class="btn small" data-act="music" aria-pressed="' + !!Sfx.music + '">' + t(Sfx.music) + '</button></div>' +
+      '<div class="setting"><div class="sl">Bar music<div class="sd">Plays while you serve.</div></div><button class="btn small" data-act="music" aria-pressed="' + !!Sfx.music + '">' + t(Sfx.music) + '</button></div>' +
       '<div class="setting"><div class="sl">Volume</div><button class="btn small" data-act="vol">' + Math.round(Sfx.volume * 100) + '%</button></div>' +
       '<div class="h2">Notifications</div>' +
       '<div class="setting"><div class="sl">Pop-ups<div class="sd">'
@@ -430,7 +430,7 @@ const Panels = {
           ? 'Every channel interrupts you, the chat included.'
           : Comms.pop === 'none'
           ? 'Nothing interrupts you. Everything still arrives — the counts on the rail are how you know.'
-          : 'Mail, texts and anything that needs an answer interrupt you. The chat and the call log go to the rail quietly. Several at once fold into one line.')
+          : 'Post, texts and anything that needs an answer interrupt you. The chat and the guest log go to the rail quietly. Several at once fold into one line.')
         + '</div></div><button class="btn small" data-act="pops">'
         + (Comms.pop === 'all' ? '🔔 Everything' : Comms.pop === 'none' ? '🔇 Nothing' : '🔔 What needs you')
         + '</button></div>' +
@@ -456,13 +456,13 @@ const Panels = {
             : 'the ' + Hand.padSide() + ' stick steers, the amber one on the ' + Hand.btnSide() + ' is the throttle')
             + ' &nbsp; <span class="kbd">OUT</span> — get out<br>' +
           'Tap the conversation box — advance dialogue &nbsp; tap a reply — choose it<br>' +
-          'Tap a move — replies, on the phone and in writing<br>' +
-          '<span class="kbd">☰</span> — jobs, inventory, skills, profile, achievements &nbsp; the 📨 chip under the bar — mail, texts, chat, the log and every call<br>' +
-          'The shift saves itself, and <span class="kbd">☰</span> · Menu has Save and Load.'
+          'Tap a move — at the bar, and in messages<br>' +
+          '<span class="kbd">☰</span> — jobs, inventory, skills, profile, achievements &nbsp; the 📨 chip under the bar — post, texts, chat, the log and every guest<br>' +
+          'The game saves itself, and <span class="kbd">☰</span> · Menu has Save and Load.'
         : '<span class="kbd">W A S D</span> / arrows — move, and drive &nbsp; <span class="kbd">E</span> — interact, and get out &nbsp; <span class="kbd">H</span> — horn &nbsp; <span class="kbd">Space</span> — advance dialogue<br>' +
-          '<span class="kbd">↑ ↓</span> then <span class="kbd">Enter</span>, or <span class="kbd">1–9</span> — dialogue choices &nbsp; <span class="kbd">1–9</span> — call actions<br>' +
+          '<span class="kbd">↑ ↓</span> then <span class="kbd">Enter</span>, or <span class="kbd">1–9</span> — dialogue choices &nbsp; <span class="kbd">1–9</span> — moves at the bar<br>' +
           '<span class="kbd">J</span> jobs &nbsp; <span class="kbd">I</span> inventory &nbsp; <span class="kbd">K</span> skills &nbsp; <span class="kbd">P</span> profile &nbsp; <span class="kbd">L</span> achievements<br>' +
-          '<span class="kbd">M</span> mail &nbsp; <span class="kbd">C</span> chat &nbsp; <span class="kbd">V</span> texts &nbsp; <span class="kbd">B</span> the log — or the rail in the corner, which is all five channels<br>' +
+          '<span class="kbd">M</span> post &nbsp; <span class="kbd">C</span> chat &nbsp; <span class="kbd">V</span> texts &nbsp; <span class="kbd">B</span> the log — or the rail in the corner, which is all five channels<br>' +
           '<span class="kbd">Esc</span> menu &nbsp; <span class="kbd">F5</span> quick save &nbsp; <span class="kbd">F9</span> quick load') + '</p>';
   }
 };

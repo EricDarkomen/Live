@@ -1,20 +1,11 @@
 'use strict';
-/* ---------------- Title: the wallboard ----------------
-   The title screen used to be a heading, a tagline and three buttons on a
-   gradient. What follows is the same three buttons on the floor they belong to.
-
-   Every call centre has a wallboard: a screen bolted above the desks showing
-   how many people are holding, how long the oldest one has been holding, and
-   how many of you are free to do anything about it. It is the first thing you
-   see when you walk in and the last thing you look at before you leave. So the
-   title screen IS one — and because it is live, it gets worse while you stand
-   there reading it. Sitting on the menu is the joke: the queue you have not
-   started answering yet is growing, and the number of people available to
-   answer it is going to be zero long before you press anything.
-
-   Behind it, a switchboard. A drifting grid of extensions with calls routing
-   across it — each pulse runs a few hops and lands, and the busier the board
-   says it is, the more of them are in the air. It is the queue, drawn.
+/* ---------------- The title screen ----------------
+   A sunset over the sea, drawn live: a sky that drifts through the last hour of
+   the day, a sun sinking into a sea that glitters, palms leaning in from the
+   edges, a few birds going home. Over it, the name, the menu, and the beach
+   board — sea temperature, time till sunset, and how many couples are on the
+   sand — which counts down while you stand there reading it, because the best
+   part of the day does not wait for anybody.
 
    Everything here runs on the page's ONE loop, for the same reason the arcade
    does: same dt, same clamp, same stop when the tab goes away. Title.tick is a
@@ -22,14 +13,10 @@
 const Title = {
   cv: null, ctx: null, on: false, motion: true,
   w: 0, h: 0, dpr: 1, t: 0,
-  gap: 46, cols: 0, rows: 0, off: 0,
-  pulses: [], next: 0,
+  birds: [], glints: [], next: 0,
   menu: [], sel: 0,
-  /* The board. `waiting` is calls holding, `held` is the oldest of them in
-     seconds, `agents` is how many of your colleagues are not already on a call.
-     They start where the fiction starts — three holding at 08:57, one person
-     free, and that person is about to not be. */
-  waiting: 3, held: 37, agents: 1, grow: 0, flip: 0,
+  /* The beach board: sea temperature, seconds to sunset, couples on the sand. */
+  sea: 28, left: 300, couples: 2, grow: 0,
 
   init() {
     this.cv = $('#titleFx');
@@ -37,10 +24,8 @@ const Title = {
     this.ctx = this.cv.getContext('2d');
     const menu = $('#titleMenu');
     this.menu = menu ? Array.prototype.slice.call(menu.children) : [];
-    /* A pointer over a button and the keyboard's idea of where it is are the
-       same cursor. Without this, moving the mouse then pressing Enter starts
-       whatever the arrow keys last pointed at, which is not what was under the
-       hand. `focus` is in here because Tab has to move the marker too. */
+    /* The mouse and the arrow keys share one cursor, so Enter starts what is
+       under the hand. */
     this.menu.forEach((b, i) => {
       b.addEventListener('pointerenter', () => this.point(i));
       b.addEventListener('focus', () => this.point(i));
@@ -51,185 +36,137 @@ const Title = {
     if (window.visualViewport) visualViewport.addEventListener('resize', () => this.resize());
     this.paintBoard();
   },
-
-  /* ---- the switchboard ---- */
   resize() {
     if (!this.cv) return;
-    /* The backdrop is abstract and full of soft glow, so it is drawn at device
-       resolution up to 2x and no further: past that it is a lot of fill rate
-       for a difference nobody can see on a dot grid. */
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = this.cv.clientWidth || innerWidth, h = this.cv.clientHeight || innerHeight;
     this.w = w; this.h = h;
     this.cv.width = Math.round(w * this.dpr);
     this.cv.height = Math.round(h * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.gap = w < 560 ? 38 : 46;
-    this.cols = Math.ceil(w / this.gap) + 2;
-    this.rows = Math.ceil(h / this.gap) + 2;
+    this.glints = [];
+    for (let i = 0; i < Math.round(w / 9); i++) this.glints.push({ x: Math.random(), y: Math.random(), p: Math.random() * 6.28, s: rnd(.6, 1.6) });
     if (!this.motion) this.draw();
   },
-
-  /* A pulse is a call being routed: it starts at an extension, runs a few hops
-     along the grid turning at junctions, and lands. `hops` is small on purpose
-     — a line that crosses the whole screen reads as a laser, and four to nine
-     segments reads as a call finding somebody. */
   spawn() {
-    const amber = chance(.24);
-    this.pulses.push({
-      pts: [{ x: ri(0, this.cols), y: ri(0, this.rows) }],
-      dir: ri(0, 3), prog: 0, hop: 0, hops: ri(4, 9),
-      speed: rnd(2.1, 4.0), amber, land: -1
-    });
+    const left = chance(.5);
+    this.birds.push({ x: left ? -30 : this.w + 30, y: rnd(.12, .38) * this.h, v: rnd(26, 46) * (left ? 1 : -1), f: Math.random() * 6, s: rnd(.7, 1.3) });
   },
-  step(p, dt) {
-    if (p.land >= 0) { p.land += dt; return; }
-    p.prog += p.speed * dt;
-    while (p.prog >= 1) {
-      p.prog -= 1;
-      const h = p.pts[p.pts.length - 1];
-      const n = { x: h.x + [1, 0, -1, 0][p.dir], y: h.y + [0, 1, 0, -1][p.dir] };
-      /* Off the field is the end of the call rather than a wrap. Wrapping the
-         index space was the first version and every wrapped trail jumped the
-         width of the screen in one frame, which looks like a bug because it is
-         indistinguishable from one. */
-      if (n.x < -1 || n.y < -1 || n.x > this.cols + 1 || n.y > this.rows + 1) { p.land = 0; p.prog = 0; return; }
-      p.pts.push(n);
-      if (p.pts.length > 7) p.pts.shift();
-      p.hop++;
-      if (p.hop >= p.hops) { p.land = 0; p.prog = 0; return; }
-      if (chance(.34)) p.dir = (p.dir + (chance(.5) ? 1 : 3)) % 4;
+  /* A palm, as a silhouette: a curved trunk and a crown of drooping fronds. */
+  palm(x, base, lean, size) {
+    const c = this.ctx, top = { x: x + lean * size * .55, y: base - size };
+    c.strokeStyle = '#1a0d1f'; c.lineCap = 'round';
+    c.lineWidth = size * .055;
+    c.beginPath(); c.moveTo(x, base);
+    c.quadraticCurveTo(x + lean * size * .05, base - size * .5, top.x, top.y); c.stroke();
+    const sway = this.motion ? Math.sin(this.t * .9 + x) * .06 : 0;
+    c.fillStyle = '#1a0d1f';
+    for (let k = 0; k < 7; k++) {
+      const a = -Math.PI / 2 + (k - 3) * .52 + sway, len = size * (.42 + (k % 2) * .08);
+      const ex = top.x + Math.cos(a) * len, ey = top.y + Math.sin(a) * len * .55 + len * .35;
+      c.beginPath(); c.moveTo(top.x, top.y);
+      c.quadraticCurveTo(top.x + Math.cos(a) * len * .6, top.y + Math.sin(a) * len * .6 - size * .06, ex, ey);
+      c.quadraticCurveTo(top.x + Math.cos(a) * len * .55, top.y + Math.sin(a) * len * .5 + size * .03, top.x, top.y);
+      c.fill();
     }
   },
-  node(i, j) { return { x: i * this.gap + this.off - this.gap, y: j * this.gap + this.off * .62 - this.gap }; },
-
   draw() {
     const c = this.ctx; if (!c) return;
-    c.clearRect(0, 0, this.w, this.h);
-
-    /* The strip light. One very wide, very faint amber wash crossing the top of
-       the board every twenty seconds or so — it is what stops the backdrop
-       reading as a flat colour with dots on it. */
-    const sx = ((this.t * .052) % 1.5 - .25) * this.w;
-    const lamp = c.createRadialGradient(sx, this.h * .16, 0, sx, this.h * .16, this.h * .95);
-    lamp.addColorStop(0, 'rgba(255,179,71,.055)');
-    lamp.addColorStop(1, 'rgba(255,179,71,0)');
-    c.fillStyle = lamp; c.fillRect(0, 0, this.w, this.h);
-
-    /* The extensions. */
-    c.fillStyle = 'rgba(125,165,225,.17)';
-    for (let j = 0; j <= this.rows; j++) {
-      for (let i = 0; i <= this.cols; i++) {
-        const n = this.node(i, j);
-        c.fillRect(n.x - 1, n.y - 1, 2, 2);
-      }
+    const w = this.w, h = this.h, hz = h * .62;
+    /* The sky, drifting from gold towards violet and back over a minute. */
+    const k = (Math.sin(this.t * .1) + 1) / 2;
+    const sky = c.createLinearGradient(0, 0, 0, hz);
+    sky.addColorStop(0, k > .5 ? '#2a1446' : '#3a1850');
+    sky.addColorStop(.45, '#b33a6b');
+    sky.addColorStop(.8, '#ff7a59');
+    sky.addColorStop(1, '#ffc46b');
+    c.fillStyle = sky; c.fillRect(0, 0, w, hz);
+    /* The sun, banded like an old postcard, sitting on the horizon. */
+    const r = Math.min(w, h) * .2, sx = w * .5, sy = hz - r * .35 + (this.motion ? Math.sin(this.t * .05) * 4 : 0);
+    const glow = c.createRadialGradient(sx, sy, r * .6, sx, sy, r * 3);
+    glow.addColorStop(0, 'rgba(255,190,110,.55)'); glow.addColorStop(1, 'rgba(255,120,90,0)');
+    c.fillStyle = glow; c.fillRect(0, 0, w, hz);
+    c.save(); c.beginPath(); c.rect(0, 0, w, hz); c.clip();
+    const sun = c.createLinearGradient(0, sy - r, 0, sy + r);
+    sun.addColorStop(0, '#fff1a8'); sun.addColorStop(1, '#ff6f61');
+    c.fillStyle = sun; c.beginPath(); c.arc(sx, sy, r, 0, 6.2832); c.fill();
+    c.fillStyle = '#b33a6b';
+    for (let i = 0; i < 5; i++) {
+      const y = sy + r * (.1 + i * .2), th = 2 + i * 2.2;
+      c.globalAlpha = .55; c.fillRect(sx - r, y, r * 2, th);
     }
-
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    for (const p of this.pulses) {
-      const hue = p.amber ? '255,179,71' : '77,163,255';
-      /* The trail, tail first, each segment dimmer than the one in front of it.
-         Drawn as separate strokes rather than one path because a gradient along
-         a polyline that turns corners is a stroke per segment anyway. */
-      for (let k = 1; k < p.pts.length; k++) {
-        const a = this.node(p.pts[k - 1].x, p.pts[k - 1].y);
-        const b = this.node(p.pts[k].x, p.pts[k].y);
-        c.strokeStyle = 'rgba(' + hue + ',' + (.05 + .3 * (k / p.pts.length)) + ')';
-        c.lineWidth = 1.3;
-        c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
-      }
-      const h = p.pts[p.pts.length - 1], hn = this.node(h.x, h.y);
-      if (p.land < 0) {
-        /* The head, between the last extension and the next one along. */
-        const nx = h.x + [1, 0, -1, 0][p.dir], ny = h.y + [0, 1, 0, -1][p.dir];
-        const t = this.node(nx, ny);
-        const x = lerp(hn.x, t.x, p.prog), y = lerp(hn.y, t.y, p.prog);
-        c.strokeStyle = 'rgba(' + hue + ',.5)'; c.lineWidth = 1.6;
-        c.beginPath(); c.moveTo(hn.x, hn.y); c.lineTo(x, y); c.stroke();
-        const g = c.createRadialGradient(x, y, 0, x, y, 9);
-        g.addColorStop(0, 'rgba(' + hue + ',.85)');
-        g.addColorStop(1, 'rgba(' + hue + ',0)');
-        c.fillStyle = g; c.fillRect(x - 9, y - 9, 18, 18);
-      } else {
-        /* It landed. Somebody's phone is ringing. */
-        const k = Math.min(1, p.land / .55);
-        c.strokeStyle = 'rgba(' + hue + ',' + (.5 * (1 - k)) + ')';
-        c.lineWidth = 1.2;
-        c.beginPath(); c.arc(hn.x, hn.y, 3 + k * 17, 0, 6.2832); c.stroke();
-      }
+    c.globalAlpha = 1; c.restore();
+    /* The sea. */
+    const sea = c.createLinearGradient(0, hz, 0, h);
+    sea.addColorStop(0, '#6b2d63'); sea.addColorStop(.4, '#2c1a4a'); sea.addColorStop(1, '#120b24');
+    c.fillStyle = sea; c.fillRect(0, hz, w, h - hz);
+    /* The sun's road across the water, and the glitter either side of it. */
+    for (let i = 0; i < 26; i++) {
+      const y = hz + 4 + i * i * .55, spread = r * (1.1 - i * .015) * (1 + i * .05);
+      const a = .55 - i * .018;
+      if (a <= 0 || y > h) break;
+      const wob = this.motion ? Math.sin(this.t * 2 + i) * 6 : 0;
+      c.fillStyle = 'rgba(255,190,120,' + a + ')';
+      c.fillRect(sx - spread / 2 + wob, y, spread * (.55 + (i % 3) * .15), 2);
     }
+    for (const g of this.glints) {
+      const y = hz + 6 + g.y * (h - hz - 6), a = (Math.sin(this.t * 2.4 * g.s + g.p) + 1) / 2;
+      c.fillStyle = 'rgba(255,214,170,' + (a * .35 * (1 - g.y)) + ')';
+      c.fillRect(g.x * w, y, 3 + g.s * 3, 1);
+    }
+    /* Birds, going home. */
+    c.strokeStyle = '#2a1030'; c.lineWidth = 1.6;
+    for (const b of this.birds) {
+      const f = Math.sin(b.f) * 4 * b.s, s = 7 * b.s;
+      c.beginPath(); c.moveTo(b.x - s, b.y - f); c.quadraticCurveTo(b.x - s / 2, b.y - 3, b.x, b.y);
+      c.quadraticCurveTo(b.x + s / 2, b.y - 3, b.x + s, b.y - f); c.stroke();
+    }
+    /* A strip of beach, and the palms leaning in from both sides. */
+    c.fillStyle = '#1a0d1f';
+    c.beginPath(); c.moveTo(0, h); c.lineTo(0, h * .9); c.quadraticCurveTo(w * .2, h * .86, w * .38, h * .95); c.lineTo(w * .38, h); c.fill();
+    c.beginPath(); c.moveTo(w, h); c.lineTo(w, h * .88); c.quadraticCurveTo(w * .8, h * .85, w * .64, h * .96); c.lineTo(w * .64, h); c.fill();
+    const s = Math.min(h * .55, w * .5);
+    this.palm(w * .06, h * .93, 1, s);
+    this.palm(w * .16, h * .92, .6, s * .72);
+    this.palm(w * .95, h * .92, -1, s * .95);
+    this.palm(w * .86, h * .93, -.5, s * .62);
   },
-
   tick(dt) {
     if (!this.on) return;
     if (!this.motion) return;
     this.t += dt;
-
-    /* The field drifts. Slowly, and diagonally, so the grid never reads as a
-       thing that has stopped. */
-    this.off = (this.off + dt * 4.4) % this.gap;
-
-    /* Calls in the air track the queue on the board: three holding is a quiet
-       morning, twenty is the switchboard lit up like a runway. */
     this.next -= dt;
-    if (this.next <= 0) {
-      this.next = clamp(.95 - this.waiting * .04, .2, .95) * rnd(.6, 1.4);
-      if (this.pulses.length < 26) this.spawn();
-    }
-    for (let i = this.pulses.length - 1; i >= 0; i--) {
-      const p = this.pulses[i];
-      this.step(p, dt);
-      if (p.land > .55) this.pulses.splice(i, 1);
+    if (this.next <= 0) { this.next = rnd(2.5, 6); if (this.birds.length < 7) this.spawn(); }
+    for (let i = this.birds.length - 1; i >= 0; i--) {
+      const b = this.birds[i];
+      b.x += b.v * dt; b.f += dt * 7; b.y += Math.sin(this.t + i) * dt * 3;
+      if (b.x < -60 || b.x > this.w + 60) this.birds.splice(i, 1);
     }
     this.draw();
-
-    /* The board. The oldest call ages in real time because it is a clock; the
-       queue grows on its own because nobody is answering it; and the count of
-       colleagues free to help goes to nought and mostly stays there, which is
-       the single most accurate thing in this game. */
-    this.held += dt;
+    /* The board. The sun keeps going down whether you press anything or not. */
+    this.left = Math.max(0, this.left - dt);
     this.grow -= dt;
-    if (this.grow <= 0) { this.grow = rnd(3.4, 5.6); this.waiting = Math.min(99, this.waiting + 1); }
-    this.flip -= dt;
-    if (this.flip <= 0) { this.flip = rnd(4, 11); this.agents = this.t > 10 ? (chance(.22) ? 1 : 0) : 1; }
+    if (this.grow <= 0) { this.grow = rnd(4, 8); this.couples = Math.min(99, this.couples + 1); this.sea = chance(.5) ? 28 : 29; }
     this.paintBoard();
   },
-
-  /* ---- the numbers ---- */
-  /* Written straight into the DOM rather than drawn on the canvas: they are
-     text, and text that a browser lays out is text that stays sharp, wraps on a
-     phone and can be read out if anybody ever asks it to. */
   paintBoard() {
     const w = $('#boardWaiting'), h = $('#boardHeld'), a = $('#boardAgents'), n = $('#boardNote');
     if (!w) return;
-    w.textContent = this.waiting;
-    w.className = 'cell-n ' + (this.waiting > 12 ? 'bad' : this.waiting > 5 ? 'warn' : '');
-    const m = Math.floor(this.held / 60), s = Math.floor(this.held % 60);
+    w.textContent = this.sea + '°';
+    const m = Math.floor(this.left / 60), s = Math.floor(this.left % 60);
     h.textContent = m + ':' + (s < 10 ? '0' : '') + s;
-    h.className = 'cell-n ' + (this.held > 300 ? 'bad' : this.held > 120 ? 'warn' : '');
-    a.textContent = this.agents;
-    a.className = 'cell-n ' + (this.agents ? '' : 'bad');
-    n.textContent =
-      say('board.' + (this.waiting > 24 ? 4 : this.waiting > 14 ? 3 : this.waiting > 8 ? 2 : this.waiting > 4 ? 1 : 0));
+    h.className = 'cell-n ' + (this.left < 60 ? 'warn' : '');
+    a.textContent = this.couples;
+    n.textContent = say('board.' + (this.left <= 0 ? 0 : this.left < 60 ? 1 : this.couples > 12 ? 2 : this.couples > 6 ? 3 : 4));
   },
-
-  /* ---- the ticker ----
-     The noticeboard by the lift, moving. Built here rather than written into
-     the page twice, because a seamless loop needs the same list end to end and
-     two hand-kept copies drift apart the first time somebody edits one. */
+  /* The strip along the bottom, moving. Built here rather than written into
+     the page twice, because a seamless loop needs the same list end to end. */
   get LINES() { return says('ticker'); },
   ticker() {
     const run = $('#tickerRun'); if (!run) return;
     const one = this.LINES.map(l => '<span class="tk-item">' + esc(l) + '</span>').join('');
-    /* Twice, end to end: the animation slides exactly half the width and
-       restarts, so the join is never on screen. */
     run.innerHTML = one + one;
   },
-
-  /* ---- the menu ---- */
-  /* The title screen was mouse-only: three buttons, and a keyboard that could
-     do exactly one thing to them — Enter, which always started a new shift,
-     including over the top of a save. Now it is a menu you can walk. */
   point(i) {
     if (i < 0 || i >= this.menu.length) return;
     this.sel = i;
@@ -238,14 +175,11 @@ const Title = {
   move(d) {
     if (!this.menu.length) return;
     let i = this.sel;
-    /* Step over anything disabled — "No saved shift" is a label, not a stop. */
     for (let n = 0; n < this.menu.length; n++) {
       i = (i + d + this.menu.length) % this.menu.length;
       if (!this.menu[i].disabled) break;
     }
     this.point(i);
-    /* preventScroll, because focusing a button near the bottom of a short
-       screen otherwise scrolls the title out from under the title. */
     try { this.menu[i].focus({ preventScroll: true }); } catch (e) { this.menu[i].focus(); }
     Sfx.blip();
   },
@@ -254,27 +188,11 @@ const Title = {
     if (!b || b.disabled) { Sfx.deny(); return; }
     b.click();
   },
-  /* The default answer is whatever the buttons themselves say it is: with a
-     shift in progress that is Continue, without one it is Start. Boot decides
-     which by moving `.primary`, so this reads it back rather than repeating the
-     rule in a second place. */
+  /* With a game in progress the primary button is Continue; Boot decides
+     which by moving `.primary`, so this reads it back. */
   sync() {
     const i = this.menu.findIndex(b => b.classList.contains('primary'));
     this.point(i < 0 ? 0 : i);
-  },
-
-  /* A board that is already busy when you arrive. Spawning from empty and
-     waiting means the first two seconds of the game are a dot grid with nothing
-     happening on it, which is the one impression this screen cannot afford. */
-  warm(n) {
-    for (let i = 0; i < n; i++) {
-      this.spawn();
-      /* Run it forward a random fraction of a second at the frame rate it
-         would have had, so each one arrives part-way along its own route
-         rather than all of them starting together at their first extension. */
-      const p = this.pulses[this.pulses.length - 1];
-      for (let k = ri(4, 44); k > 0; k--) this.step(p, 1 / 30);
-    }
   },
   show() {
     this.on = true;
@@ -282,9 +200,7 @@ const Title = {
     document.body.classList.toggle('calm-title', !this.motion);
     this.resize();
     this.sync();
-    if (!this.pulses.length) this.warm(this.motion ? 9 : 7);
-    /* A still frame rather than an empty box when motion is off: the same grid
-       with the same calls on it, holding still. */
+    if (!this.birds.length) for (let i = 0; i < 3; i++) { this.spawn(); this.birds[i].x = rnd(.1, .9) * this.w; }
     if (!this.motion) { this.draw(); this.paintBoard(); }
   },
   hide() { this.on = false; }

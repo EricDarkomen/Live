@@ -24,10 +24,10 @@
 
 const MG_HOLD = {
   id: 'holdmusic',
-  name: 'Hold Music Hero',
+  name: 'Sunset Set',
   icon: '🎧',
-  blurb: 'Four bars of “Greensleeves”, but wrong, played at you until 2009 lets go.',
-  goal: 'Keep the caller on the line to the end of the tune.',
+  blurb: 'Luca’s decks, a deck full of people, and one steel-drum loop you absolutely must not drop.',
+  goal: 'Keep the dance floor going to the end of the track.',
   mins: 12,
   /* MEASURED, not guessed. `reward()` divides the score by this and clamps the
      result at 1.4, so a par that is too low pays every round the same and the
@@ -457,7 +457,7 @@ const MG_HOLD = {
     const bw = Math.min(a.w - 32, 320);
     p.bar(g, (a.w - bw) / 2, 12, bw, 8, this.line / 100,
       this.line > 50 ? p.good : this.line > 22 ? p.hold : p.bad);
-    p.say(g, 'CALL 000001 · STILL HOLDING', a.w / 2, 34,
+    p.say(g, 'THE DRIFTWOOD · SUNSET SET', a.w / 2, 34,
       { size: 9, font: p.mono, colour: this.line > 22 ? p.dim : p.bad, align: 'center' });
 
     /* the judgement, and the combo under it */
@@ -482,7 +482,7 @@ const MG_HOLD = {
     const share = clamp(r.score / this.par, 0, 1.4);
     if (!r.win) {
       return { xp: Math.round(18 * share), energy: -6,
-        toast: 'The tune got away from you. The headset is still warm.' };
+        toast: 'The beat got away from you. Luca takes over, graciously.' };
     }
     /* One achievement, named literally so the editor's reward checker can see
        it: a grant built out of a variable is invisible to a regex over source,
@@ -493,7 +493,7 @@ const MG_HOLD = {
       xp: 40 + Math.round(70 * share),
       money: Math.round(share * 240) / 100,
       patience: 6, energy: -8,
-      toast: 'You played out sixteen years of hold music. Nobody will ever know.'
+      toast: 'The whole deck is dancing. Somebody is crying happily. Luca is impressed.'
     };
   }
 };

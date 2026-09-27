@@ -1,42 +1,179 @@
-# Bum Bay 🏝️💩
+# Tan Lines
 
-A cute, crude little island farming game for your phone. Paradise. Mostly. It smells a bit.
+**Sun, sand & questionable decisions.** A top-down island game for the browser —
+phone or desktop.
 
-Grow beans, feed chickens, scoop seagull poop, can your wind and ship it all off to
-Captain Pantsless and friends at the pier.
+Your Uncle Rafa has run off to Bali and left you **The Driftwood**, a beach bar
+on the Caribbean island of Isla Solana: a leaking roof, a bartender called Mari
+who has run the place for six years, a garden gone wild, and a man in a white
+linen suit who very much wants to buy it.
 
-## Play
+- **Serve at the bar.** Guests ring the bells on the stools. Serving is
+  turn-based: read the tell, pick the move that answers it, build chemistry,
+  and seal the deal — hen parties, honeymooners, sunburnt tourists, a handsome
+  stranger who says "surprise me".
+- **Grow the fruit.** Rafa's twelve plots grow mint, limes, strawberries,
+  mangoes, pineapples and coconuts in real island time. Blend them into
+  mojitos, daiquiris, piña coladas and the house special.
+- **Ship it.** The supply boat at the jetty takes orders for the other islands
+  and pays cash.
+- **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade or Luca
+  to the lantern at Lovers' Cove after sunset.
+- **Explore.** A road loop round the island, a beach buggy to drive it in, a
+  plaza, a yoga deck, a hidden lagoon in the jungle, a water pistol at the
+  surf shack, and a wardrobe of swimwear at your beach hut.
+- **Keep it — or don't.** Win over a two-million-follower influencer, then face
+  Blake Sterling's offer. Three endings.
+
+The bar is open 11:00–19:00; after that it is golden hour, sunset at 20:15, and
+the night is yours. The game saves itself.
+
+It runs on the engine that shipped with this repository — pathfinding
+islanders with their own days, branching dialogue, jobs, skills, weather,
+traffic, driving, three arcade minigames, a map — and the Liberated Pixel Cup
+character art, including beachwear derived from it (see `art/CREDITS.md`).
+
+## Running it
 
 Open `index.html`, or serve the folder:
 
 ```sh
-python3 -m http.server 8000   # then visit http://localhost:8000 on your phone
+python3 -m http.server 8000   # then visit http://localhost:8000
 ```
 
-Add it to your home screen for a full-screen app feel. The game saves itself, and
-everything keeps growing while you're away.
+## Controls
 
-## How it plays
+|            | Keyboard                        | Touch                          |
+| ---------- | ------------------------------- | ------------------------------ |
+| Move       | `W A S D` or arrows             | thumb down anywhere bottom-left |
+| Interact   | `E`                             | `E` button                     |
+| Drive      | `W` go · `S` brake, then reverse · `A D` steer · `H` horn | **two sticks**: left steers, right is the throttle |
+| Get out    | `E`                             | `OUT`                          |
+| Take it out | `G` · `Q` swaps · `R` reloads   | grab the green stick           |
+| Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
+| Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
+| The map    | `N`, or the minimap             | `☰` · Map                      |
+| Panels     | `J I K P L`, `T` for today’s takings, `Esc` for menu | `☰`            |
+| Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
+| Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
+| Save/load  | `F5` / `F9`                     | `☰` · Menu                     |
 
-- 🌱 **Fields** — tap an empty field to plant; swipe across ripe crops to harvest.
-- 🐔 **Animals** — tap to feed them, tap again to collect what they… produce.
-- 🏭 **Buildings** — turn crops into posh stuff: Baked Beans, Bum Burner Sauce, Loo Roll, Canned Wind.
-- ⛵ **Boats** — fill orders at the pier for coins and XP.
-- 💩 **Seagulls** — poop on your island. Scoop it; sometimes it's golden (✨💩 skips timers).
-- 🔒 **Land** — buy more island at the signs as you level up.
-- 🦩 **Decorations** — make customers tip more.
+On a phone the movement control is a floating analogue stick: it appears
+wherever your thumb lands in the bottom-left of the screen, goes in every
+direction rather than four, and how far you push it is how fast you walk. A
+four-way d-pad is available instead, and the whole layout mirrors for
+left-handers — both are in `☰ · Menu`, along with a fullscreen toggle. Starting
+a game asks for fullscreen on its own.
 
-Drag to pan, pinch (or scroll) to zoom.
+Get in a car and a **second stick** appears in the other corner, in amber: the
+left one steers and the right one is the throttle — push it up to go, pull it
+down to brake and then reverse. One stick could not do both. Steering meant
+pushing sideways, pushing sideways took the forward component out of the same
+vector, and less speed means less steering bite — so the harder you asked it to
+turn, the less it turned. Two thumbs, two jobs, neither able to undo the other.
+The button you have been pressing all along stays exactly where it is and says
+`OUT`.
 
-## Code
+Pick up something to throw or swing and a **third stick** appears in that same corner, in
+green, on exactly the throttle's terms: only while there is something in your
+pocket, never at the same time as the throttle, and gone again the moment you
+get into a car. Push it and you aim; push it past halfway and it goes off —
+which is a dart, a band, a jet of water, or a foam sword through ninety degrees
+of somebody's morning, depending on what is in your hand. Let go and the thing
+goes back in your pocket a couple of seconds later, because a phone has no
+spare corner for a holster button and does not need one.
 
-No build step, no dependencies. Everything is in `bay/`:
+On a keyboard the arrows become the right hand while something is out — `W A S
+D` walks you about and the arrows aim and fire, which is how Robotron did it in
+1982 and is still the only way two directions fit on one keyboard. The mouse
+does the same job more directly: where the pointer is is where you are aiming,
+and the button is the trigger. Nobody has to choose: the stick is asked first,
+then the arrows, then the mouse, so picking one up never means putting another
+down.
 
-| File | What |
+The game saves itself, and detects touch devices to show the right controls and
+the right instructions.
+
+## The editor
+
+Serve the folder and open `editor.html` — its own page, deliberately, so the game
+itself is untouched and loads nothing from it. It draws with the game's own
+renderer, so what you see is what the player gets, and it edits ten documents:
+levels, jobs, people and what they say, the kinds of object, art, rooms, the
+day's messages, rewards, encounters and the minigames. Every one of them checks
+itself as you edit — the faults that matter are the ones you cannot see on
+screen — and writes its source back out.
+
+**Publish to GitHub**, on the whole-game sheet, commits the finished files into a
+repository as a single commit. On a published copy it offers the repository the
+page was served from. **Point it at the private source repository instead** —
+the published one is rebuilt from the private one on every release, so anything
+committed straight into it is overwritten by the next one. Use a fine-grained
+token with Contents: read and write on that one repository.
+
+```sh
+python3 -m http.server 8000    # then http://localhost:8000/editor.html
+```
+
+## Where things are
+
+| | |
 | --- | --- |
-| `bay/data.js` | Items, crops, animals, buildings, decor, customers, quests |
-| `bay/game.js` | State, rules, orders, quests, saving |
-| `bay/render.js` | Isometric canvas renderer and effects |
-| `bay/ui.js` | HUD, sheets, sound, touch input |
-| `bay/main.js` | Boot and main loop |
-| `bay/bay.css` | Styles |
+| `data/game.js` | The name, the hours, the weather, and every line the engine speaks |
+| `data/world.js` | Zones, ground surfaces, vehicles, furniture, waypoints |
+| `data/island.js` | Isla Solana itself, built from rules: coast, beaches, roads, jetty, cove, lagoon |
+| `data/levels.js` | The Driftwood, your beach hut, Mama Coco's |
+| `data/npcs.js` | The islanders and everything they say |
+| `data/callers.js` | Bar guests, messages, moves, and the two big encounters |
+| `data/garden.js` | The garden, the blender, the supply boat's orders, and dates |
+| `data/items.js` | Items, skills, jobs, achievements, minigame cabinets, shops |
+| `data/office.js` | Happenings, the island chat, post, texts, endings, the opening |
+| `data/acts.js` | What every object does when you press E |
+
+## Licence
+
+Four parts, because there are four kinds of thing here. See [LICENSE](LICENSE).
+
+**The game** — engine, editor, code, writing, design. Copyright © 2026 Grant van Zyl,
+licensed [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/) —
+share and link it freely, but not commercially and not modified.
+
+**The sprites** — the people and their swimwear, the furniture, the road surface, the pavement,
+the awnings — are not ours. They are pixel art from the
+[Liberated Pixel Cup](https://lpc.opengameart.org/) community, used under
+[OGA-BY 3.0](https://static.opengameart.org/OGA-BY-3.0.txt) and **modified**
+(composited, recoloured, cropped). Artists and sources are listed in
+[art/CREDITS.md](art/CREDITS.md). That art is *not* covered by the game's
+NonCommercial or NoDerivatives terms — the PNGs in `art/sprites/` are the clean
+copies to take if you want them.
+
+Most of the sheets above use only assets offered under OGA-BY 3.0 or CC0,
+deliberately: neither carries a ShareAlike term, so using them costs
+attribution and nothing else. `tools/build-sprites.mjs` re-checks that against
+upstream's own licence data on every build and refuses to produce a sheet if it
+stops being true.
+
+ShareAlike art is not banned outright — it is kept in files of its own, and
+there are five of them across two parts. `art/sprites/sanitary.png` has always
+been one: a CC-BY-SA 3.0 tileset, in a sheet nothing else is packed into, under
+its own terms in `LICENSE` part 3. `art/sprites/wood.png` is the second, and it
+is the first one the build tool makes rather than carries; `frontage.png` (the
+shop windows) and `roofs.png` (the roofs of the whole town) are the third and
+fourth, on the same terms in the same part, each in a PNG nothing else is packed
+into. `LICENSE` part 4 and `art/sprites/victorian.png` are the fifth, and they
+are a **different** ShareAlike: CC-BY-SA 4.0, which that submission offers and
+nothing else.
+
+Two ShareAlike parts rather than one, because 3.0 and 4.0 are not the same
+licence and a section claiming to cover both would be wrong about one of them —
+they differ on how an Adaptation may be relicensed, on how attribution and
+notice must be given, and on whether a breach can be cured. Compatibility also
+runs one way: merging the two sheets would quietly relicense the part-3 art
+under 4.0, which is not ours to do to somebody else's work. So each gets its
+own part, its own PNG, and `assertOnePart()` refusing to write a sheet that
+mixes anything with anything. `CREDITS.md` marks each non-part-2 sheet in the
+list at the top of it, so the OGA-BY sentence underneath is not quietly
+covering something it does not cover. See `LICENSE`, and the build section
+above.
+
+A work of fiction; its places, people and companies are invented.

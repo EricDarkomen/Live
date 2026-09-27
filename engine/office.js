@@ -217,7 +217,7 @@ const Phones = {
            being arbitrary rather than as the rule it is — in the building, on
            shift, the queue is yours. Out of the building it never gets here at
            all; the floor covers it. See cover(). */
-        UI.toast('📵', say(p.lvl !== World.level ? 'queue.abandonedAway' : 'queue.abandoned'), 'bad');
+        UI.toast('🚶', say(p.lvl !== World.level ? 'queue.abandonedAway' : 'queue.abandoned'), 'bad');
       }
     }
   },
@@ -235,7 +235,7 @@ const Phones = {
     const n = this.ringing.length;
     this.clearAll();
     count('covered', n);
-    UI.toast('📞', say(n === 1 ? 'queue.coveredOne' : 'queue.covered', { n }));
+    UI.toast('💃', say(n === 1 ? 'queue.coveredOne' : 'queue.covered', { n }));
   },
   /* A PHONE ON THE CALL FLOOR, wherever you happen to be standing on the
      premises. This used to read World.objects — the level you are on — which
@@ -281,7 +281,7 @@ const EventSys = {
        building you have left. They wait: the cooldown is not spent out here, so
        walking back in does not set off four of them at once. */
     if (!Levels.onSite()) return;
-    if (G.minutes < 570) return;
+    if (G.minutes < DAY_START + 30) return;
     G.eventCooldown -= 1;
     if (G.eventCooldown > 0) return;
     G.eventCooldown = ri(38, 70);

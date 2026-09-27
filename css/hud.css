@@ -66,7 +66,7 @@ canvas#view{position:absolute;inset:0;width:100%;height:100%;display:block;image
    patience is low, so the one thing you glance at first says so too. */
 .who-face{font-size:26px;line-height:1;flex:0 0 auto;
   padding:5px 7px;border-radius:11px;border:1px solid var(--line-soft);
-  background:radial-gradient(circle at 50% 35%,rgba(77,163,255,.16),rgba(77,163,255,.02));
+  background:radial-gradient(circle at 50% 35%,rgba(255,111,145,.16),rgba(255,111,145,.02));
   transition:border-color .3s,background .3s}
 #hudTL.low .who-face{border-color:rgba(255,95,86,.5);
   background:radial-gradient(circle at 50% 35%,rgba(255,95,86,.24),rgba(255,95,86,.03))}
@@ -139,7 +139,7 @@ canvas#view{position:absolute;inset:0;width:100%;height:100%;display:block;image
 .tk-b{flex:0 0 auto;width:22px;height:22px;line-height:1;border-radius:6px;cursor:pointer;
   background:rgba(255,255,255,.04);border:1px solid var(--line-soft);color:var(--dim);font-size:11px;
   display:flex;align-items:center;justify-content:center;pointer-events:auto;transition:.14s}
-.tk-b:hover{color:var(--text);border-color:var(--brand);background:rgba(77,163,255,.12)}
+.tk-b:hover{color:var(--text);border-color:var(--brand);background:rgba(255,111,145,.12)}
 .tk-b:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
 #tracker.titles #tkTitles{color:var(--brand);border-color:var(--brand)}
 .tk-body{min-height:0;display:flex;flex-direction:column;overflow:hidden}
@@ -234,7 +234,7 @@ canvas#view{position:absolute;inset:0;width:100%;height:100%;display:block;image
 #keyhints button{display:inline-flex;align-items:center;gap:5px;
   background:rgba(21,27,37,.72);border:1px solid var(--line-soft);border-radius:7px;
   padding:5px 9px;font-size:11px;color:var(--dim);cursor:pointer;font-family:var(--mono);transition:.14s}
-#keyhints button:hover{color:var(--text);border-color:var(--brand);background:rgba(77,163,255,.1)}
+#keyhints button:hover{color:var(--text);border-color:var(--brand);background:rgba(255,111,145,.1)}
 .kh-i{font-size:12px;line-height:1;opacity:.8}
 #zoneName{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);
   font-size:30px;letter-spacing:.35em;text-transform:uppercase;color:#fff;opacity:0;pointer-events:none;

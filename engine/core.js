@@ -52,7 +52,9 @@ const TILE = 32;
    exist at all. Seeded with the office's size so a build that never calls the
    loader still measures the floor it is standing on. */
 let MAPW = 64, MAPH = 44;
-const DAY_START = 540, DAY_END = 1020;          // 09:00 → 17:00 in minutes
+/* The working day, in minutes. A game may set its own on GAME.hours. */
+const DAY_START = (typeof GAME !== 'undefined' && GAME.hours) ? GAME.hours[0] : 540;
+const DAY_END = (typeof GAME !== 'undefined' && GAME.hours) ? GAME.hours[1] : 1020;
 /* Visitors' side of the security counter, clear of it by a whole tile: the
    collision box is 26px tall, so a spawn on a tile boundary lands you in the
    tile above — which was inside Ron's desk once the counter became solid. */

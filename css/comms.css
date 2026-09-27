@@ -24,7 +24,7 @@
   --chip:34px;            /* the rail's tap target, and its own floor */
   /* The colour a channel is. Alerts, chips, tabs and rows all take their
      accent from these, so a text never looks like an email anywhere. */
-  --ch-mail:#4da3ff;
+  --ch-mail:#ff6f91;
   --ch-text:#5ad48a;
   --ch-chat:#b48cff;
   --ch-log:#8d9bb5;
@@ -172,7 +172,7 @@
 .cm-tab:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
 .cm-tab .t-i{font-size:15px}
 .cm-tab .t-c{font-family:var(--mono);font-size:10px;font-weight:700;
-  padding:1px 6px;border-radius:999px;background:var(--acc,var(--brand));color:#0d1117}
+  padding:1px 6px;border-radius:999px;background:var(--acc,var(--brand));color:#1a1026}
 #inbox.ch-mail{--acc:var(--ch-mail)} #inbox.ch-text{--acc:var(--ch-text)}
 #inbox.ch-chat{--acc:var(--ch-chat)} #inbox.ch-log{--acc:var(--ch-log)}
 #inbox.ch-calls{--acc:var(--ch-calls)}
@@ -243,7 +243,7 @@
 .b-t{display:inline-block;text-align:left;
   background:var(--panel2);border:1px solid var(--line);border-radius:14px 14px 14px 4px;
   padding:9px 13px;font-size:13px;line-height:1.6;word-break:break-word}
-.bub.me .b-t{background:rgba(77,163,255,.14);border-color:var(--ch-mail);
+.bub.me .b-t{background:rgba(255,111,145,.14);border-color:var(--ch-mail);
   border-radius:14px 14px 4px 14px}
 #inbox.ch-text .b-t{border-radius:16px 16px 16px 5px}
 #inbox.ch-chat .b-t{border-radius:4px 12px 12px 12px}

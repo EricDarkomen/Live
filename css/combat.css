@@ -166,7 +166,7 @@
 }
 .move{text-align:left;background:rgba(34,43,59,.65);border:1px solid var(--line);border-radius:8px;
   padding:9px 11px;cursor:pointer;transition:.12s}
-.move:hover:not(:disabled){border-color:var(--brand);background:rgba(77,163,255,.14)}
+.move:hover:not(:disabled){border-color:var(--brand);background:rgba(255,111,145,.14)}
 .move:disabled{opacity:.38;cursor:not-allowed}
 .move .mn{font-size:14px} .move .md{font-size:11px;color:var(--dim);margin-top:2px}
 .move .mk{display:inline-block;min-width:15px;margin-right:6px;padding:1px 4px;border-radius:4px;
