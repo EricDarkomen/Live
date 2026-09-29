@@ -252,8 +252,9 @@ const Panels = {
     const b = $('#pnBody');
     /* The portal's own name is the least useful thing in a header that has one
        line on a phone, and the dialog is labelled with it anyway. */
-    $('#pnTitle').textContent = (TOUCH ? '' : 'Employee self-service portal · ')
-      + P.name + ' · ' + RANKS[P.rank].n;
+    /* Your name and rank — it was the office's "Employee self-service portal"
+       for a long time after there stopped being an office. */
+    $('#pnTitle').textContent = '🌺 ' + P.name + ' · ' + RANKS[P.rank].n;
     b.innerHTML = this['r_' + this.tab] ? this['r_' + this.tab]() : '';
     b.querySelectorAll('[data-item]').forEach(el => el.onclick = () => Item.use(el.dataset.item));
     b.querySelectorAll('[data-uneq]').forEach(el => el.onclick = () => Item.equip(el.dataset.uneq));
