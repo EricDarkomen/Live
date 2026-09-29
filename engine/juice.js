@@ -20,6 +20,7 @@ const Juice = {
     this.dock();
     this.watch();
     this.pops();
+    this.tilt();
     this.calm();
     setInterval(() => this.calm(), 1000);
   },
@@ -63,10 +64,28 @@ const Juice = {
         last = v;
         if (Math.abs(d) < min || this.still()) return;
         row.classList.remove('bump'); void row.offsetWidth; row.classList.add('bump');
+        /* A tip lands, and you look pleased with yourself for a moment. */
+        if (sel === '#hMoney' && d > 0 && typeof Faces !== 'undefined') Faces.flash('player', 'happy', 1.6);
       }).observe(el, { childList: true, characterData: true, subtree: true });
     }
   },
 
+  /* Cards lean towards the pointer, a few degrees, with a highlight that
+     follows it — css/bubble.css reads the four variables this writes. */
+  tilt() {
+    const sel = '.item,.mind-card,.farm-plots .fp,.stat-box,.ach';
+    document.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse' || this.still()) return;
+      const t = e.target.closest && e.target.closest(sel);
+      if (!t) return;
+      const r = t.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      t.style.setProperty('--ry', ((x - .5) * 10).toFixed(1) + 'deg');
+      t.style.setProperty('--rx', ((.5 - y) * 8).toFixed(1) + 'deg');
+      t.style.setProperty('--mx', (x * 100).toFixed(0) + '%');
+      t.style.setProperty('--my', (y * 100).toFixed(0) + '%');
+    }, { passive: true });
+  },
   pops() {
     const hit = '.btn,.choice,.tab,.cm-tab,.chip,#cmOne,.item,.move,#keyhints button,#touchE,#touchMenu,.tk-title';
     document.addEventListener('pointerdown', e => {

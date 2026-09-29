@@ -383,3 +383,99 @@ body.calm *,body.calm *::before,body.calm *::after{animation-duration:.001ms!imp
    help page — on a warm dusk glow rather than the old blue-grey. */
 .screen:not(#titleScreen){background:radial-gradient(900px 600px at 50% 15%,rgba(255,79,154,.22),transparent 60%),
   radial-gradient(1200px 800px at 50% 110%,rgba(255,185,56,.14),transparent 60%),var(--ink)!important}
+
+/* ============================================================
+   FACES AND DEPTH
+   ============================================================ */
+
+/* ---------- living portraits (engine/portrait.js) ---------- */
+canvas.portrait{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* The dialogue portrait pops up out of the top of the box, in a frame
+   washed in the speaker's own colour (--who, set by Dialogue.open). */
+#dialogue{--who:var(--brand)}
+.dlg-face.live{flex:0 0 auto;padding:0!important;font-size:0;border-radius:28px;overflow:hidden;align-self:flex-end;
+  margin-top:-62px;position:relative;
+  background:radial-gradient(circle at 50% 28%,rgba(255,255,255,.45),transparent 55%),
+             linear-gradient(165deg,var(--who),#ff7a59 60%,#3a1d58)!important;
+  box-shadow:0 0 0 3px rgba(255,255,255,.75),0 14px 34px -8px var(--who),inset 0 -14px 24px rgba(40,0,40,.35)!important;
+  animation:portraitPop .6s var(--spring) both}
+.dlg-face.live::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 35%)}
+@keyframes portraitPop{0%{opacity:0;transform:translateY(24px) scale(.7) rotate(-6deg)}100%{opacity:1;transform:none}}
+.dlg-name{background:linear-gradient(135deg,var(--who),var(--brand) 70%)!important;
+  box-shadow:0 6px 18px -6px var(--who)!important}
+.dlg{box-shadow:0 40px 90px -30px rgba(8,0,18,.9),0 0 70px -30px var(--who),var(--gloss)!important}
+.dlg::before{background:linear-gradient(90deg,var(--who),#ff7a59,#ffb938)!important;box-shadow:0 0 14px var(--who)!important}
+
+/* Your face, round, in the corner. */
+.who-face.live{padding:0!important;width:46px;height:46px;border-radius:50%!important;overflow:hidden;
+  display:grid!important;place-items:end center;font-size:0!important}
+.who-face.live canvas{margin-bottom:-1px}
+@media (max-width:820px),(max-height:520px){.who-face.live{width:36px;height:36px}.who-face.live canvas{transform:scale(.8);transform-origin:bottom center}}
+
+/* Faces on the Islanders cards, framed in their own colour. */
+.mind-card{position:relative;overflow:hidden}
+.mind-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--who),transparent)}
+.mind-card .mf.live{width:56px;height:56px;border-radius:18px;overflow:hidden;flex:0 0 auto;display:grid;place-items:end center;
+  background:radial-gradient(circle at 50% 25%,rgba(255,255,255,.35),transparent 60%),linear-gradient(165deg,var(--who),#3a1d58);
+  box-shadow:0 0 0 2px rgba(255,255,255,.55),0 8px 20px -8px var(--who)}
+
+/* Hearts off a face. */
+.heart-pop{position:fixed;z-index:999;pointer-events:none;font-size:20px;line-height:1;
+  font-family:var(--emoji),sans-serif;filter:drop-shadow(0 3px 6px rgba(255,79,154,.6));
+  animation:heartUp 1.4s var(--out) both}
+@keyframes heartUp{0%{opacity:0;transform:translate(-50%,0) scale(.4)}
+  15%{opacity:1;transform:translate(-50%,-10px) scale(1.15)}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-90px) scale(.9) rotate(12deg)}}
+
+/* ---------- depth ---------- */
+/* Glass with an edge of light: a gradient border that catches the top-left
+   and fades, instead of one flat line all the way round. */
+.hud .card,#keyhints.dock,.sign{border:1px solid transparent!important;
+  background:var(--glass) padding-box,
+    linear-gradient(155deg,rgba(255,255,255,.42),rgba(255,79,154,.30) 35%,rgba(255,255,255,.04) 70%,rgba(255,185,56,.22)) border-box!important}
+@media (pointer:coarse){
+  .hud .card{background:linear-gradient(160deg,rgba(64,28,94,.95),rgba(34,15,54,.97)) padding-box,
+    linear-gradient(155deg,rgba(255,255,255,.42),rgba(255,79,154,.30) 35%,rgba(255,255,255,.04) 70%,rgba(255,185,56,.22)) border-box!important}
+}
+
+/* A hibiscus tucked into the corner of the big cards — the panel, the comms
+   console, the dialogue box — so they are somewhere, not just a box. */
+.pn,.cm,.dlg{background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Cg fill='%23ff4f9a' opacity='.16'%3E%3Cellipse rx='15' ry='27' cy='-22'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(72)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(144)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(216)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='8' fill='%23ffb938' opacity='.22'/%3E%3Cpath d='M0 0 L20 -32' stroke='%23ffd166' stroke-width='3' opacity='.25'/%3E%3C/svg%3E")
+      no-repeat right -34px bottom -38px / 170px padding-box,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Cg fill='%233ee6d1' opacity='.10'%3E%3Cellipse rx='15' ry='27' cy='-22'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(72)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(144)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(216)'/%3E%3Cellipse rx='15' ry='27' cy='-22' transform='rotate(288)'/%3E%3C/g%3E%3C/svg%3E")
+      no-repeat left -30px top 40% / 110px padding-box,
+    var(--glass) padding-box,
+    linear-gradient(155deg,rgba(255,255,255,.42),rgba(255,79,154,.30) 35%,rgba(255,255,255,.04) 70%,rgba(255,185,56,.22)) border-box!important}
+
+/* Bubbles rising behind an open panel. On a layer of its own and moved with
+   transform only, so it is the compositor's job and costs a frame nothing. */
+#panel::before,#inbox::before,#combat::before{content:"";position:absolute;left:0;right:0;top:0;height:200%;
+  pointer-events:none;z-index:0;opacity:.55;
+  background:
+    radial-gradient(circle at 12% 20%,rgba(255,255,255,.22) 0 5px,rgba(255,255,255,.05) 6px,transparent 9px),
+    radial-gradient(circle at 70% 60%,rgba(255,255,255,.18) 0 9px,rgba(255,79,154,.08) 10px,transparent 14px),
+    radial-gradient(circle at 40% 85%,rgba(62,230,209,.25) 0 4px,transparent 7px),
+    radial-gradient(circle at 88% 35%,rgba(255,185,56,.22) 0 6px,transparent 9px);
+  background-size:260px 300px,380px 420px,200px 240px,320px 360px;
+  animation:bubblesUp 26s linear infinite}
+#panel>.sign,#inbox>.sign,#combat>.sign{z-index:1}
+@keyframes bubblesUp{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
+
+/* Cards lean towards the pointer (engine/juice.js sets --rx/--ry/--mx/--my),
+   with a highlight that follows it. */
+.item,.mind-card,.farm-plots .fp,.stat-box,.ach{transform-style:preserve-3d}
+.item:hover,.mind-card:hover,.farm-plots .fp:hover,.ach:hover,.stat-box:hover{
+  transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-3px)!important;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.13),transparent 60%),var(--glass-lite)!important}
+
+/* Stickers: rarity tags sit a little askew, like they were slapped on. */
+.rar{transform:rotate(-3deg);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.item:hover .rar{transform:rotate(2deg) scale(1.08);transition:transform .3s var(--spring)}
+/* In the dialogue box the flower sits further into the corner and fainter:
+   the choices run right across it, and a flower behind a button reads as a
+   mark on the button. */
+.dlg{background-position:right -64px bottom -70px,left -30px top 40%,0 0,0 0!important;
+  background-size:150px,90px,auto,auto!important}

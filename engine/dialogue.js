@@ -24,10 +24,19 @@ const Dialogue = {
        face in the box is the person you walked up to. Callers on the phone and
        anyone without a sprite keep their emoji. */
     const face = $('#dFace');
-    const pic = id && Sprites.portrait(id, TOUCH ? 2 : 3);
-    face.classList.toggle('sprite', !!pic);
     face.style.cssText = '';
-    if (pic) { face.textContent = ''; Object.assign(face.style, pic); }
+    face.classList.remove('live');
+    /* Their colour, for the name tag, the ring and the glow — so a
+       conversation with Mari is pink and one with Nico is sea-blue. */
+    const col = (who.def && who.def.colour) || who.colour || '';
+    $('#dialogue').style.setProperty('--who', col || 'var(--brand)');
+    /* ALIVE where it can be — breathing, blinking, talking, glancing; see
+       engine/portrait.js — and the old still crop where it cannot. */
+    const alive = id && typeof Portrait !== 'undefined' && Portrait.mount(face, id, { crop: 'bust', scale: TOUCH ? 2 : 3, speaker: true });
+    const pic = !alive && id && Sprites.portrait(id, TOUCH ? 2 : 3);
+    face.classList.toggle('sprite', !!pic);
+    if (alive) { /* drawn by Portrait */ }
+    else if (pic) { face.textContent = ''; Object.assign(face.style, pic); }
     else face.textContent = who.face || (who.def && who.def.face) || '🧑';
     /* How they are with you, on their face rather than only in the line of
        text beside it. Held for the conversation and cleared when you walk
