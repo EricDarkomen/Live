@@ -118,9 +118,9 @@ const Mind = {
     if (n.away || n.level === 'away') return 'home';
     if (n.level !== World.level) {
       if (NPCM.errandFor(n)) return 'out';
-      const r = this.rts.get(n.id);
-      if (r && r.plan && r.plan.away && this.now >= r.plan.arrive) return r.plan.wp;
-      return r && r.plan && r.plan.away ? null : this.post(n);
+      const r = this.rts.get(n.id), pl = r && r.plan;
+      if (pl && pl.away) return this.now < pl.arrive ? null : pl.wp === 'desk' ? this.post(n) : pl.wp;
+      return this.post(n);
     }
     if (n.walking || !n.parked) return null;
     return n.dest === 'desk' ? this.post(n) : n.dest;
@@ -158,15 +158,33 @@ const Mind = {
       if (eff && eff[k]) v += eff[k] * real * (like[spot] || 1);
       m.needs[k] = v < 0 ? 0 : v > 100 ? 100 : v;
     }
-    /* An off-camera plan is over when what it was for is fixed, or its time is
-       up, whichever is first. */
+    /* THE STEP IN FRONT OF THEM. Off camera it is a stretch of time, over when
+       its time is up — or, for a trip for a need, when the need is fixed. On
+       your level it is an errand the engine walks; the mind only notices the
+       arrival, and a step behind their own counter, which is not an errand at
+       all and is timed here. */
     const pl = r.plan;
-    if (pl && pl.away && this.now >= pl.arrive && (this.now >= pl.leave || m.needs[pl.why] >= 95)) this.done(n);
+    if (pl && pl.away) {
+      if (this.now >= pl.arrive) {
+        if (!pl.said) this.arrive(n, pl);
+        if (this.now >= pl.leave || (!pl.rid && m.needs[pl.why] >= 95)) this.done(n);
+      }
+    } else if (pl && n.level === World.level) {
+      const e = n.errand;
+      if (e && e.mind && e.pid === pl.id && e.arrived && !pl.said) this.arrive(n, pl);
+      if (pl.wp === 'desk' && !n.walking && n.parked && n.dest === 'desk') {
+        if (!pl.at) { pl.at = this.now; this.arrive(n, pl); }
+        else if (this.now - pl.at >= this.stepSecs(n, pl.steps[pl.i])) this.done(n);
+      }
+    }
     /* Their passion, where it lives. Mari's is behind the bar, Kai's is in the
        water, and a person doing the thing they love is refilled by it faster
        than by anything a spot can offer. */
     if (spot && p.passion && p.passion.at && p.passion.at.includes(spot)) {
-      m.needs.passion = Math.min(100, m.needs.passion + 4.5 * real);
+      const lv = p.skill ? this.level(n.id, p.skill) : 0;
+      m.needs.passion = Math.min(100, m.needs.passion + 4.5 * real * (1 + lv * .04));
+      /* And the more they do it, the better they get. */
+      if (p.skill) this.train(n.id, p.skill, .06 * real);
     }
     /* Company. Standing near people fills it slowly, and standing near people
        you like fills it faster — a crowded bar is not company if it is full of
@@ -216,12 +234,14 @@ const Mind = {
       if (here && l && n.sayT <= 0 && Cam.visible(n.x, n.y)) { n.say = pick(l); n.sayT = 3.6; }
     }
 
-    /* What they would do about it, if they were free to — here on foot, or
-       anywhere else by the clock. */
-    if (!r.moment && this.free(n) && n.level !== 'away') {
-      if (r.plan && !r.plan.away && this.now > r.plan.until && !(n.errand && n.errand.mind)) { r.plan = null; r.cool = this.now + rnd(4, 10); }
-      if (!r.plan && this.now >= r.cool) r.plan = this.choose(n, m, p, !here);
-    } else if (r.plan && !(n.errand && n.errand.mind)) r.plan = null;
+    /* What they would do about it, if they are free to — here on foot, or
+       anywhere else by the clock. Claimed by the engine (home time, a drill,
+       an `out:` window, you), a plan is let go; a routine is put aside. */
+    if (!r.moment && !this.blocked(n) && n.level !== 'away') this.decide(n, m, p, r, here);
+    else if (r.plan && !(n.errand && n.errand.mind)) {
+      if (r.plan.rid && !r.paused && !(n.away || n.level === 'away')) r.paused = r.plan;
+      r.plan = null;
+    }
 
     /* And what shows: the icon over their head, what they say next, how fast
        they walk. Decided here, three times a minute, and read every frame. */
@@ -231,7 +251,9 @@ const Mind = {
     r.icon = r.moment ? '💢' : insp ? '✨'
       : lv < 20 ? (low === 'passion' && p.passion ? p.passion.e : MIND_NEEDS[low].e)
       : m.mood < 22 ? '🌧️' : null;
-    r.pace = m.needs.energy < 20 ? .86 : insp ? 1.12 : r.moment ? 1.08 : 1;
+    /* Somebody on an urgent errand hurries, whatever else is true of them. */
+    r.pace = r.plan && r.plan.prio === this.P.urgent ? 1.22
+      : m.needs.energy < 20 ? .86 : insp ? 1.12 : r.moment ? 1.08 : 1;
     const L = p.lines || this.NOBODY;
     r.say = r.moment ? L.moment
       : insp && L.inspired && chance(.5) ? L.inspired
@@ -298,7 +320,8 @@ const Mind = {
     const p = this.persona(id);
     const s = (p.named && p.named[t.k]) || (MIND_THOUGHTS[t.k] || {}).n || t.k;
     const who = t.who && (NPCS.find(x => x.id === t.who) || {}).name;
-    return s.replace('{who}', who || 'somebody').replace('{you}', (P && P.name) || 'you');
+    const what = t.who && ((typeof MIND_SKILLS !== 'undefined' && MIND_SKILLS[t.who]) ? MIND_SKILLS[t.who].n.toLowerCase() : t.who);
+    return s.replace('{who}', who || 'somebody').replace('{what}', what || 'it').replace('{you}', (P && P.name) || 'you');
   },
 
   /* ---- opinions ---- */
@@ -346,6 +369,10 @@ const Mind = {
       if (p.passion && p.passion.chat) m.needs.passion = Math.min(100, m.needs.passion + 12);
       this.add(x, 'chat', y);
       this.warm(x, y, 2);
+      /* Every conversation is a little practice at being good company, and
+         for a gossip it is the whole job. */
+      this.train(x, 'charm', 1.5);
+      if (p.skill === 'gossip') this.train(x, 'gossip', 3);
     }
   },
   chatLine(id) {
@@ -366,6 +393,15 @@ const Mind = {
     }
     if (key === 'flirted') m.needs.fun = Math.min(100, m.needs.fun + 8);
     if (key === 'gift') m.needs.thirst = Math.min(100, m.needs.thirst + 60);
+    /* YOU, DEVELOPING THEM: an hour of their craft with somebody keen to
+       learn it is worth a morning of it alone — and they remember who it
+       was with. */
+    if (key === 'practise' && p.skill) {
+      this.train(id, p.skill, 30);
+      this.train(id, 'charm', 4);
+      m.needs.passion = Math.min(100, m.needs.passion + 25);
+      m.needs.social = Math.min(100, m.needs.social + 15);
+    }
     this.add(id, key);
     /* So it shows on the next frame and not in three seconds' time. */
     const n = NPCM.get(id), r = n && this.rts.get(id);
@@ -388,50 +424,165 @@ const Mind = {
     return null;
   },
 
-  /* ---- deciding where to go ---- */
-  free(n) {
-    if (NPCM.drill || n.callOut || n.away || n.outward || n.leaving || n.homeward || n.lift) return false;
-    if (n.stunTimer > 0 || NPCM.errandFor(n)) return false;
-    if (NPCM.scheduled(n) !== 'desk') return false;
-    if (n.errand && !n.errand.mind) return false;
-    if (typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return false;
+  /* What happens when you ask them to show you how it is done. */
+  teachLine(id) {
+    const t = this.persona(id).teach;
+    return t && t.length ? pick(t) : null;
+  },
+
+  /* ---- deciding what to do ----
+     THE AGENDA. Everything an islander might do is a PLAN: a list of steps,
+     each a place to be and how long to spend there. A trip for a drink is a
+     plan of one step; opening the bar is a plan of four. One shape, so one
+     runner walks them all, and the rest of the engine only ever sees the
+     step in front of them — an errand to a waypoint, exactly as the
+     timetable makes.
+
+     PRIORITIES, highest first, and the ladder is the whole of how they choose
+     between things that want them at once:
+
+       5 URGENT     a need gone critical. Outranks everything the mind owns,
+                    including work: a bartender who is about to faint gets a
+                    glass of water first and apologises after.
+       4 DUTY       a routine that is part of the job — opening up, the flags,
+                    unloading the boat. Outranks a timetabled break, so a
+                    coffee is cut short to open on time.
+       3 TIMETABLE  the day in data/npcs.js. The mind does not argue with it
+                    for anything less than a duty.
+       2 NEED       a trip to fix something that is running low.
+       1 LEISURE    a routine they do for the love of it — a surf, a crate
+                    dig, a constitutional.
+
+     Above all five, and never the mind's business: drills, home time, `out:`
+     windows and being spoken to. Those are the engine's (see blocked()).
+
+     A plan is kept until something of HIGHER priority comes along, so nobody
+     flip-flops between two equal ideas. A routine that is interrupted is put
+     aside and picked up again at the step it stopped on. */
+  P: { urgent: 5, duty: 4, schedule: 3, need: 2, leisure: 1 },
+  PNAME: ['', 'Leisure', 'Need', 'Timetable', 'Duty', 'Urgent'],
+  seq: 0,
+  /* Claimed by something with a better right to them than any idea of
+     their own. */
+  blocked(n) {
+    if (NPCM.drill || n.callOut || n.away || n.outward || n.leaving || n.homeward || n.lift) return true;
+    if (n.stunTimer > 0 || NPCM.errandFor(n)) return true;
+    if (typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return true;
+    return false;
+  },
+  decide(n, m, p, r, here) {
+    const cur = r.plan;
+    /* A step that never got started — a route that would not open, a
+       timetable that held them — is skipped rather than waited on for ever. */
+    if (cur && !cur.away && this.now > cur.until && !(n.errand && n.errand.mind && n.errand.pid === cur.id)) this.done(n, true);
+    const away = !here;
+    let best = this.choose(n, m, p, away, true);
+    if (!best || best.prio < this.P.duty) {
+      const d = this.dueDuty(n, m, p);
+      if (d) best = d;
+    }
+    /* The lower rungs only when the day says "your own spot": a timetabled
+       break is already doing something about their afternoon. */
+    if (!best && NPCM.scheduled(n) === 'desk' && this.now >= r.cool && !r.plan) best = this.choose(n, m, p, away, false);
+    if (!best) return;
+    if (r.plan) {
+      if (r.plan.prio >= best.prio) return;
+      /* The same place for a better reason is the same plan, promoted. */
+      if (!r.plan.rid && !best.rid && r.plan.wp === best.wp) { r.plan.prio = best.prio; return; }
+      if (r.plan.rid && !r.paused) r.paused = r.plan;
+    }
+    this.begin(n, m, best);
+  },
+  /* A duty that is due: its window is open, it has not been done today, and
+     every step of it is somewhere on the level they are standing on. */
+  dueDuty(n, m, p) {
+    if (!p.routines) return null;
+    const sm = Sky.m();
+    m.rday = m.rday || {};
+    for (const rt of p.routines) {
+      if (!rt.duty || !rt.at || m.rday[rt.id] === G.day) continue;
+      if (sm < rt.at[0] || sm >= rt.at[1]) continue;
+      if (!this.unlocked(n.id, rt) || !this.fits(n, rt)) continue;
+      return this.routinePlan(n, rt, this.P.duty);
+    }
+    return null;
+  },
+  fits(n, rt) {
+    return rt.steps.every(s => s.go === 'desk' || (WP[s.go] && NPCM.wpLevel(s.go) === n.level));
+  },
+  unlocked(id, rt) {
+    if (!rt.unlock) return true;
+    for (const k in rt.unlock) if (this.level(id, k) < rt.unlock[k]) return false;
     return true;
   },
-  /* THE CHOICE. Every waypoint on their level scored by what it would do for
-     them — each need's urgency times what the spot gives, their passion five
-     times over — divided by how far it is to walk, lifted by friends already
-     there and weighed down by a crowd. Their own spot is a candidate too,
-     when their passion lives there: Mari tired of a quiet afternoon does not
-     wander off to the deck, she goes back behind the bar.
+  /* Whether a leisure routine may start now. */
+  ready(n, m, rt) {
+    const w = rt.when, sm = Sky.m(), clk = this.clock();
+    m.rlast = m.rlast || {};
+    if (rt.duty || !this.unlocked(n.id, rt) || !this.fits(n, rt)) return false;
+    if (m.rlast[rt.id] && clk - m.rlast[rt.id] < (rt.every || 360)) return false;
+    if (!w) return true;
+    if (w.mood !== undefined && m.mood < w.mood) return false;
+    if (w.from !== undefined && (sm < w.from || sm >= w.to)) return false;
+    const k = Sky.kind();
+    if (w.dry && k.fall) return false;
+    if (w.rain && !k.fall) return false;
+    return true;
+  },
+  routinePlan(n, rt, prio) {
+    return { id: ++this.seq, rid: rt.id, name: rt.n, def: rt, prio, steps: rt.steps, i: 0,
+      wp: rt.steps[0].go, until: this.now + 120, began: Sky.m() };
+  },
+  /* THE CHOICE. `urgent` asks only whether something has gone critical;
+     otherwise every waypoint on their level is scored by what it would do
+     for them — each need's urgency times what the spot gives, their passion
+     five times over — divided by how far it is to walk, lifted by friends
+     already there and weighed down by a crowd; and every leisure routine they
+     are ready for is scored the same way, by what it gives. Their own spot is
+     a candidate too, when their passion lives there.
+
+     AND THEY LOOK AHEAD. A plan that would not be finished before the next
+     thing their day holds — a timetable entry, a duty, the start of a shift —
+     is not started: nobody walks to the lagoon ten minutes before they open
+     the bar. Urgent needs do not look ahead. That is what urgent means.
 
      On shift only a need under about a fifth gets them off their post, which
      is a break and not a stroll. Off shift they are pickier about staying
-     put than about going: a person with nothing much wrong stays where they
-     are, and the island does not turn into a game of musical chairs. */
-  choose(n, m, p, away) {
+     put than about going, so the island does not turn into musical chairs. */
+  choose(n, m, p, away, urgent) {
     const working = this.working(n);
     const w = p.weights || this.NOBODY, like = p.spots || this.NOBODY;
     const urg = {};
-    let top = 0, worst = 101, why = null;
+    let top = 0, worst = 101, why = null, worstK = null;
     for (const k in MIND_NEEDS) {
       const v = m.needs[k];
       urg[k] = Math.pow((100 - v) / 100, 1.6) * (w[k] === undefined ? 1 : w[k]);
       if (urg[k] > top) { top = urg[k]; why = k; }
-      if (v < worst) worst = v;
+      if (v < worst) { worst = v; worstK = k; }
     }
-    if (working ? worst >= 22 : top < .12) return null;
+    /* Nothing wrong enough to fix. Somebody off shift with a routine of their
+       own may still fancy it — doing the thing you love is not a need, it is
+       what a free afternoon is for — so only they get past this. */
+    const spots = !(urgent ? worst >= 12 : working ? worst >= 22 : top < .12);
+    const fancy = !urgent && (!working || p.works === false) && p.routines && p.routines.some(rt => this.ready(n, m, rt));
+    if (!spots && !fancy) return null;
     const [fx, fy] = away ? [Math.floor(n.x / TILE), Math.floor(n.y / TILE)] : this.origin(n);
     /* How far, in steps. On your level the routes know; anywhere else the
        level is not loaded and there are no routes to ask, so it is the
        straight line with a third on for the corners — which is only ever used
        to rank places and time an absence nobody is watching. */
     const far = (x, y) => away ? Math.hypot(x - fx, y - fy) * 1.3 : Nav.steps(fx, fy, x, y, true);
+    const pace = Math.max(.5, (n.t && n.t.pace) || 1);
+    const left = urgent ? Infinity : this.timeLeft(n, p, m);
+    const toGame = secs => secs * 1000 / (typeof Sky !== 'undefined' && Sky.pace ? Sky.pace() : MS_PER_GAME_MIN);
     const passionAt = (p.passion && p.passion.at) || [];
     const others = away ? NPCM.all.filter(o => o !== n && o.level === n.level) : NPCM.list;
-    let best = null, bs = working ? .04 : .08, bSteps = 0, bWhy = why;
+    let best = null, bs = working ? .04 : .08, bWhy = why, bRt = null;
     for (const wp in WP) {
+      if (!spots) break;
       const s = MIND_SPOTS[wp];
       if (!s || NPCM.wpLevel(wp) !== n.level) continue;
+      if (urgent && !(s[worstK] > 0)) continue;
       /* And WHY this one, which is whichever need it would do most for —
          not whichever need is worst, or a drinks stall is somewhere you go
          for a rest. */
@@ -441,12 +592,15 @@ const Mind = {
         gain += g;
         if (g > most) { most = g; what = k; }
       }
-      if (passionAt.includes(wp) && urg.passion * 5 > most) { most = urg.passion * 5; what = 'passion'; }
-      if (passionAt.includes(wp)) gain += urg.passion * 5;
+      if (!urgent && passionAt.includes(wp)) {
+        if (urg.passion * 5 > most) { most = urg.passion * 5; what = 'passion'; }
+        gain += urg.passion * 5;
+      }
       if (!gain) continue;
       gain *= like[wp] || 1;
       const at = WP[wp], steps = far(at[0], at[1]);
       if (steps === null) continue;
+      if (toGame(steps / pace + this.dwell(n, wp)) > left) continue;
       let crowd = 0, company = 0;
       for (const o of others) {
         const ro = this.rts.get(o.id);
@@ -457,21 +611,33 @@ const Mind = {
       /* Taste: a stable tilt per person per spot, so two people with the same
          need do not always pick the same place. */
       score *= .85 + (NPCM.hash(n.id + wp) % 100) / 100 * .3;
-      if (score > bs) { bs = score; best = wp; bSteps = steps; bWhy = what; }
+      if (score > bs) { bs = score; best = wp; bWhy = urgent ? worstK : what; }
     }
-    if (passionAt.includes('desk') && urg.passion > 0) {
+    /* Their own things, in their own order. Not on shift — that is what the
+       duties are for — and not when something is urgent. */
+    if (fancy) {
+      for (const rt of p.routines) {
+        if (!this.ready(n, m, rt)) continue;
+        /* What it would fix, plus the simple wish to do it — which is bigger
+           the better they feel: nobody takes up the guitar on a bad day. */
+        let gain = m.mood >= 45 ? .25 + (m.mood - 45) / 150 : 0;
+        for (const k in rt.gives || this.NOBODY) gain += (urg[k] || 0) * rt.gives[k] / 7;
+        const s0 = rt.steps[0], at = s0.go === 'desk' ? n.def.desk : WP[s0.go];
+        const steps = far(at[0], at[1]);
+        if (steps === null) continue;
+        if (toGame(this.estimate(n, rt.steps, at) + steps / pace) > left) continue;
+        const score = gain / (1 + steps / 45) * (.85 + (NPCM.hash(n.id + rt.id) % 100) / 100 * .3);
+        if (score > bs) { bs = score; best = null; bRt = rt; }
+      }
+    }
+    if (bRt) return this.routinePlan(n, bRt, this.P.leisure);
+    if (!urgent && passionAt.includes('desk') && urg.passion > 0) {
       const d = n.def.desk, steps = far(d[0], d[1]);
       if (steps !== null && urg.passion * 5 / (1 + steps / 45) >= bs) return null;
     }
     if (!best) return null;
-    const plan = { wp: best, why: bWhy, until: this.now + 75 };
-    if (away) {
-      /* Gone for as long as the walk and the stay would have taken. */
-      plan.away = true;
-      plan.arrive = this.now + bSteps / Math.max(.5, (n.t && n.t.pace) || 1);
-      plan.leave = plan.arrive + this.dwell(n, best) * 1.5;
-    }
-    return plan;
+    return { id: ++this.seq, prio: urgent ? this.P.urgent : this.P.need, why: bWhy, wp: best,
+      steps: [{ go: best, secs: this.dwell(n, best) }], i: 0, until: this.now + 90 };
   },
   /* Where somebody is standing, for the routes — or the nearest square that is
      actually floor, for anybody the data has put a foot into the furniture. A
@@ -488,25 +654,216 @@ const Mind = {
     }
     return [fx, fy];
   },
-  /* Read by NPCM.destTile() when the timetable says "your own spot". */
-  want(n) {
+  /* HOW LONG UNTIL THEY ARE NEXT NEEDED, in game minutes: the next line of
+     their timetable, the next duty not yet done today, or the start of a
+     shift for somebody who has one. This is the whole of "understanding a
+     schedule" — not the timetable itself, which the engine has always
+     followed, but the gap before it, and what will fit in it. */
+  timeLeft(n, p, m) {
+    if (typeof Sky === 'undefined') return Infinity;
+    const sm = Sky.m(), now = G.minutes + (n.t ? n.t.drift : 0);
+    let next = Infinity;
+    for (const [t] of n.def.schedule || []) if (t > now) next = Math.min(next, t - now);
+    const rday = m.rday || this.NOBODY;
+    for (const rt of p.routines || []) if (rt.duty && rt.at && rday[rt.id] !== G.day && rt.at[0] > sm) next = Math.min(next, rt.at[0] - sm);
+    if (p.works !== false && sm < DAY_START) next = Math.min(next, DAY_START - sm);
+    return next;
+  },
+  /* What is next for them, in words, for the Islanders tab. */
+  nextUp(n) {
+    const p = this.persona(n.id), m = this.of(n.id), sm = Sky.m(), rday = m.rday || this.NOBODY;
+    let best = null;
+    for (const rt of p.routines || []) {
+      if (!rt.duty || !rt.at || rday[rt.id] === G.day || !this.unlocked(n.id, rt)) continue;
+      const t = rt.at[0] > sm ? rt.at[0] : sm < rt.at[1] ? sm : null;
+      if (t !== null && (!best || t < best[0])) best = [t, rt.n];
+    }
+    const now = G.minutes + (n.t ? n.t.drift : 0);
+    for (const [t, where] of n.def.schedule || []) {
+      if (t > now && (!best || t < best[0])) best = [t, where === 'desk' ? 'Back to their post' : 'Break at ' + this.spotName(where)];
+    }
+    return best ? best[1] + ' · ' + clockStr(best[0]) : null;
+  },
+  /* Real seconds a list of steps would take, walking included. */
+  estimate(n, steps, from) {
+    const pace = Math.max(.5, (n.t && n.t.pace) || 1);
+    let t = 0, at = from;
+    for (const s of steps) {
+      const to = s.go === 'desk' ? n.def.desk : WP[s.go];
+      if (!to) continue;
+      t += Math.hypot(to[0] - at[0], to[1] - at[1]) * 1.3 / pace + this.stepSecs(n, s);
+      at = to;
+    }
+    return t;
+  },
+  /* How long a step takes them, which is shorter the better they are at
+     what it trains. Growing is not only a number in a panel. */
+  stepSecs(n, s) {
+    let lv = 0;
+    for (const k in s.train || this.NOBODY) lv = Math.max(lv, this.level(n.id, k));
+    return (s.secs || 6) / (1 + lv * .05);
+  },
+  begin(n, m, plan) {
+    const r = this.rt(n);
+    r.plan = plan;
+    if (plan.rid && plan.def && plan.def.duty) {
+      m.rday = m.rday || {};
+      m.rday[plan.rid] = G.day;
+      /* Late is a fact about the clock when they got going, and they know it. */
+      plan.late = Sky.m() > plan.def.at[0] + 25;
+    }
+    if (n.level !== World.level || !NPCM.list.includes(n)) this.schedAway(n, plan, null);
+  },
+  /* Off your level a step is simply a stretch of time: the walk there, then
+     the stay. */
+  schedAway(n, pl, from) {
+    const s = pl.steps[pl.i];
+    const to = s.go === 'desk' ? n.def.desk : WP[s.go];
+    const at = from || [Math.floor(n.x / TILE), Math.floor(n.y / TILE)];
+    const pace = Math.max(.5, (n.t && n.t.pace) || 1);
+    pl.away = true;
+    pl.arrive = this.now + (to ? Math.hypot(to[0] - at[0], to[1] - at[1]) * 1.3 / pace : 0);
+    pl.leave = pl.arrive + this.stepSecs(n, s) * (pl.rid ? 1 : 1.5);
+    pl.said = false;
+  },
+  /* Read by NPCM.destTile(): where the plan wants them, if it outranks what
+     the timetable wants. `'desk'` is a real answer — a step behind the bar. */
+  want(n, sched) {
     const r = this.rts.get(n.id);
-    if (!r || !r.plan) return null;
-    if (this.now > r.plan.until && !(n.errand && n.errand.mind)) { r.plan = null; return null; }
+    if (!r || !r.plan || r.plan.away) return null;
+    if (sched !== 'desk' && r.plan.prio <= this.P.schedule) return null;
     return r.plan.wp;
   },
-  /* How long to stay: long enough to have fixed what they came for. */
+  /* Read by NPCM.destTile() before it honours an errand already under way:
+     has something outranked it? A timetabled break gives way to a duty or an
+     emergency; an errand the mind made gives way to a newer plan. */
+  preempt(n, e) {
+    const r = this.rts.get(n.id);
+    if (!r || !r.plan || r.plan.away) return false;
+    if (e.mind) return e.pid !== r.plan.id || e.step !== r.plan.i;
+    return r.plan.prio > this.P.schedule;
+  },
+  errandTag(n) {
+    const r = this.rts.get(n.id), pl = r && r.plan;
+    return pl ? { pid: pl.id, step: pl.i, dwell: this.stepSecs(n, pl.steps[pl.i]) } : { pid: 0, step: 0, dwell: 10 };
+  },
+  /* How long to stay somewhere for a need: long enough to have fixed it. */
   dwell(n, wp) {
     const m = this.of(n.id), s = MIND_SPOTS[wp] || this.NOBODY;
     let need = 0;
     for (const k in s) if (s[k] > 0) need = Math.max(need, (100 - m.needs[k]) / s[k]);
     return clamp(need * .8, 8, 24);
   },
-  /* The errand it made is over. A breather before the next idea. */
-  done(n) {
+  /* They have got to the step. Say so, and — for the first step of a duty —
+     find out whether they are on time. */
+  arrive(n, pl) {
+    pl.said = true;
+    const s = pl.steps[pl.i];
+    if (s.say && n.level === World.level && Cam.visible(n.x, n.y) && !(n.sayT > 0)) {
+      n.say = Array.isArray(s.say) ? pick(s.say) : s.say; n.sayT = 3.4;
+      n.nextSay = Math.max(n.nextSay, rnd(10, 20));
+    }
+  },
+  /* The step in front of them is finished (or abandoned: `skip`). On to the
+     next one, or — at the end — the thing is done, and they know it. */
+  done(n, skip) {
     const r = this.rts.get(n.id);
-    if (!r) return;
-    r.plan = null; r.cool = this.now + rnd(6, 16);
+    if (!r || !r.plan) return;
+    const pl = r.plan, s = pl.steps[pl.i];
+    if (!skip && s && s.train) for (const k in s.train) this.train(n.id, k, s.train[k]);
+    pl.i++;
+    if (pl.i < pl.steps.length) {
+      const was = s && (s.go === 'desk' ? n.def.desk : WP[s.go]);
+      pl.wp = pl.steps[pl.i].go; pl.until = this.now + 120; pl.at = 0; pl.said = false;
+      if (pl.away) this.schedAway(n, pl, was);
+      return;
+    }
+    if (pl.rid) this.finish(n, pl);
+    r.plan = null;
+    r.cool = this.now + rnd(6, 16);
+    /* Something urgent interrupted a routine. Back to it, at the step it
+       stopped on — if it is still today's business. */
+    if (r.paused) {
+      const back = r.paused; r.paused = null;
+      if (this.now - (back.until - 120) < 240) {
+        back.until = this.now + 120; back.said = false; back.at = 0;
+        r.plan = back;
+        if (n.level !== World.level || !NPCM.list.includes(n)) this.schedAway(n, back, null);
+        else back.away = false;
+      }
+    }
+  },
+  finish(n, pl) {
+    const m = this.of(n.id), rt = pl.def || this.NOBODY;
+    m.rlast = m.rlast || {};
+    m.rlast[pl.rid] = this.clock();
+    for (const k in rt.gives || this.NOBODY) m.needs[k] = Math.min(100, (m.needs[k] || 0) + rt.gives[k]);
+    if (pl.late) { this.add(n.id, 'late', rt.n); this.log(n.id, '⏰ Late for ' + rt.n.toLowerCase()); }
+    else {
+      this.add(n.id, 'routine', rt.done || rt.n);
+      if (!(m.rcount && m.rcount[pl.rid])) this.log(n.id, '⭐ First time: ' + (rt.done || rt.n).toLowerCase());
+    }
+    m.rcount = m.rcount || {};
+    m.rcount[pl.rid] = (m.rcount[pl.rid] || 0) + 1;
+  },
+
+  /* ---- growing ---- */
+  /* SKILLS, which are the part of a person that stays changed. Experience
+     is kept rather than levels, so nothing is rounded away; a level is
+     15 × level², capped at ten. */
+  skills(id) {
+    const m = this.of(id);
+    if (!m.skills) {
+      m.skills = {};
+      const s = this.persona(id).skills || this.NOBODY;
+      for (const k in s) m.skills[k] = 15 * s[k] * s[k] + (NPCM.hash(id + k) % 12);
+    }
+    return m.skills;
+  },
+  level(id, k) { return Math.min(10, Math.floor(Math.sqrt((this.skills(id)[k] || 0) / 15))); },
+  /* How far through the level they are, 0..1, for the bar in the panel. */
+  progress(id, k) {
+    const L = this.level(id, k);
+    if (L >= 10) return 1;
+    const xp = this.skills(id)[k] || 0, a = 15 * L * L, b = 15 * (L + 1) * (L + 1);
+    return (xp - a) / (b - a);
+  },
+  /* Practice. Talent makes it quicker, a good mood quicker still, and a bad
+     one slower: nobody learns much on the worst day of their week. */
+  train(id, k, xp) {
+    if (typeof MIND_SKILLS === 'undefined' || !MIND_SKILLS[k] || !(xp > 0)) return;
+    const m = this.of(id), p = this.persona(id), sk = this.skills(id);
+    const mult = ((p.talent && p.talent[k]) || 1) * (this.inspired(id) ? 1.5 : m.mood < 30 ? .7 : 1);
+    const before = this.level(id, k);
+    sk[k] = (sk[k] || 0) + xp * mult;
+    const after = this.level(id, k);
+    if (after > before) this.levelUp(id, k, before, after);
+  },
+  levelUp(id, k, from, L) {
+    const S = MIND_SKILLS[k], p = this.persona(id), d = NPCS.find(x => x.id === id) || {};
+    this.add(id, 'levelup', k);
+    this.log(id, S.e + ' ' + S.n + ' reached ' + L);
+    const n = NPCM.get(id);
+    if (n && n.level === World.level && Cam.visible(n.x, n.y) && typeof FX !== 'undefined') {
+      FX.float(n.x, n.y - 46, S.e + ' ' + S.n + ' ' + L + '!', '#ffd166');
+    }
+    /* And what it opens up. Told to you only if you know them — the island
+       does not report on strangers. */
+    for (const rt of p.routines || []) {
+      /* Every threshold crossed, not only the one landed on: a big lesson can
+         carry somebody over two levels at once. */
+      if (!rt.unlock || !(rt.unlock[k] > from && rt.unlock[k] <= L) || !this.unlocked(id, rt)) continue;
+      this.log(id, '✨ Can now: ' + rt.n.toLowerCase());
+      if (G.rel[id] !== undefined && typeof UI !== 'undefined' && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
+    }
+  },
+  /* THE LIFE LOG: the handful of things that have happened to somebody that
+     they would still mention. Saved, capped, newest first. */
+  log(id, text) {
+    const m = this.of(id);
+    m.log = m.log || [];
+    m.log.unshift({ d: G.day, t: G.minutes, s: text });
+    if (m.log.length > 12) m.log.length = 12;
   },
 
   /* ---- a moment ---- */
@@ -514,12 +871,14 @@ const Mind = {
     const p = this.persona(n.id), mo = p.moment;
     /* Off your level it happens where you cannot see it, which is where most
        of anybody's worst afternoons happen. They come back having had it. */
-    if (!here || !mo || !this.free(n)) { this.add(n.id, 'moment'); r.lowFor = 0; return; }
+    if (!here || !mo || this.blocked(n)) { this.add(n.id, 'moment'); r.lowFor = 0; return; }
     let tile = null;
     if (mo.at === 'desk') tile = n.def.desk;
     else if (WP[mo.at] && NPCM.wpLevel(mo.at) === n.level) tile = WP[mo.at];
     if (!tile) { this.add(n.id, 'moment'); r.lowFor = 0; return; }
-    n.errand = null; r.plan = null;
+    n.errand = null;
+    if (r.plan && r.plan.rid && !r.paused) r.paused = r.plan;
+    r.plan = null;
     NPCM.hangUp(n);
     n.callOut = { wp: mo.at, tile, until: NPCM.now + 28, haste: 1.08 };
     r.moment = this.now + 28;
@@ -567,9 +926,15 @@ const Mind = {
     if (r && r.moment) return (p.moment && p.moment.n) || 'Having a moment';
     if (n.chat) { const o = NPCM.get(n.chat.with); return 'Chatting with ' + (o ? o.name : 'somebody'); }
     if (r && r.plan) {
-      const why = r.plan.why === 'passion' ? (p.passion ? 'for some ' + p.passion.n.toLowerCase() : '') : this.WHY[r.plan.why] || '';
-      const going = r.plan.away ? this.now < r.plan.arrive : n.walking || n.dest !== r.plan.wp;
-      return (going ? 'Heading to ' : 'At ') + this.spotName(r.plan.wp) + (why ? ' ' + why : '');
+      const pl = r.plan, s = pl.steps[pl.i] || this.NOBODY;
+      const going = pl.away ? this.now < pl.arrive : pl.wp === 'desk' ? n.dest !== 'desk' || n.walking : n.walking || n.dest !== pl.wp;
+      if (pl.rid) {
+        const where = pl.wp === 'desk' ? 'their post' : this.spotName(pl.wp);
+        return pl.name + ': ' + (going ? 'heading to ' + where : s.n || 'at ' + where)
+          + (pl.steps.length > 1 ? ' (' + (pl.i + 1) + '/' + pl.steps.length + ')' : '');
+      }
+      const why = pl.why === 'passion' ? (p.passion ? 'for some ' + p.passion.n.toLowerCase() : '') : this.WHY[pl.why] || '';
+      return (going ? 'Heading to ' : 'At ') + this.spotName(pl.wp) + (why ? ' ' + why : '');
     }
     if (n.dest === 'out' || NPCM.errandFor(n)) return 'Out and about';
     if (n.errand) return 'On a break at ' + this.spotName(n.errand.wp);
@@ -594,7 +959,7 @@ const Mind = {
     if (!known.length) return '<div class="h2">Islanders</div><p class="idesc">Nobody yet. Say hello to somebody.</p>';
     const bar = (v, cls) => '<span class="mb' + (cls ? ' ' + cls : '') + '"><i style="width:' + Math.round(clamp(v, 0, 100)) + '%"></i></span>';
     const tone = v => v >= 62 ? 'ok' : v >= 30 ? 'mid' : 'bad';
-    let h = '<div class="h2">Islanders</div><p class="idesc mind-intro">How everybody is doing today — and why. Moods rise and fall with sun, rain, company, drinks and you.</p><div class="mind-grid">';
+    let h = '<div class="h2">Islanders</div><p class="idesc mind-intro">How everybody is doing today, what they are up to, and how they are growing. Moods rise and fall with sun, rain, company, drinks and you; skills grow with practice — and with you.</p><div class="mind-grid">';
     known.forEach(d => {
       const n = NPCM.get(d.id);
       if (!n) return;
@@ -609,14 +974,36 @@ const Mind = {
       const fr = this.friends(d.id), best = fr[0], worst = fr[fr.length - 1];
       const ties = (best && best[1] >= 25 ? '♥ ' + esc(best[0].name) : '')
         + (worst && worst[1] <= -25 ? (best && best[1] >= 25 ? ' · ' : '') + '⚡ ' + esc(worst[0].name) : '');
+      /* What is driving them right now, how far through it they are, and
+         what is coming — the agenda, readable. */
+      const r = this.rts.get(d.id), pl = r && r.plan;
+      const prio = pl ? pl.prio : this.blocked(n) || n.away ? 0 : NPCM.scheduled(n) !== 'desk' ? this.P.schedule : 0;
+      const chip = prio ? '<span class="mp p' + prio + '">' + this.PNAME[prio] + '</span>' : '';
+      const next = this.nextUp(n);
+      const sk = this.skills(d.id);
+      const skills = Object.keys(sk).filter(k => MIND_SKILLS[k] && this.level(d.id, k) > 0)
+        .sort((a, b) => sk[b] - sk[a]).slice(0, 4).map(k => {
+          const S = MIND_SKILLS[k], L = this.level(d.id, k);
+          return '<div class="ms" title="' + esc(S.n) + ' ' + L + '/10"><span>' + S.e + ' ' + esc(S.n) + ' <b>' + L + '</b></span>'
+            + bar(this.progress(d.id, k) * 100, 'xp') + '</div>';
+        }).join('');
+      const unl = (p.routines || []).filter(rt => rt.unlock && !this.unlocked(d.id, rt)).slice(0, 1).map(rt => {
+        const k = Object.keys(rt.unlock)[0];
+        return 'Growing towards: ' + rt.n + ' (' + MIND_SKILLS[k].n + ' ' + rt.unlock[k] + ')';
+      })[0];
+      const life = (m.log || []).slice(0, 3).map(e => '<li><span>Day ' + e.d + '</span> ' + esc(e.s) + '</li>').join('');
       h += '<div class="mind-card">'
         + '<div class="mh"><span class="mf">' + d.face + '</span><div class="mt"><div class="mnm" style="color:' + (d.colour || 'inherit') + '">' + esc(d.name) + '</div>'
         + '<div class="mw">' + esc(this.badge(d.id)) + '</div></div></div>'
         + '<div class="mood-row">' + bar(m.mood, 'mood ' + tone(m.mood)) + '</div>'
-        + '<div class="mdo">' + esc(this.doing(n)) + ' <span>· ' + esc(this.where(n)) + '</span></div>'
+        + '<div class="mdo">' + chip + esc(this.doing(n)) + ' <span>· ' + esc(this.where(n)) + '</span></div>'
+        + (next ? '<div class="mnext">Next: ' + esc(next) + '</div>' : '')
         + '<div class="mneeds">' + needs + '</div>'
         + (th ? '<ul class="mth">' + th + '</ul>' : '<ul class="mth"><li class="nil">Nothing much on their mind.</li></ul>')
         + (ties ? '<div class="mties">' + ties + '</div>' : '')
+        + (skills ? '<div class="mskills">' + skills + '</div>' : '')
+        + (unl ? '<div class="mgrow">' + esc(unl) + '</div>' : '')
+        + (life ? '<ul class="mlife">' + life + '</ul>' : '')
         + '<div class="mrel">With you: ' + esc(Rel.label(G.rel[d.id])) + '</div>'
         + '</div>';
     });

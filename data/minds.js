@@ -38,6 +38,11 @@
  *     lines     what they say, by state: great, low, energy, thirst, fun,
  *               social, passion, inspired, moment
  *     moment    what they do when it all gets too much: { at, n, lines }
+ *     skill     the skill their passion trains while they are at it
+ *     skills    where their skills start, as levels 0..10
+ *     talent    how quickly each skill comes to them, as a multiplier
+ *     routines  things they do in several steps — see ROUTINES below
+ *     teach     what happens when you ask them to show you how they do it
  *     flirt     how a flirt lands when they are glowing, or not in the mood
  */
 
@@ -92,6 +97,46 @@ const MIND_SPOT_NAMES = {
    of the Driftwood that are a deck rather than a roof. */
 const MIND_OUTDOORS = { levels: ['island'], spots: ['deck', 'rail', 'hammock'] };
 
+/* SKILLS. Everybody has every skill; most of them are nought. A level is
+   15 × level² experience, so the first few come in a day and the last few
+   take a week. They come from doing things — a routine step names what it
+   trains — from chatting, from time spent on their passion, and from you
+   (see `practise` in data/npcs.js). A level makes them quicker at every step
+   that trains it, and some routines only open once a skill is high enough. */
+const MIND_SKILLS = {
+  mixology:     { n: 'Mixology',   e: '🍹' },
+  surfing:      { n: 'Surfing',    e: '🏄' },
+  lifesaving:   { n: 'Lifesaving', e: '🛟' },
+  music:        { n: 'Music',      e: '🎶' },
+  charm:        { n: 'Charm',      e: '💋' },
+  fitness:      { n: 'Fitness',    e: '💪' },
+  business:     { n: 'Business',   e: '💼' },
+  gossip:       { n: 'Gossip',     e: '👂' },
+  seamanship:   { n: 'Seamanship', e: '⚓' },
+  storytelling: { n: 'Stories',    e: '📖' },
+  content:      { n: 'Content',    e: '📸' }
+};
+
+/* ROUTINES. A routine is a list of steps done in order:
+
+     { go, secs, n, say, train }   a waypoint (or 'desk'), how long to spend
+                                   there in real seconds, what they are doing
+                                   in a phrase, what they say on arrival, and
+                                   what it trains: { skill: experience }
+
+   and around the steps, when it happens and what it is for:
+
+     duty    it is work, and outranks a timetabled break — they cut a coffee
+             short to open up. Duties happen once a day, started inside `at`
+     at      [from, to] game minutes: the window a duty may start in
+     every   game minutes before a leisure routine can come round again
+     when    { mood, from, to, dry, rain } — conditions for starting at all
+     unlock  { skill: level } — they have to have grown into it
+     gives   need points on finishing, like a spot but all at once
+     done    what they tell themselves afterwards (a thought, and the life log)
+
+   A routine interrupted by something urgent — a need gone critical — is
+   picked up again at the step it stopped on. */
 const MIND_THOUGHTS = {
   sunshine: { n: 'Sunshine on their face',   v: 3,  mins: 60 },
   rained:   { n: 'Caught in the rain',       v: -6, mins: 90 },
@@ -105,7 +150,11 @@ const MIND_THOUGHTS = {
   date:     { n: 'A date with {you} tonight', v: 14, mins: 900 },
   soaked:   { n: 'Soaked by {you}',          v: -8, mins: 120, stack: 3 },
   moment:   { n: 'Got it out of their system', v: 12, mins: 240 },
-  inspired: { n: 'Feeling on top of the world', v: 6, mins: 180 }
+  inspired: { n: 'Feeling on top of the world', v: 6, mins: 180 },
+  routine:  { n: '{what}',                   v: 4,  mins: 240, stack: 3 },
+  late:     { n: 'Late for {what}',          v: -4, mins: 180, stack: 2 },
+  levelup:  { n: 'Got better at {what}',     v: 7,  mins: 480, stack: 2 },
+  practise: { n: 'Practised with {you}',     v: 6,  mins: 480 }
 };
 
 const MINDS = {
@@ -130,6 +179,33 @@ const MINDS = {
       moment: ['This table is FINE. It is a FINE table.', 'I am polishing. Do not interrupt the polishing.']
     },
     moment: { at: 'barTable', n: 'Stress-polishing a clean table' },
+    skill: 'mixology',
+    teach: ['She hands you a shaker. “Wrist, not arm. WRIST.” Ten minutes later there is mojito on the ceiling and she is laughing so hard she has to sit down. She is also, somehow, faster than she was this morning.',
+      '“Watch.” She flips a bottle, catches it behind her back, and pours without looking. “Now you.” You do not. “Again.” By the end, you both have.'],
+    skills: { mixology: 5, charm: 3, fitness: 2, music: 1 },
+    talent: { mixology: 1.2, charm: 1.1 },
+    routines: [
+      { id: 'openUp', n: 'Opening up', duty: true, at: [640, 700], done: 'Opened up on time',
+        steps: [
+          { go: 'jukebox', secs: 5, n: 'putting something on the jukebox', say: 'Something with a pulse. Not that.', train: { music: 3 } },
+          { go: 'deck', secs: 7, n: 'wiping down the deck', say: 'Wipe, wipe, wipe. Who SITS like that.', train: { fitness: 4 } },
+          { go: 'barTable', secs: 6, n: 'setting out the tables', train: { fitness: 2, mixology: 2 } },
+          { go: 'desk', secs: 5, n: 'cutting limes', say: 'Right. We are OPEN.', train: { mixology: 6 } }] },
+      { id: 'lastOrders', n: 'Last orders', duty: true, at: [1110, 1140], done: 'Closed up clean',
+        steps: [
+          { go: 'barTable', secs: 6, n: 'collecting glasses', say: 'Glasses. Glasses. Why is there a shoe.', train: { fitness: 3 } },
+          { go: 'deck', secs: 6, n: 'stacking chairs', train: { fitness: 3 } },
+          { go: 'desk', secs: 6, n: 'cashing up', say: 'Not bad. Not bad at all.', train: { mixology: 3 } }] },
+      { id: 'flair', n: 'Practising flair', unlock: { mixology: 6 }, every: 300, gives: { passion: 35, fun: 25 },
+        done: 'Nailed a bottle flip',
+        steps: [
+          { go: 'desk', secs: 10, n: 'flipping bottles behind the bar', say: 'Watch. Watch. WATCH.', train: { mixology: 8 } },
+          { go: 'barTable', secs: 5, n: 'taking a bow', say: 'Thank you, thank you, I know.', train: { charm: 4 } }] },
+      { id: 'dance', n: 'Dancing it off', when: { mood: 60 }, every: 420, gives: { fun: 40, social: 15 }, done: 'Had a dance',
+        steps: [
+          { go: 'jukebox', secs: 5, n: 'picking a song', train: { music: 3 } },
+          { go: 'deck', secs: 9, n: 'dancing on the deck', say: 'Don’t look. Okay, look.', train: { fitness: 3, charm: 3 } }] }
+    ],
     flirt: {
       great: ['“Oh, you’re good today.” She leans over the bar, close. “Keep going.”'],
       low: ['“Not now, gorgeous. Ask me again when the ice machine works.” She almost smiles.']
@@ -143,6 +219,8 @@ const MINDS = {
     rates: { energy: .8, fun: 1.2 },
     spots: { sands: 1.5, lagoon: 1.4, fountain: .8 },
     likes: { jade: 40, luca: 20, teo: 15, blake: -30 },
+    /* A cooler of coconut water under the counter. */
+    post: { thirst: .7 },
     thoughts: { rained: 1, soaked: 5 },
     named: { rained: 'Rain! Waves incoming', soaked: 'Water fight with {you}!' },
     words: ['Stoked', 'Chill', 'Meh', 'Bummed', 'Wiped out'],
@@ -158,6 +236,33 @@ const MINDS = {
       moment: ['Just gonna look at the sea for a bit, bro.', 'The sea gets it. The sea always gets it.']
     },
     moment: { at: 'sands', n: 'Staring at the sea' },
+    skill: 'surfing',
+    teach: ['He takes you out on a foamie and pushes you into a wave that is, generously, a ripple. You stand up for one glorious second. He screams like you have won the Olympics — and catches the next one himself, cleaner than you have ever seen him ride.',
+      '“Pop-up drill on the sand, twenty times.” He does them with you, all twenty, grinning. “Teaching makes you better, dude. Everybody knows that.”'],
+    skills: { surfing: 5, fitness: 4, charm: 2, lifesaving: 1 },
+    talent: { surfing: 1.3, fitness: 1.1 },
+    routines: [
+      { id: 'lesson', n: 'Morning lesson', duty: true, at: [650, 720], done: 'Taught the morning lesson',
+        steps: [
+          { go: 'surfshack', secs: 6, n: 'waxing the boards', say: 'Wax on. Wax on. Wax ON.', train: { surfing: 3 } },
+          { go: 'sands', secs: 10, n: 'teaching pop-ups on the sand', say: 'Paddle, paddle, POP! …Nearly.', train: { surfing: 5, charm: 3 } },
+          { go: 'desk', secs: 4, n: 'hosing down the boards', train: { fitness: 2 } }] },
+      { id: 'session', n: 'Surf session', every: 240, gives: { passion: 45, fun: 35 }, done: 'Caught a good one',
+        steps: [
+          { go: 'surfshack', secs: 4, n: 'grabbing his board', train: { surfing: 2 } },
+          { go: 'sands', secs: 12, n: 'surfing off the Sands', say: 'WOOOO!', train: { surfing: 7, fitness: 4 } },
+          { go: 'stall', secs: 6, n: 'drinking a coconut', say: 'Coconut. Nature’s energy drink.', train: {} }] },
+      { id: 'bigWave', n: 'Hunting the big one', unlock: { surfing: 7 }, every: 600, gives: { passion: 60, fun: 50 },
+        done: 'Rode the biggest wave of his life',
+        steps: [
+          { go: 'sands', secs: 6, n: 'reading the swell', say: 'There. THERE. You see it?', train: { surfing: 4 } },
+          { go: 'cove', secs: 12, n: 'surfing the reef break at the cove', train: { surfing: 10, fitness: 5 } },
+          { go: 'lagoon', secs: 8, n: 'floating in the lagoon, grinning', say: 'I am never getting out of this water.' }] },
+      { id: 'kids', n: 'Water-safety talk', unlock: { lifesaving: 3 }, every: 480, gives: { social: 40, passion: 20 },
+        done: 'Taught kids about rip currents',
+        steps: [
+          { go: 'fountain', secs: 10, n: 'telling kids about rip currents', say: 'Swim ACROSS it, little dudes!', train: { lifesaving: 6, charm: 4 } }] }
+    ],
     flirt: {
       great: ['He goes bright red, laughs, and pushes his wet hair back. “Dude. DUDE. You can’t just say that.” He definitely wants you to.'],
       low: ['He manages half a grin. “Sorry. Bit wiped out. Say it again tomorrow? I want to enjoy it.”']
@@ -171,6 +276,8 @@ const MINDS = {
     rates: { social: .7 },
     spots: { cove: 1.4, fountain: 1.1, lagoon: .7 },
     likes: { kai: 25, teo: 20, coco: 15, blake: -40 },
+    /* A water bottle on the tower, which she forgets to drink. */
+    post: { thirst: .45 },
     thoughts: { sunshine: 6, rained: -9, soaked: -12 },
     named: { soaked: 'Squirted by {you}. On DUTY.' },
     words: ['Radiant', 'Easy', 'On watch', 'Salty', 'Off duty in her head'],
@@ -186,6 +293,30 @@ const MINDS = {
       moment: ['Nobody talk to me. I’m on a break from people.', 'Off duty. Mentally. Physically in about ten minutes.']
     },
     moment: { at: 'cove', n: 'Taking a break from people' },
+    skill: 'lifesaving',
+    teach: ['She walks you through a rescue on the sand: approach, reassure, tow. Then she makes you be the victim, and practises on you, very thoroughly. “For science,” she says.',
+      '“Scan left to right. Heads, not bodies. Count them.” You count. She counts faster. “Better,” she says, and means you both.'],
+    skills: { lifesaving: 6, fitness: 5, charm: 3 },
+    talent: { lifesaving: 1.2, fitness: 1.2 },
+    routines: [
+      { id: 'flags', n: 'Putting the flags out', duty: true, at: [640, 700], done: 'Flags out on time',
+        steps: [
+          { go: 'sands', secs: 7, n: 'planting the flags', say: 'Red and yellow. Swim between them. Every time.', train: { lifesaving: 4 } },
+          { go: 'desk', secs: 4, n: 'climbing the tower', train: { fitness: 2 } }] },
+      { id: 'patrol', n: 'Afternoon patrol', duty: true, at: [930, 990], done: 'Walked the patrol',
+        steps: [
+          { go: 'sands', secs: 6, n: 'walking the shoreline', say: 'Nobody past the buoys. I SEE you.', train: { lifesaving: 4, fitness: 3 } },
+          { go: 'surfshack', secs: 4, n: 'checking in with the surf school', say: 'Kai. KAI. The leashes.', train: { charm: 2 } },
+          { go: 'desk', secs: 3, n: 'back up the tower', train: { fitness: 2 } }] },
+      { id: 'swim', n: 'Training swim', when: { dry: true }, every: 360, gives: { fun: 35, passion: 30 }, done: 'Swam a personal best',
+        steps: [
+          { go: 'sands', secs: 10, n: 'swimming lengths off the Sands', say: 'Hundred more. Then a hundred more.', train: { fitness: 7 } },
+          { go: 'desk', secs: 4, n: 'drying off on the tower', train: {} }] },
+      { id: 'cove', n: 'Sunset at the cove', unlock: { charm: 5 }, when: { from: 1140, to: 1260 }, every: 900,
+        gives: { fun: 40, energy: 20 }, done: 'Watched the sunset from the cove',
+        steps: [
+          { go: 'cove', secs: 14, n: 'watching the sun go down at the cove', say: 'Off duty. Finally.', train: { charm: 3 } }] }
+    ],
     flirt: {
       great: ['She pulls her sunglasses down, holds your eye, and does not look away first. “Mm. Keep that up and I’ll stop pretending not to notice.”'],
       low: ['“Save it for when I’m not having a day.” She taps your nose with her whistle. “But I heard it.”']
@@ -214,6 +345,27 @@ const MINDS = {
       moment: ['Leave me with the music. It understands.', 'One more sad song. Then I will be brave.']
     },
     moment: { at: 'jukebox', n: 'Sad songs on the jukebox' },
+    skill: 'music',
+    teach: ['He puts his headphones on you and his hands over yours on the decks. “Feel the one. The ONE.” You drop the beat. He drops the next one, and the whole deck cheers. “Magnifico. We are both better now.”',
+      '“Yoga first. The body is the instrument.” Forty minutes later you are folded in a way you did not know you could fold, and he is humming a melody he says you gave him.'],
+    skills: { music: 5, charm: 4, fitness: 3 },
+    talent: { music: 1.3, charm: 1.2 },
+    routines: [
+      { id: 'soundcheck', n: 'Soundcheck', duty: true, at: [710, 760], done: 'Soundchecked the deck',
+        steps: [
+          { go: 'jukebox', secs: 6, n: 'untangling cables', say: 'Why is it always the red cable.', train: { music: 3 } },
+          { go: 'deck', secs: 6, n: 'testing the speakers', say: 'Uno, due. Uno, due. Bellissimo.', train: { music: 4 } },
+          { go: 'desk', secs: 5, n: 'setting up the decks', train: { music: 4 } }] },
+      { id: 'crates', n: 'Digging for records', every: 300, gives: { passion: 40, fun: 25 }, done: 'Found a lost disco classic',
+        steps: [
+          { go: 'jukebox', secs: 10, n: 'flicking through the jukebox', say: 'No. No. No. …Oh. OH.', train: { music: 6 } },
+          { go: 'hammock', secs: 8, n: 'listening with his eyes shut', train: { music: 3 } }] },
+      { id: 'sunsetSet', n: 'The sunset set', unlock: { music: 7 }, when: { from: 1120, to: 1260 }, every: 900,
+        gives: { passion: 70, social: 40 }, done: 'Played the set of the summer',
+        steps: [
+          { go: 'desk', secs: 14, n: 'playing the sunset set', say: 'This one is for the sea.', train: { music: 10, charm: 4 } },
+          { go: 'deck', secs: 8, n: 'dancing with the crowd', say: 'Everybody! Hands for the sun!', train: { charm: 5 } }] }
+    ],
     flirt: {
       great: ['He takes both your hands and dances you three steps backwards and three forwards. “You see? We are already in rhythm.”'],
       low: ['He sighs dramatically and presses your hand to his heart. “Tonight it is broken. Tomorrow — who knows.”']
@@ -243,6 +395,17 @@ const MINDS = {
       moment: ['Mm. MM. I am writing this down.']
     },
     moment: { at: 'desk', n: 'Writing names in a little book' },
+    skill: 'gossip',
+    skills: { gossip: 8, business: 6, charm: 4 },
+    talent: { gossip: 1.2, business: 1.1 },
+    routines: [
+      { id: 'stock', n: 'Morning stocktake', duty: true, at: [600, 660], done: 'Counted every mango',
+        steps: [
+          { go: 'till', secs: 12, n: 'counting mangoes', say: 'Forty-one. FORTY-ONE. Somebody has had a mango.', train: { business: 5 } }] },
+      { id: 'books', n: 'Doing the books', duty: true, at: [1080, 1140], done: 'Balanced the books',
+        steps: [
+          { go: 'till', secs: 12, n: 'doing the books', say: 'Mm-hm. Mm-HM. Kai owes me for hair gel.', train: { business: 5, gossip: 2 } }] }
+    ],
     flirt: {}
   },
 
@@ -270,6 +433,24 @@ const MINDS = {
       moment: ['Hrm. Hrm hrm.', 'The sea never lies. People do.']
     },
     moment: { at: 'jetty', n: 'Glaring at the horizon' },
+    skill: 'seamanship',
+    skills: { seamanship: 8, fitness: 5, business: 3 },
+    talent: { seamanship: 1.1 },
+    routines: [
+      { id: 'unload', n: 'Unloading the boat', duty: true, at: [490, 560], done: 'Unloaded the morning run',
+        steps: [
+          { go: 'jetty', secs: 8, n: 'hauling crates off the boat', say: 'Hup. Hrm. Hup.', train: { fitness: 5, seamanship: 2 } },
+          { go: 'stall', secs: 6, n: 'delivering to the stall', say: 'Limes. Rum. More rum.', train: { business: 4 } },
+          { go: 'desk', secs: 4, n: 'coiling rope', train: { seamanship: 3 } }] },
+      { id: 'nets', n: 'Mending nets', every: 360, gives: { passion: 35, fun: 25 }, done: 'Mended the nets',
+        steps: [
+          { go: 'jetty', secs: 12, n: 'mending nets on the jetty', say: 'Knot. Knot. Knot.', train: { seamanship: 6 } }] },
+      { id: 'fishing', n: 'Evening fishing', unlock: { seamanship: 9 }, when: { from: 1080, to: 1260 }, every: 900,
+        gives: { fun: 50, passion: 40 }, done: 'Caught supper',
+        steps: [
+          { go: 'jetty', secs: 8, n: 'baiting a line', train: { seamanship: 4 } },
+          { go: 'cove', secs: 12, n: 'fishing off the rocks at the cove', say: 'Bite. Bite, you coward.', train: { seamanship: 8 } }] }
+    ],
     flirt: {}
   },
 
@@ -296,6 +477,22 @@ const MINDS = {
       moment: ['Another. No — the bottle.', 'Nobody listens to Pepe.']
     },
     moment: { at: 'barTable', n: 'Sulking into a rum' },
+    skill: 'storytelling',
+    skills: { storytelling: 6, charm: 5, fitness: 1 },
+    talent: { storytelling: 1.2 },
+    routines: [
+      { id: 'walk', n: 'Taking his constitutional', when: { dry: true }, every: 300, gives: { fun: 30, social: 20 },
+        done: 'Took the air',
+        steps: [
+          { go: 'deck', secs: 6, n: 'shuffling round the deck', say: 'Doctor’s orders. Two laps. Then rum.', train: { fitness: 3 } },
+          { go: 'rail', secs: 6, n: 'leaning on the rail, looking at the sea', train: {} },
+          { go: 'barTable', secs: 8, n: 'resting at the corner table', say: 'Exhausting.', train: {} }] },
+      { id: 'theStory', n: 'Telling THE story', unlock: { storytelling: 7 }, when: { mood: 55 }, every: 600,
+        gives: { social: 60, passion: 30 }, done: 'Told THE story, all of it',
+        steps: [
+          { go: 'barTable', secs: 8, n: 'clearing his throat', say: 'Gather round. It was 1974…', train: { storytelling: 6 } },
+          { go: 'deck', secs: 12, n: 'acting out the film star kiss', say: '…and SHE said, “Pepe, you are the best kisser in the Caribbean.”', train: { storytelling: 8, charm: 3 } }] }
+    ],
     flirt: {}
   },
 
@@ -322,6 +519,21 @@ const MINDS = {
       moment: ['Deleting the app. For real this time.', 'Don’t look at me. Don’t film me.']
     },
     moment: { at: 'rail', n: 'Doom-scrolling at the rail' },
+    skill: 'content',
+    skills: { content: 6, charm: 4, business: 3 },
+    talent: { content: 1.2, charm: 1.1 },
+    routines: [
+      { id: 'shoot', n: 'Shooting content', when: { dry: true }, every: 240, gives: { passion: 45, fun: 20 }, done: 'Got the shot',
+        steps: [
+          { go: 'rail', secs: 6, n: 'finding the light at the rail', say: 'No. No. Yes. Don’t move. NOBODY move.', train: { content: 4 } },
+          { go: 'deck', secs: 6, n: 'shooting on the deck', say: 'Candid. Be candid. Less candid.', train: { content: 4 } },
+          { go: 'hammock', secs: 6, n: 'posing in the hammock', train: { content: 3, charm: 2 } }] },
+      { id: 'golden', n: 'Golden-hour shoot', unlock: { content: 7 }, when: { from: 1120, to: 1260, dry: true }, every: 900,
+        gives: { passion: 70, fun: 30 }, done: 'Posted the golden-hour shot',
+        steps: [
+          { go: 'rail', secs: 12, n: 'shooting the golden hour', say: 'THIS. This is the one. Two million people need this.', train: { content: 9 } },
+          { go: 'barTable', secs: 6, n: 'writing the caption', say: 'Hashtag… blessed? Too much. Hashtag… Driftwood.', train: { business: 3 } }] }
+    ],
     flirt: {}
   },
 
@@ -348,6 +560,19 @@ const MINDS = {
       moment: ['Sell. Sell everything.', 'I need a board meeting. With anyone.']
     },
     moment: { at: 'fountain', n: 'Pacing and making calls' },
+    skill: 'business',
+    skills: { business: 7, charm: 3, fitness: 2 },
+    talent: { business: 1.1, charm: .8 },
+    routines: [
+      { id: 'survey', n: 'Surveying the land', every: 360, gives: { passion: 40 }, done: 'Measured the whole plaza',
+        steps: [
+          { go: 'fountain', secs: 6, n: 'pacing out the plaza', say: 'Forty paces. Room for a helipad.', train: { business: 4 } },
+          { go: 'garden', secs: 6, n: 'imagining a car park over the garden', say: 'Valet here. Obviously.', train: { business: 4 } },
+          { go: 'stall', secs: 6, n: 'buying a sparkling water', say: 'Is it cold? Define cold.', train: {} }] },
+      { id: 'pitch', n: 'A pitch meeting', unlock: { charm: 5 }, every: 600, gives: { passion: 50, social: 40 }, done: 'Pitched a resort to a pelican',
+        steps: [
+          { go: 'fountain', secs: 12, n: 'pitching a resort to anybody who will listen', say: 'Picture it. Four hundred rooms. Infinity pool.', train: { charm: 6, business: 4 } }] }
+    ],
     flirt: {}
   }
 };

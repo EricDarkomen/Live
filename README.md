@@ -24,8 +24,15 @@ linen suit who very much wants to buy it.
   Mama Coco's gossip) — and a mood built out of those and of whatever has
   happened to them lately. When the day leaves them free they go and do
   something about it; when it all gets too much they have a moment; when it
-  is going brilliantly they are inspired, and a flirt goes further. The
-  **Islanders** tab (`U`) shows how everybody you have met is doing, and why.
+  is going brilliantly they are inspired, and a flirt goes further. They
+  run **routines** — Mari opens up and calls last orders, Kai teaches the
+  morning lesson, Jade puts the flags out, Teo unloads the boat — and weigh
+  what matters most: an emergency beats a duty, a duty beats a coffee break,
+  and nobody starts something they cannot finish before their next shift.
+  They **grow**: skills level up with practice (and with you — ask them to
+  show you how they do it), make them quicker, and unlock new routines. The
+  **Islanders** tab (`U`) shows how everybody you have met is doing, what
+  they are up to, and how far they have come.
 - **Explore.** A road loop round the island, a beach buggy to drive it in, a
   plaza, a yoga deck, a hidden lagoon in the jungle, a water pistol at the
   surf shack, and a wardrobe of swimwear at your beach hut.
@@ -133,7 +140,7 @@ python3 -m http.server 8000    # then http://localhost:8000/editor.html
 | `data/island.js` | Isla Solana itself, built from rules: coast, beaches, roads, jetty, cove, lagoon |
 | `data/levels.js` | The Driftwood, your beach hut, Mama Coco's |
 | `data/npcs.js` | The islanders and everything they say |
-| `data/minds.js` | How the islanders feel: needs, passions, quirks, friendships, and their moods in their own words |
+| `data/minds.js` | How the islanders feel and grow: needs, passions, quirks, friendships, skills, routines, and their moods in their own words |
 | `data/callers.js` | Bar guests, messages, moves, and the two big encounters |
 | `data/garden.js` | The garden, the blender, the supply boat's orders, and dates |
 | `data/items.js` | Items, skills, jobs, achievements, minigame cabinets, shops |

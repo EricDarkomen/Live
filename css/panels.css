@@ -157,3 +157,20 @@
 .mind-card .mties{font-size:11px;color:var(--text)}
 .mind-card .mrel{font-size:11px;color:var(--dim);font-style:italic;border-top:1px solid var(--line-soft);padding-top:6px}
 @media (prefers-reduced-motion:reduce){.mb i{transition:none}}
+/* The agenda and growth rows on an Islanders card. */
+.mind-card .mp{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:4px;margin-right:6px;vertical-align:1px;border:1px solid var(--line);color:var(--dim)}
+.mind-card .mp.p5{color:#fff;background:var(--bad);border-color:var(--bad)}
+.mind-card .mp.p4{color:var(--ink);background:var(--hold);border-color:var(--hold)}
+.mind-card .mp.p3{color:var(--text)}
+.mind-card .mp.p2{color:var(--good);border-color:var(--good)}
+.mind-card .mp.p1{color:var(--purple);border-color:var(--purple)}
+.mind-card .mnext{font-size:11px;color:var(--dim)}
+.mind-card .mskills{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.mind-card .ms{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mind-card .ms span{font-size:10px;color:var(--dim);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mind-card .ms b{color:var(--hold)}
+.mb.xp{height:3px}
+.mb.xp i{background:var(--purple)}
+.mind-card .mgrow{font-size:11px;color:var(--purple);font-style:italic}
+.mind-card .mlife{list-style:none;margin:0;padding:0;font-size:11px;color:var(--text);display:flex;flex-direction:column;gap:1px}
+.mind-card .mlife span{font-family:var(--mono);font-size:9px;color:var(--dim);margin-right:4px}
