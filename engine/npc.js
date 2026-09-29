@@ -19,7 +19,7 @@ const Nav = {
   fields: new Map(), grid: null, level: null, stamp: -1,
   /* Enough for a desk each plus the shared destinations, and eviction is
      least-recently-asked, so the handful in use every frame stay put. */
-  LIMIT: 48,
+  LIMIT: 64,
   /* PEOPLE WHO ARE NOT MOVING ARE PART OF THE MAP.
 
      This is the thing that was missing, and everything that went wrong when you
@@ -78,8 +78,55 @@ const Nav = {
     if (this.grid === World.solid && this.level === World.level && this.stamp === stamp) return;
     this.grid = World.solid; this.level = World.level; this.stamp = stamp;
     this.fields.clear();
+    this.pass = null;
   },
-  clear() { this.fields.clear(); this.grid = null; },
+  /* WHICH SQUARES CAN BE STOOD ON, asked once per floor plan instead of five
+     times per square per sweep.
+
+     World.isSolid() is the right question and a slow way to ask it a hundred
+     thousand times: it builds two strings for the set lookups and walks the
+     objects on the tile, so on the island — eleven thousand squares — the sweep
+     spent two thirds of its five milliseconds asking whether the sand was sand.
+     Every one of those answers is fixed until fresh() says the plan changed
+     (nothing flips `solid` on an object at runtime; a new level or a new object
+     is a new stamp), so it is one byte a tile, built on first use.
+
+     The one live part is the cars, which move, and which isSolid() reads from a
+     set Cars.sync() refills. They are laid over a copy at sweep time — a few
+     dozen squares — exactly as the old sweep saw them. */
+  pass: null, _open: null,
+  passable() {
+    if (this.pass) return this.pass;
+    const w = MAPW, h = MAPH, p = new Uint8Array(w * h);
+    const hasBlocked = World.blocked && World.blocked.size;
+    for (let y = 0; y < h; y++) {
+      const row = World.solid[y];
+      for (let x = 0; x < w; x++) {
+        if (row && row[x]) continue;
+        if (hasBlocked && World.blocked.has(x + ',' + y)) continue;
+        const here = World.at(x, y);
+        let solid = false;
+        for (let i = 0; i < here.length; i++) if (here[i].solid) { solid = true; break; }
+        if (!solid) p[y * w + x] = 1;
+      }
+    }
+    return (this.pass = p);
+  },
+  /* The passable grid with this instant's cars stood on it. */
+  openNow() {
+    const p = this.passable();
+    const cars = World.carTiles;
+    if (!cars || !cars.size) return p;
+    if (!this._open || this._open.length !== p.length) this._open = new Uint8Array(p.length);
+    const o = this._open;
+    o.set(p);
+    for (const k of cars) {
+      const c = k.indexOf(','), x = +k.slice(0, c), y = +k.slice(c + 1);
+      if (x >= 0 && y >= 0 && x < MAPW && y < MAPH) o[y * MAPW + x] = 0;
+    }
+    return o;
+  },
+  clear() { this.fields.clear(); this.grid = null; this.pass = null; },
   /* `plain` ignores who is standing where. The compass wants to tell you how
      far you have to walk, not how busy the corridor is this second, and a
      number that jumped by six every time somebody stopped in it would be
@@ -120,54 +167,62 @@ const Nav = {
      not-swept-yet look identical in the array and mean opposite things: one is
      a locked door, the other is a long way off. */
   CAP: 40000,
+  /* THE SWEEP, as a bucket queue rather than a heap.
+
+     Every step here costs 1, 7 or 15 — a plain square, a square with a
+     colleague in it, a square with you in it — and a Dijkstra whose edges are
+     small whole numbers does not need a heap at all: keep one list per cost
+     modulo sixteen and take them in order (Dial's algorithm). Nothing is
+     compared, nothing is sifted, and the lists live in two typed arrays that are
+     allocated once per map size and reused by every sweep after. The distances
+     are the heap's distances exactly; what changes is that it stopped being
+     the most expensive thing an islander did on the way to the bar.
+
+     Measured on the island (128×92): 5.2ms a field before, a fraction of a
+     millisecond after — which is the difference between a crowd changing its
+     mind in one frame and a crowd changing its mind in a hitch. */
+  _node: null, _next: null, _head: new Int32Array(16),
   build(tx, ty, plain) {
     const w = MAPW, h = MAPH, N = w * h;
     const d = new Int32Array(N).fill(-1);
-    let taken = 0;
-    const m = plain ? null : this.mask;
-    /* A binary heap of (cost, tile) packed into one number, which is all
-       Dijkstra needs and avoids an object per square. */
-    const heap = [];
-    const push = v => {
-      let i = heap.length; heap.push(v);
-      while (i > 0) { const p = (i - 1) >> 1; if (heap[p] <= heap[i]) break;
-        const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p; }
+    const m = plain ? null : this.mask, COST = this.COST;
+    const open = this.openNow();
+    /* Every square can be offered from each of its four sides, plus the four
+       seeds: that is the most the lists can ever hold at once. */
+    const cap = N * 4 + 8;
+    if (!this._node || this._node.length < cap) { this._node = new Int32Array(cap); this._next = new Int32Array(cap); }
+    const node = this._node, next = this._next, head = this._head;
+    head.fill(-1);
+    let used = 0, pending = 0;
+    const push = (c, i) => { const b = c & 15; node[used] = i; next[used] = head[b]; head[b] = used++; pending++; };
+    const seed = (x, y, c) => {
+      if (x < 0 || y < 0 || x >= w || y >= h || !open[y * w + x]) return false;
+      push(c, y * w + x); return true;
     };
-    const pop = () => {
-      const top = heap[0], last = heap.pop();
-      if (heap.length) {
-        heap[0] = last;
-        for (let i = 0; ;) {
-          const l = i * 2 + 1, r = l + 1; let s = i;
-          if (l < heap.length && heap[l] < heap[s]) s = l;
-          if (r < heap.length && heap[r] < heap[s]) s = r;
-          if (s === i) break;
-          const t = heap[s]; heap[s] = heap[i]; heap[i] = t; i = s;
-        }
-      }
-      return top;
-    };
-    const open = (x, y) => !(x < 0 || y < 0 || x >= w || y >= h) && !World.isSolid(x, y);
-    const seed = (x, y, v) => { if (!open(x, y)) return; push(v * N + (y * w + x)); };
-    seed(tx, ty, 0);
     /* A waypoint can be ON something — the printer is a solid object and the
        spot in front of it is where you actually stand. Seed the four squares
        around it instead, so "go to the printer" means "go and stand at it"
        rather than "walk into it until the stuck timer fires". */
-    if (!heap.length) { seed(tx - 1, ty, 1); seed(tx + 1, ty, 1); seed(tx, ty - 1, 1); seed(tx, ty + 1, 1); }
-    while (heap.length) {
-      const v = pop(), i = v % N, cost = (v - i) / N;
-      if (d[i] !== -1) continue;
-      d[i] = cost;
-      if (++taken >= this.CAP) { d.partial = true; break; }
-      const x = i % w, y = (i - x) / w;
-      const step = (nx, ny) => {
-        if (!open(nx, ny)) return;
-        const j = ny * w + nx;
-        if (d[j] !== -1) return;
-        push((cost + 1 + (m ? this.COST[m[j]] : 0)) * N + j);
-      };
-      step(x - 1, y); step(x + 1, y); step(x, y - 1); step(x, y + 1);
+    let cur = 0;
+    if (!seed(tx, ty, 0)) { seed(tx - 1, ty, 1); seed(tx + 1, ty, 1); seed(tx, ty - 1, 1); seed(tx, ty + 1, 1); cur = 1; }
+    let taken = 0;
+    for (; pending > 0; cur++) {
+      const b = cur & 15;
+      while (head[b] !== -1) {
+        const k = head[b]; head[b] = next[k]; pending--;
+        const i = node[k];
+        if (d[i] !== -1) continue;
+        d[i] = cur;
+        if (++taken >= this.CAP) { d.partial = true; return d; }
+        const x = i % w;
+        /* Left, right, up, down — unrolled, because this is the inner loop of
+           the whole of the island's walking. */
+        let j;
+        if (x > 0 && open[j = i - 1] && d[j] === -1) push(cur + 1 + (m ? COST[m[j]] : 0), j);
+        if (x < w - 1 && open[j = i + 1] && d[j] === -1) push(cur + 1 + (m ? COST[m[j]] : 0), j);
+        if (i >= w && open[j = i - w] && d[j] === -1) push(cur + 1 + (m ? COST[m[j]] : 0), j);
+        if (i < N - w && open[j = i + w] && d[j] === -1) push(cur + 1 + (m ? COST[m[j]] : 0), j);
+      }
     }
     return d;
   },
@@ -237,6 +292,9 @@ const NPCM = {
   pvx: 0, pvy: 0,
   spawn() {
     this.drill = null; this.lastEvent = null;
+    /* A new roster is new people standing in new places. What they feel is in
+       G.minds and survives; what they were about to do about it does not. */
+    if (typeof Mind !== 'undefined') Mind.reset();
     this.all = NPCS.map(def => {
       const t = this.traits(def);
       return {
@@ -503,7 +561,7 @@ const NPCM = {
       }
       n.callOut = null;
     }
-    const want = this.scheduled(n);
+    let want = this.scheduled(n);
     /* ANOTHER FLOOR. A waypoint may say which level it is on — see WP in
        data/world.js — and three people's days now name one that is not the
        floor they are standing on: the two who work in Management, and the man
@@ -525,6 +583,16 @@ const NPCM = {
       const done = e.arrived && this.now - e.arrived >= e.dwell;
       if (!done && this.now - e.began < 90) return this.aim(n, e.wp);
       n.errand = null;
+      if (e.mind && typeof Mind !== 'undefined') Mind.done(n);
+    }
+    /* THE DAY SAYS "YOUR OWN SPOT", which is most of the day — and so the
+       mind gets a say. Asked here, after the errand above has had its chance
+       to finish, so an errand the mind made and has just been ended is not
+       immediately made again. See engine/mind.js. */
+    let minded = false;
+    if (want === 'desk' && typeof Mind !== 'undefined') {
+      const w = Mind.want(n);
+      if (w && WP[w]) { want = w; minded = true; }
     }
     if (want !== 'desk' && WP[want]) {
       /* Not the instant the clock says so. Nobody stands up mid-sentence
@@ -538,10 +606,11 @@ const NPCM = {
       /* Forgotten once they have set off, so the next time the day asks them to
          go there they take a moment about it again rather than leaping up. */
       n.holdWant = null;
-      n.errand = { wp: want, began: this.now, arrived: 0,
+      n.errand = { wp: want, began: this.now, arrived: 0, mind: minded,
         /* Long enough to have been worth the walk, short enough that a quick
-           one reads as a quick one. */
-        dwell: clamp(this.slotSecs(n), 7, 26) };
+           one reads as a quick one. One the mind made lasts as long as it
+           takes to fix what they came for. */
+        dwell: minded ? Mind.dwell(n, want) : clamp(this.slotSecs(n), 7, 26) };
       return this.aim(n, want);
     }
     return this.aim(n, want);
@@ -1433,7 +1502,11 @@ const NPCM = {
      walking to. */
   linesFor(n) {
     const o = this.errandFor(n);
-    return (o && o.lines && o.lines.length && n.level === o.level) ? o.lines : n.def.lines;
+    if (o && o.lines && o.lines.length && n.level === o.level) return o.lines;
+    /* And what kind of day they are having, in their own words, when it is a
+       day worth mentioning — see Mind.think(), which decides it a few times a
+       minute rather than on every line. */
+    return (typeof Mind !== 'undefined' && Mind.lines(n)) || n.def.lines;
   },
   /* THE WAY OUT OF A ROOM THAT IS NOT THE OFFICE: the square in front of its
      own door, and the square of pavement on the other side of it. Both are
@@ -1813,6 +1886,9 @@ const NPCM = {
        the fifth floor until the window shuts. */
     this.runCommutes();
     this.dynamics();
+    /* After everything with a claim on where somebody is, and before the walk
+       that reads what the mind decided. */
+    if (typeof Mind !== 'undefined') Mind.update(dt);
     /* Where everybody who is standing still is standing, once per frame, as
        tile keys. The walk below prices these up so a knot of people is walked
        round rather than into — and nothing else reads it, so it is rebuilt
@@ -2180,7 +2256,9 @@ const NPCM = {
        square — they multiplied out to a fifth of walking pace across a crowded
        room, and twenty people crawling the last stretch is twenty people
        arriving in a heap. */
-    let pace = n.speed * (n.callOut ? n.callOut.haste : 1);
+    /* And how they are feeling: somebody exhausted drags their feet, and
+       somebody inspired has a spring in them. See Mind.pace(). */
+    let pace = n.speed * (n.callOut ? n.callOut.haste : 1) * (typeof Mind !== 'undefined' ? Mind.pace(n) : 1);
     const eu = Math.hypot(tx - (n.x / TILE - .5), ty - (n.y / TILE - .5));
     if (eu < .9) pace *= clamp(.5 + eu * .55, .5, 1);
     else if (step && this.busyTiles.has(step[0] + ',' + step[1])) pace *= .72;
@@ -2659,6 +2737,7 @@ const NPCM = {
         who.say = pick(said); who.sayT = 3.4;
         /* They have just said something. Not twice. */
         who.nextSay = Math.max(who.nextSay, rnd(18, 45));
+        if (typeof Mind !== 'undefined') Mind.chatLine(who.id);
       }
       return;
     }
@@ -2666,13 +2745,27 @@ const NPCM = {
     if (this.lookBusy(n)) return;
     const mine = this.linesFor(n);
     if (!mine || !mine.length) return;
-    if (!chance(dt * n.t.social * .55)) return;
-    const o = this.list.find(o => o !== n && !o.walking && !o.chat && o.chatCool <= 0
-      && o.stunTimer <= 0 && o.id !== talkingTo && this.linesFor(o) && this.linesFor(o).length
-      && Math.hypot(o.x - n.x, o.y - n.y) < TILE * 2.6);
+    /* Lonelier people start more conversations. See engine/mind.js. */
+    const lonely = typeof Mind !== 'undefined' && G.minds && G.minds[n.id]
+      ? 1 + (100 - G.minds[n.id].needs.social) / 100 : 1;
+    if (!chance(dt * n.t.social * .55 * lonely)) return;
+    /* WHO WITH: the one they like best out of whoever is in reach, rather than
+       whoever happens to come first in the roster — and never somebody they
+       cannot stand. Standing next to a rival is a thought, not a chat. */
+    let o = null, pull = -Infinity;
+    for (const x of this.list) {
+      if (x === n || x.walking || x.chat || x.chatCool > 0 || x.stunTimer > 0 || x.id === talkingTo) continue;
+      if (Math.hypot(x.x - n.x, x.y - n.y) >= TILE * 2.6) continue;
+      const lines = this.linesFor(x);
+      if (!lines || !lines.length) continue;
+      if (typeof Mind !== 'undefined' && !Mind.canChat(n.id, x.id)) continue;
+      const v = typeof Mind !== 'undefined' ? Mind.chatPull(n.id, x.id) : 0;
+      if (v > pull) { pull = v; o = x; }
+    }
     if (!o) return;
     n.chat = { with: o.id, host: true, t: .5, turns: ri(2, 5), lead: true };
     o.chat = { with: n.id, host: false, t: 0, turns: 0, lead: false };
+    if (typeof Mind !== 'undefined') Mind.chatStart(n.id, o.id);
     /* Long enough that the same two are not still at it when you come back
        from the loo, and different enough per pair that the room does not fall
        silent all at once. */

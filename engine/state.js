@@ -21,6 +21,11 @@ const P = {
 const G = {
   day: 1, minutes: DAY_START, state: 'title',
   flags: {}, quests: {}, achievements: {}, rel: {},
+  /* How every islander is doing — needs, mood, what has happened to them
+     lately, and what they think of each other. engine/mind.js owns it; plain
+     data, so {...G} in Save.write carries it and a reloaded evening finds
+     Kai exactly as stoked as he was. */
+  minds: {},
   todayStats: {},
   /* `written` is the encounters that arrived in an inbox rather than on a
      phone. Counted beside `calls` rather than instead of it: both are things
@@ -90,6 +95,8 @@ function resetRun() {
   G.day = 1; G.minutes = DAY_START; G.state = 'play';
   G.totals = freshTotals();
   G.todayStats = {}; G.flags = {}; G.quests = {}; G.achievements = {}; G.rel = {};
+  G.minds = {};
+  if (typeof Mind !== 'undefined') Mind.reset();
   G.comms = { mail: [], text: [], chat: [], log: [], calls: [] };
   Comms.hush();
   G.chatSent = {}; G.mailSent = {}; G.textSent = {};

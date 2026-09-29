@@ -3,6 +3,8 @@
 const Dialogue = {
   on: false, npc: null, node: null, pages: [], page: 0, typed: 0, full: '', typing: false, sel: 0,
   openNPC(npc) {
+    /* Being spoken to is company, and some people live for it. */
+    if (typeof Mind !== 'undefined' && npc.id) Mind.event(npc.id, 'talked');
     const id = npc.def.entry ? npc.def.entry() : 'again';
     const node = npc.def.nodes[id] || npc.def.nodes.again || { text: ['...'] };
     this.open(npc, node, npc.def);
@@ -38,7 +40,10 @@ const Dialogue = {
     }
     $('#dName').textContent = (who.name || (who.def && who.def.name) || '???').toUpperCase();
     $('#dRole').textContent = who.role || (who.def && who.def.role) || '';
-    $('#dMood').textContent = id && G.rel[id] !== undefined ? Rel.label(G.rel[id]) : '';
+    /* How they are with you, and then how they are — the second is the day
+       they are having, which is worth knowing before you flirt. */
+    const badge = id && typeof Mind !== 'undefined' ? Mind.badge(id) : '';
+    $('#dMood').textContent = [id && G.rel[id] !== undefined ? Rel.label(G.rel[id]) : '', badge].filter(Boolean).join(' · ');
     this.setNode(node);
   },
   /* The portrait's expression, kept up with the conversation. A face that is

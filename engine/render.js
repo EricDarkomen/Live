@@ -3483,6 +3483,19 @@ const R = {
       c.beginPath(); c.roundRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8); c.stroke(); c.restore();
     }
     if (!this.cinema && this.questMark(n)) this.emoji('❗', at.x + 13, box.y - 4, 15);
+    /* WHAT IS ON THEIR MIND, the way the colony games show it: a small icon
+       over the head when a need is running out, a mood is at the bottom, or
+       they are inspired. Opposite shoulder to the quest mark so both fit, and
+       not while they are speaking — the bubble is already saying it. */
+    else if (!this.cinema && !(n.sayT > 0) && typeof Mind !== 'undefined') {
+      const ic = Mind.icon(n);
+      if (ic) {
+        const ix = at.x + 14, iy = box.y - 2 + (this.animate ? Math.sin(n.bob * .8) * 1.5 : 0);
+        c.save(); c.fillStyle = 'rgba(12,18,28,.62)';
+        c.beginPath(); c.arc(ix, iy, 9, 0, Math.PI * 2); c.fill(); c.restore();
+        this.emoji(ic, ix, iy, 12);
+      }
+    }
     if (sprite) {
       /* Standing colleagues breathe. Walking ones do not need it — the
          walk cycle already moves them — and a seated one is holding a

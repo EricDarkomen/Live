@@ -19,6 +19,13 @@ linen suit who very much wants to buy it.
   and pays cash.
 - **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade or Luca
   to the lantern at Lovers' Cove after sunset.
+- **Get to know them.** Everybody on the island has needs — energy, a cold
+  drink, fun, company, and a passion of their own (Kai's stoke, Luca's groove,
+  Mama Coco's gossip) — and a mood built out of those and of whatever has
+  happened to them lately. When the day leaves them free they go and do
+  something about it; when it all gets too much they have a moment; when it
+  is going brilliantly they are inspired, and a flirt goes further. The
+  **Islanders** tab (`U`) shows how everybody you have met is doing, and why.
 - **Explore.** A road loop round the island, a beach buggy to drive it in, a
   plaza, a yoga deck, a hidden lagoon in the jungle, a water pistol at the
   surf shack, and a wardrobe of swimwear at your beach hut.
@@ -29,7 +36,9 @@ The bar is open 11:00–19:00; after that it is golden hour, sunset at 20:15, an
 the night is yours. The game saves itself.
 
 It runs on the engine that shipped with this repository — pathfinding
-islanders with their own days, branching dialogue, jobs, skills, weather,
+islanders with their own days and minds of their own (needs, moods, thoughts
+and opinions of each other, in the spirit of Oxygen Not Included and
+RimWorld — see `engine/mind.js`), branching dialogue, jobs, skills, weather,
 traffic, driving, three arcade minigames, a map — and the Liberated Pixel Cup
 character art, including beachwear derived from it (see `art/CREDITS.md`).
 
@@ -53,7 +62,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
 | Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
 | The map    | `N`, or the minimap             | `☰` · Map                      |
-| Panels     | `J I K P L`, `T` for today’s takings, `Esc` for menu | `☰`            |
+| Panels     | `J I K U P L`, `T` for today’s takings, `Esc` for menu | `☰`          |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
 | Save/load  | `F5` / `F9`                     | `☰` · Menu                     |
@@ -124,6 +133,7 @@ python3 -m http.server 8000    # then http://localhost:8000/editor.html
 | `data/island.js` | Isla Solana itself, built from rules: coast, beaches, roads, jetty, cove, lagoon |
 | `data/levels.js` | The Driftwood, your beach hut, Mama Coco's |
 | `data/npcs.js` | The islanders and everything they say |
+| `data/minds.js` | How the islanders feel: needs, passions, quirks, friendships, and their moods in their own words |
 | `data/callers.js` | Bar guests, messages, moves, and the two big encounters |
 | `data/garden.js` | The garden, the blender, the supply boat's orders, and dates |
 | `data/items.js` | Items, skills, jobs, achievements, minigame cabinets, shops |

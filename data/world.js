@@ -154,7 +154,7 @@ const WP = {
   hammock: [29, 11, 'bar'], burnout: [28, 11, 'bar'],
   fountain: [66, 45, 'island'], garden: [44, 42, 'island'], yoga: [85, 34, 'island'],
   sands: [60, 79, 'island'], jetty: [112, 47, 'island'], cove: [15, 46, 'island'],
-  lagoon: [60, 16, 'island'], surfshack: [92, 78, 'island'], stall: [62, 38, 'island'],
+  lagoon: [60, 16, 'island'], surfshack: [89, 77, 'island'], stall: [62, 38, 'island'],
   till: [6, 3, 'market']
 };
 

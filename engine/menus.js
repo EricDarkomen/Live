@@ -107,6 +107,7 @@ const Save = {
       G.todayStats = G.todayStats || {}; G.flags = G.flags || {}; G.quests = G.quests || {};
       G.achievements = G.achievements || {}; G.rel = G.rel || {}; G.callers = G.callers || {};
       G.endings = G.endings || [];
+      G.minds = G.minds && typeof G.minds === 'object' ? G.minds : {};
       G.discovered = G.discovered || {}; G.chatSent = G.chatSent || {};
       G.mailSent = G.mailSent || {}; G.textSent = G.textSent || {};
       /* A SAVE WRITTEN BEFORE THE CHANNELS EXISTED carried G.chat and G.mail —
