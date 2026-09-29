@@ -25,7 +25,7 @@
  * slept through is a night that happened to the garden too. */
 
 /* How long fresh things keep, in island minutes (a day is 1440). */
-const PERISH = { mint: 1440, strawberry: 2000, mango: 2800, lime: 4300, pineapple: 4300, coconut: 8600 };
+const PERISH = { mint: 1440, strawberry: 2000, mango: 2800, lime: 4300, pineapple: 4300, coconut: 8600, fish: 1300 };
 /* In the fridge everything keeps this many times longer. */
 const FRIDGE_SLOW = 4, FRIDGE_CAP = 30;
 /* How much of a plot's water goes a minute, by the sky. At the sunny rate a
@@ -394,6 +394,26 @@ const NPC_ACTS = {
     if (here) { n.say = ok ? pick(['Fridge is FULL. I could kiss you.', 'Limes! Actual limes!']) : pick(['No limes. NO LIMES.', 'Who emptied my fridge? Nobody. Nobody filled it.']); n.sayT = 3.6; }
     else if (G.rel.mari !== undefined) UI.toast('💃', ok ? 'Mari stocked the bar from your fridge. Tips will be better today.' : 'Mari opened up to an empty fridge. No fruit for the bar today.', ok ? 'good' : 'bad');
   }
+};
+/* Nico lands the morning catch: his crate and Rosie's fish tacos are open for
+   the day. See `landCatch` in his routine. */
+NPC_ACTS.landCatch = n => {
+  G.flags.catchDay = G.day;
+  if (n && n.level === World.level && Cam.visible(n.x, n.y)) { n.say = pick(['Good catch. Don’t tell Teo.', 'Snapper. Fat ones.']); n.sayT = 3.4; }
+};
+/* Rosie's lunch rush: everybody on the island within a walk of the plaza has
+   had a taco, and is the better for it. */
+NPC_ACTS.lunchRush = n => {
+  if (typeof Mind === 'undefined') return;
+  for (const o of NPCM.all) {
+    if (o.level !== 'island' || o.id === 'rosie' || o.away) continue;
+    const m = Mind.of(o.id);
+    m.needs.thirst = Math.min(100, m.needs.thirst + 25);
+    m.needs.social = Math.min(100, m.needs.social + 10);
+    Mind.add(o.id, 'tacos');
+  }
+  Mind.train('rosie', 'cooking', 6);
+  if (n && n.level === World.level && Cam.visible(n.x, n.y)) { n.say = pick(['¡A COMER!', 'Tacos! Get them while I still like you!']); n.sayT = 3.6; }
 };
 /* How much more a guest tips today — read by the bar. */
 Farm.tipMult = () => (G.flags.stocked === G.day ? STOCK.tips : 1);

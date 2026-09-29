@@ -222,6 +222,18 @@ const Acts = {
   /* ---- Inside the loop ---- */
   plot(o) { Garden.act(o); },
   waterButt() { Farm.butt(); },
+  /* The newcomers' places. */
+  tacoTruck() {
+    insp('🌮', 'Rosie’s Taco Truck', 'Open when Rosie says so', ['A hand-painted truck with a hatch, a hot plate and a radio playing cumbia at a volume that is a statement.',
+      'The menu is chalked on the side: tacos, fish tacos when Nico has been out, agua fresca. The prices have been rubbed out and written lower three times. Mama Coco’s shop is directly opposite.'],
+      [{ t: 'Order something.', to: null, do() { Shop.open('rosie'); } }, { t: 'Leave it.', to: null }]);
+  },
+  fishCrate() {
+    const fresh = G.flags.catchDay === G.day;
+    insp('🐟', 'Nico’s fish crate', fresh ? 'Today’s catch' : 'Empty', [fresh ? 'Ice, and on the ice, fish that were in the sea at dawn. A chalk sign says: CASH. NO HAGGLING. NO TEO.' : 'Empty apart from the ice and a smell. Nico has not landed a catch today — or he has, and it is gone.'],
+      (fresh ? [{ t: 'Buy some fish.', to: null, do() { Shop.open('nico'); } }] : []).concat([{ t: 'Leave it.', to: null }]));
+  },
+  researchKit() { insp('🔬', 'Amara’s field station', 'Do not touch the jars', ['A folding table weighed down with rocks, a microscope under a towel, and forty numbered jars of seawater. A clipboard says PARROTFISH COUNT and then a very long list of tally marks.', 'Pinned to the table leg, in red pen: “STERLING RESORTS = SEWAGE OUTFLOW. ASK ME WHY.”']); },
   /* The farm's stations — data/farm.js. */
   compostBin() { Stations.bin(); },
   dryingRack() { Stations.rack(); },

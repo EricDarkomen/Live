@@ -248,6 +248,8 @@ const ORDER_POOL = [
   { who: 'The Coral Resort’s minibars', e: '🏨', want: { coconut_chips: 2 }, pay: 68 },
   { who: 'A hiking club, very serious', e: '🥾', want: { dried_pineapple: 1, dried_strawberry: 2 }, pay: 52 },
   { who: 'The botanical garden on Isla Perla', e: '🌺', want: { compost: 3 }, pay: 30 },
+  { who: 'The Coral Resort’s kitchen', e: '🐟', want: { fish: 3 }, pay: 38 },
+  { who: 'A beach wedding (the tacos fell through)', e: '💒', want: { fish: 2, lime: 3 }, pay: 45 },
 ];
 const Orders = {
   board() {
@@ -294,6 +296,12 @@ const DATE_LINES = {
   mari: ['Mari kicks off her sandals and sits with her toes in the water. “Rafa used to say this cove was built for bad decisions.”', 'She leans her head on your shoulder. “I think I’d like to make one.”', 'The lantern flickers. Neither of you notices for quite a while.'],
   kai: ['Kai turns up with two coconuts and a guitar he cannot play. He plays it anyway, badly, grinning the whole time.', '“I’m not usually nervous,” he says, and puts the guitar down, and does not seem nervous at all.', 'The tide comes in round your ankles. Neither of you moves.'],
   jade: ['Jade arrives off-duty, hair down, still smelling of sun cream. “Don’t tell anyone I left the tower.”', 'She challenges you to a race to the rock and back and wins, obviously, and then pulls you under anyway.', 'Afterwards you lie on the warm sand, dripping, watching the first stars come out.'],
+  nico: ['Nico turns up late, in a clean shirt that is still creased from the packet, holding two grilled fish on sticks like flowers.',
+    'He does not say much. He points out the stars the fishermen steer by, one by one, and names each one after something on the island you both know.',
+    'When the lantern gutters he relights it without a word, and then — quietly, looking at the sea — “I don’t do this. For the record.”'],
+  amara: ['Amara brings a flask of coffee and a waterproof torch, and makes you promise to look at something before anything else happens.',
+    'She wades out to her knees and switches the torch off. The water lights up green-blue around her legs, every ripple glowing. “Bioluminescence,” she whispers. “Plankton. They do this when they’re disturbed.”',
+    'She comes back, wet to the thighs, and sits very close. “I’m disturbed,” she says. “Your fault.”'],
   luca: ['Luca brings a blanket, a bottle of something Italian and absolutely no plan.', '“In Napoli we say the sea keeps secrets,” he murmurs. “So — tell me one.”', 'You tell him one. He tells you three. The lantern burns down to a glow.'],
 };
 const Dates = {

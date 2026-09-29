@@ -139,6 +139,8 @@ const Island = {
     put({ x: 62, y: 36, e: '🍉', name: 'The fruit stall', kind: 'stall', solid: true, use: 'fruitStall' });
     put({ x: 70, y: 36, e: '🍦', name: 'The ice-cream cart', kind: 'stall', solid: true, use: 'iceCream' });
     put({ x: 66, y: 49, e: '📋', name: 'The island noticeboard', kind: 'board', solid: true, use: 'noticeboard' });
+    /* Rosie's taco truck, parked where it has been parked for eleven years. */
+    put({ x: 57, y: 43, e: '🌮', name: 'Rosie’s Taco Truck', kind: 'stall', solid: true, use: 'tacoTruck' });
     /* The yoga deck, which faces the sunrise and the people doing it. */
     room('yoga', 80, 29, 90, 38);
     surf('boards', 80, 29, 90, 38);
@@ -151,11 +153,15 @@ const Island = {
     put({ x: 124, y: 47, e: '⛵', name: 'The supply boat', kind: 'boat', solid: true, use: 'supplyBoat' });
     put({ x: 108, y: 45, e: '📜', name: 'The order board', kind: 'board', solid: true, use: 'orderBoard' });
     put({ x: 119, y: 45, e: '🧳', name: 'Your suitcase', kind: 'misc', solid: true, use: 'suitcase' });
+    /* Nico's end of the jetty, which he will tell you is not Teo's end. */
+    put({ x: 123, y: 46, e: '🐟', name: 'Nico’s fish crate', kind: 'misc', solid: true, use: 'fishCrate' });
 
     /* LOVERS' COVE — a horseshoe of rock on the west shore and one lantern. */
     surf('rock', 6, 38, 11, 40); surf('rock', 6, 53, 11, 55);
     put({ x: 13, y: 45, e: '🏮', name: 'The cove lantern', kind: 'torch', solid: true, use: 'coveLantern' });
     put({ x: 12, y: 48, e: '🧺', name: 'A picnic blanket', kind: 'towel', solid: false, use: 'picnic' });
+    /* Amara's field station: a folding table, a microscope and a lot of jars. */
+    put({ x: 13, y: 51, e: '🔬', name: 'Amara’s field station', kind: 'misc', solid: true, use: 'researchKit' });
 
     /* THE LAGOON, which is not on the tourist map, which is the point. */
     surf('water', 55, 10, 65, 14);
