@@ -22,10 +22,10 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%85%3C/text%3E%3C/svg%3E">
 <title>Tan Lines</title>
 <link rel="stylesheet" href="css/base.css?v=20260929">
-<link rel="stylesheet" href="css/hud.css?v=20260929">
+<link rel="stylesheet" href="css/hud.css?v=20261001">
 <link rel="stylesheet" href="css/dialogue.css?v=20260929">
 <link rel="stylesheet" href="css/combat.css?v=20260929">
-<link rel="stylesheet" href="css/panels.css?v=20260930">
+<link rel="stylesheet" href="css/panels.css?v=20261001">
 <link rel="stylesheet" href="css/comms.css?v=20260929">
 <link rel="stylesheet" href="css/controls.css?v=20260929">
 <link rel="stylesheet" href="css/arcade.css?v=20260929">
@@ -195,6 +195,7 @@
                  to draw in. The Profile panel carries the full numbers. -->
             <div class="bar-row"><span class="lbl" title="Nerve">❤️</span><span class="bar" role="progressbar" aria-label="Nerve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bPat" style="background:linear-gradient(90deg,#ff5f56,#ff8f56)"></i></span><span class="val"><b id="vPat">100</b><i id="mPat">/100</i></span></div>
             <div class="bar-row"><span class="lbl" title="Energy">⚡</span><span class="bar" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bEne" style="background:linear-gradient(90deg,#ffb347,#ffe08a)"></i></span><span class="val"><b id="vEne">100</b><i id="mEne">/100</i></span></div>
+            <div class="bar-row"><span class="lbl" title="Food">🍽️</span><span class="bar" role="progressbar" aria-label="Food" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bFood" style="background:linear-gradient(90deg,#5ad48a,#c6f36b)"></i></span><span class="val"><b id="vFood">100</b><i>/100</i></span></div>
             <div class="bar-row"><span class="lbl" title="Experience">⭐</span><span class="bar" role="progressbar" aria-label="Experience" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="bXp" style="background:linear-gradient(90deg,#4da3ff,#b48cff)"></i></span><span class="val"><b id="vXp">0</b><i id="mXp">/100</i></span></div>
           </div>
         </div>
@@ -275,6 +276,7 @@
         <button data-comms="mail"><span class="kh-i" aria-hidden="true">💌</span>M · Post</button>
         <button data-comms="text"><span class="kh-i" aria-hidden="true">📱</span>V · Texts</button>
         <button data-comms="chat"><span class="kh-i" aria-hidden="true">💬</span>C · Chat</button>
+        <button data-panel="farm"><span class="kh-i" aria-hidden="true">🌾</span>O · Farm</button>
         <button data-panel="people"><span class="kh-i" aria-hidden="true">🌴</span>U · Islanders</button>
         <button data-panel="stats"><span class="kh-i" aria-hidden="true">🪪</span>P · Profile</button>
         <button data-panel="settings"><span class="kh-i" aria-hidden="true">⚙️</span>Esc · Menu</button>
@@ -439,15 +441,16 @@
 <script src="data/game.js?v=20260929"></script>
 <script src="data/world.js?v=20260929"></script>
 <script src="data/roads.js?v=20260929"></script>
-<script src="data/levels.js?v=20260929"></script>
-<script src="data/island.js?v=20260929"></script>
-<script src="data/npcs.js?v=20260930"></script>
-<script src="data/minds.js?v=20260930"></script>
-<script src="data/items.js?v=20260929"></script>
-<script src="data/garden.js?v=20260929"></script>
+<script src="data/levels.js?v=20261001"></script>
+<script src="data/island.js?v=20261001"></script>
+<script src="data/npcs.js?v=20261001"></script>
+<script src="data/minds.js?v=20261001"></script>
+<script src="data/items.js?v=20261001"></script>
+<script src="data/garden.js?v=20261001"></script>
+<script src="data/farm.js?v=20261001"></script>
 <script src="data/callers.js?v=20260929"></script>
 <script src="data/office.js?v=20260929"></script>
-<script src="data/acts.js?v=20260929"></script>
+<script src="data/acts.js?v=20261001"></script>
 <script src="engine/core.js?v=20260929"></script>
 <script src="engine/acts.js?v=20260929"></script>
 <script src="engine/controls.js?v=20260929"></script>
@@ -457,14 +460,14 @@
 <script src="engine/world.js?v=20260929"></script>
 <script src="engine/collide.js?v=20260929"></script>
 <script src="engine/levels.js?v=20260929"></script>
-<script src="engine/ui.js?v=20260929"></script>
+<script src="engine/ui.js?v=20261001"></script>
 <script src="engine/comms.js?v=20260929"></script>
-<script src="engine/progress.js?v=20260929"></script>
+<script src="engine/progress.js?v=20261001"></script>
 <script src="engine/office.js?v=20260929"></script>
 <script src="engine/dialogue.js?v=20260929"></script>
-<script src="engine/combat.js?v=20260929"></script>
+<script src="engine/combat.js?v=20261001"></script>
 <script src="engine/npc.js?v=20260930"></script>
-<script src="engine/mind.js?v=20260930"></script>
+<script src="engine/mind.js?v=20261001"></script>
 <script src="engine/sprites.js?v=20260929"></script>
 <script src="engine/faces.js?v=20260929"></script>
 <script src="engine/cars.js?v=20260929"></script>
@@ -472,13 +475,13 @@
 <script src="engine/signals.js?v=20260929"></script>
 <script src="engine/guns.js?v=20260929"></script>
 <script src="engine/render.js?v=20260929"></script>
-<script src="engine/panels.js?v=20260929"></script>
+<script src="engine/panels.js?v=20261001"></script>
 <script src="engine/map.js?v=20260929"></script>
 <script src="engine/menus.js?v=20260929"></script>
 <script src="engine/arcade.js?v=20260929"></script>
 <script src="engine/look.js?v=20260929"></script>
 <script src="engine/title.js?v=20260929"></script>
-<script src="engine/input.js?v=20260929"></script>
+<script src="engine/input.js?v=20261001"></script>
 <!-- The minigame library. Separate files on purpose: each is a whole game
      that knows only the interface in engine/arcade.js, and a fourth is a new
      file here rather than a change to anything above it. -->

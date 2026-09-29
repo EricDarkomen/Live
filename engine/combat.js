@@ -441,6 +441,9 @@ const Combat = {
     if (how === 'win') {
       xp = 30 + Math.round(E.maxFrus / 3) + (E.boss ? 180 : 0) + Sk.rank('persuade') * 8;
       money = E.boss ? 12 : 1.1 + Math.random();
+      /* A bar stocked from your own fridge this morning tips better — see
+         STOCK in data/farm.js. */
+      if (!E.boss && typeof Farm !== 'undefined' && Farm.tipMult) money *= Farm.tipMult();
       rep = E.boss ? 15 : 4; count('satisfied');
       msg = E.boss ? '' : pick(E.lines.win);
       /* A call won by reading them pays more than a call won by grinding the

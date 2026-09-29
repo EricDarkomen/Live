@@ -6,6 +6,9 @@
  *   Orders   the supply boat at the jetty wants things for the other islands.
  *   Dates    ask somebody to the cove at sunset, and turn up.
  *
+ * Water, spoilage, the fridge, the compost bin, the drying rack and your own
+ * hunger are the farm around all this, in data/farm.js.
+ *
  * All of it keeps its state in G.flags, which the save already carries, and
  * all of it tells time in ISLAND MINUTES — minutes since the first morning —
  * so a mango planted on Tuesday afternoon is ready on Wednesday whatever the
@@ -36,21 +39,38 @@ const CROPS = {
 const Garden = {
   plots() { return (G.flags.garden = G.flags.garden || {}); },
   state(o) { return this.plots()[o.plot] || null; },
-  /* 0 bare · 1 seedling · 2 growing · 3 ripe */
+  /* A plot is { c, at, g, w, dry, fert, pest, pestAt, bit, ripeAt, dead }:
+     the crop, when it went in, how many minutes of GROWING it has had (only
+     wet minutes count — see Farm.update()), how wet it is, how long it has
+     been bone dry, whether it was composted, whether something is eating it,
+     when it ripened, and whether it is past saving. A plot from an older
+     save is only { c, at } and is read as having grown the whole time. */
+  fix(p) {
+    if (p && p.g === undefined) { p.g = Math.min(CROPS[p.c].t, islandNow() - p.at); p.w = 1; p.dry = 0; if (p.g >= CROPS[p.c].t) p.ripeAt = islandNow(); }
+    return p;
+  },
+  /* 0 bare · 1 seedling · 2 growing · 3 ripe · 4 dead */
   stage(p) {
     if (!p) return 0;
-    const f = (islandNow() - p.at) / CROPS[p.c].t;
+    this.fix(p);
+    if (p.dead) return 4;
+    const f = p.g / CROPS[p.c].t;
     return f >= 1 ? 3 : f >= .5 ? 2 : 1;
   },
-  left(p) { return Math.max(0, Math.ceil(CROPS[p.c].t - (islandNow() - p.at))); },
+  /* Growing minutes still to go, at the pace it is growing now. */
+  left(p) { return Math.max(0, Math.ceil((CROPS[p.c].t - p.g) / (p.fert ? 1.35 : 1))); },
   look(o) {
     const p = this.state(o), s = this.stage(p);
-    return s === 0 ? { e: '🟫', name: 'A garden plot' }
-      : s === 1 ? { e: '🌱', name: ITEMS[p.c].n + ' — just planted' }
-      : s === 2 ? { e: '🪴', name: ITEMS[p.c].n + ' — growing' }
-      : { e: ITEMS[p.c].e, name: ITEMS[p.c].n + ' — ripe!' };
+    if (s === 0) return { e: '🟫', name: 'A garden plot' };
+    const nm = ITEMS[p.c].n;
+    if (s === 4) return { e: '🥀', name: nm + ' — ' + (p.dead === 'rotted' ? 'rotted on the vine' : 'withered') };
+    if (p.pest && s < 3) return { e: '🐛', name: nm + ' — something is eating it!' };
+    if (s < 3 && p.w <= 0) return { e: '🏜️', name: nm + ' — bone dry' };
+    return s === 1 ? { e: '🌱', name: nm + ' — just planted' + (p.w < .25 ? ' (thirsty)' : '') }
+      : s === 2 ? { e: '🪴', name: nm + ' — growing' + (p.w < .25 ? ' (thirsty)' : '') }
+      : { e: ITEMS[p.c].e, name: nm + ' — ripe!' };
   },
-  /* Keep the plots on the ground looking like what is in them. Cheap: twelve
+  /* Keep the plots on the ground looking like what is in them. Cheap: fifteen
      objects, only while you are on the island. */
   refresh() {
     if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
@@ -64,43 +84,102 @@ const Garden = {
   plant(o, seed) {
     const c = ITEMS[seed].crop;
     Item.take(seed);
-    this.plots()[o.plot] = { c, at: islandNow() };
+    /* Planted into damp earth: somebody turning a plot over waters it. */
+    this.plots()[o.plot] = { c, at: islandNow(), g: 0, w: .6, dry: 0 };
     Sfx.blip && Sfx.blip();
     FX.burst(P.x, P.y, '🌱', 6);
-    UI.toast('🌱', 'Planted <b>' + ITEMS[c].n + '</b>. Ready in about ' + clockDur(CROPS[c].t) + '.');
+    UI.toast('🌱', 'Planted <b>' + ITEMS[c].n + '</b>. Keep it watered and it’s ready in about ' + clockDur(CROPS[c].t) + '.');
     qTo('q_garden', 2);
+    this.refresh();
+  },
+  water(o) {
+    const p = this.state(o);
+    if (!Farm.useCan()) return;
+    p.w = 1; p.dry = 0;
+    FX.burst(P.x, P.y, '💧', 8, '#4dd4ff');
+    UI.toast('💧', 'Watered the <b>' + ITEMS[p.c].n.toLowerCase() + '</b>. ' + Farm.canWords() + '.');
+    this.refresh();
+  },
+  feed(o) {
+    const p = this.state(o);
+    Item.take('compost');
+    p.fert = true;
+    FX.burst(P.x, P.y, '🪱', 6);
+    UI.toast('🪱', 'Dug compost into the <b>' + ITEMS[p.c].n.toLowerCase() + '</b>. It will grow faster and give more.', 'good');
+  },
+  shoo(o) {
+    const p = this.state(o);
+    p.pest = false; p.pestAt = 0;
+    FX.burst(P.x, P.y, '🐛', 5);
+    UI.toast('🐛', pick(['You flick a caterpillar into the jungle. It will be back. They always come back.', 'A land crab was having lunch. You have a stern word. It leaves, sideways.', 'Aphids. You squish them, apologising to each one.']));
+    Player.xp(2);
+    this.refresh();
+  },
+  clear(o) {
+    const p = this.state(o);
+    delete this.plots()[o.plot];
+    Item.give('scraps', true); Item.give('scraps', true);
+    UI.toast('🍂', 'Cleared the dead ' + ITEMS[p.c].n.toLowerCase() + '. Two handfuls of scraps for the compost.');
     this.refresh();
   },
   harvest(o) {
     const p = this.state(o);
-    const c = CROPS[p.c], n = c.n + (Math.random() < .3 ? 1 : 0);
+    const c = CROPS[p.c];
+    /* PRIME is the reward for looking after it: composted, never once let
+       dry, never nibbled. */
+    const prime = p.fert && !p.everDry && !p.bit;
+    let n = c.n + (p.fert ? 1 : 0) - (p.bit ? 1 : 0) + (Math.random() < .3 ? 1 : 0) + (prime ? 1 : 0);
+    n = Math.max(1, n);
     for (let i = 0; i < n; i++) Item.give(p.c, true);
+    /* And the garden starts to feed itself: seed back, and scraps for the bin. */
+    const seed = Object.keys(ITEMS).find(k => ITEMS[k].crop === p.c);
+    const gotSeed = seed && Math.random() < (p.fert ? .55 : .35);
+    if (gotSeed) Item.give(seed, true);
+    if (Math.random() < .6) Item.give('scraps', true);
     delete this.plots()[o.plot];
     FX.burst(P.x, P.y, ITEMS[p.c].e, 10);
-    UI.toast(ITEMS[p.c].e, 'Picked <b>' + n + ' × ' + ITEMS[p.c].n + '</b>.', 'gold');
-    Player.xp(c.xp);
+    UI.toast(ITEMS[p.c].e, (prime ? '🏅 <b>Prime!</b> ' : '') + 'Picked <b>' + n + ' × ' + ITEMS[p.c].n + '</b>'
+      + (gotSeed ? ' and saved the seed' : '') + '.', 'gold');
+    Player.xp(c.xp + (prime ? 6 : 0));
+    if (prime) Ach.get('a_prime');
     G.flags.harvests = (G.flags.harvests || 0) + 1;
     if (G.flags.harvests >= 10) Ach.get('a_green');
     qTo('q_garden', 3);
     this.refresh();
   },
   act(o) {
+    Farm.update();
     const p = this.state(o), s = this.stage(p);
+    if (s === 4) {
+      insp('🥀', 'A garden plot', p.dead === 'rotted' ? 'Rotted' : 'Withered', [p.dead === 'rotted'
+        ? 'It was ripe, and nobody picked it, and now the fruit has gone to mush and the wasps have found it.'
+        : 'Dry for too long. The leaves crumble when you touch them.', 'At least it will make good compost.'],
+        [{ t: 'Clear it for the compost.', to: null, do: () => this.clear(o) }, { t: 'Leave it.', to: null }]);
+      return;
+    }
     if (s === 3) {
-      insp(ITEMS[p.c].e, 'A garden plot', 'Ripe', ['Heavy, sweet and warm from the sun. Ready.'],
+      insp(ITEMS[p.c].e, 'A garden plot', 'Ripe', ['Heavy, sweet and warm from the sun. Ready.',
+        p.fert && !p.everDry && !p.bit ? 'Composted and never let dry. This is a prime crop.' : 'Pick it before it goes over — ripe fruit does not wait.'],
         [{ t: 'Pick it all.', to: null, do: () => this.harvest(o) }, { t: 'Leave it a bit longer.', to: null }]);
       return;
     }
     if (s > 0) {
-      insp(s === 1 ? '🌱' : '🪴', 'A garden plot', 'Growing', [
-        ITEMS[p.c].n + ', coming along. About ' + clockDur(this.left(p)) + ' to go.',
-        pick(['Watching it will not make it grow faster. You watch it anyway.', 'A gecko is sitting on it, supervising.', 'Rafa used to talk to his plants. You try it. It feels nice.'])]);
+      const lines = [ITEMS[p.c].n + ', coming along. ' + Farm.plotWords(p)];
+      if (p.pest) lines.push('Something is chewing the leaves. Shoo it, or it will eat into the harvest.');
+      else lines.push(pick(['Watching it will not make it grow faster. You watch it anyway.', 'A gecko is sitting on it, supervising.', 'Rafa used to talk to his plants. You try it. It feels nice.']));
+      const ch = [];
+      if (p.pest) ch.push({ t: 'Shoo the pest.', to: null, do: () => this.shoo(o) });
+      if (p.w < .9) ch.push(Farm.canLeft() ? { t: 'Water it (' + Farm.canWords() + ').', to: null, do: () => this.water(o) }
+        : { t: 'Water it — fill the can at the water butt first.', to: null });
+      if (!p.fert && Item.has('compost')) ch.push({ t: 'Dig in some compost (' + bag('compost') + ').', to: null, do: () => this.feed(o) });
+      ch.push({ t: 'Leave it.', to: null });
+      insp(p.pest ? '🐛' : s === 1 ? '🌱' : '🪴', 'A garden plot', p.w <= 0 ? 'Bone dry' : 'Growing', lines, ch);
       return;
     }
     const seeds = this.seeds();
     insp('🟫', 'A garden plot', 'Bare', seeds.length
       ? ['Rich red earth, turned over and ready. What are you planting?']
-      : ['Rich red earth, and nothing in it. Mama Coco sells seeds on the Promenade.'],
+      : ['Rich red earth, and nothing in it. Mama Coco sells seeds on the Promenade — and ripe crops sometimes give you their seed back.'],
       seeds.map(k => ({ t: 'Plant the ' + ITEMS[k].n.toLowerCase() + ' (' + bag(k) + ').', to: null, do: () => this.plant(o, k) }))
         .concat([{ t: 'Leave it.', to: null }]));
   }
@@ -112,7 +191,9 @@ function clockDur(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return h + (h === 1 ? ' hour' : ' hours') + (r >= 15 ? (r >= 45 ? ' and three-quarters' : r >= 25 ? ' and a half' : ' and a quarter') : '');
 }
-setInterval(() => { try { Garden.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1500);
+/* The farm's clock: water, growth, pests, spoilage and hunger, caught up
+   from the island's own minutes — see Farm.update() in data/farm.js. */
+setInterval(() => { try { if (typeof Farm !== 'undefined') Farm.update(); Garden.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1000);
 
 /* ---------------- The blender ---------------- */
 const RECIPES = [
@@ -162,6 +243,11 @@ const ORDER_POOL = [
   { who: 'A film crew', e: '🎬', want: { colada: 1, mojito: 1 }, pay: 75 },
   { who: 'The governor’s birthday', e: '🎩', want: { sunset: 1 }, pay: 90 },
   { who: 'A nudist retreat (don’t ask)', e: '🌞', want: { pineapple: 2, lime: 2 }, pay: 55 },
+  /* What the farm makes. Dried fruit keeps, so it can wait for the right order. */
+  { who: 'A sailing school on Cayo Rosa', e: '⛵', want: { dried_mango: 2 }, pay: 50 },
+  { who: 'The Coral Resort’s minibars', e: '🏨', want: { coconut_chips: 2 }, pay: 68 },
+  { who: 'A hiking club, very serious', e: '🥾', want: { dried_pineapple: 1, dried_strawberry: 2 }, pay: 52 },
+  { who: 'The botanical garden on Isla Perla', e: '🌺', want: { compost: 3 }, pay: 30 },
 ];
 const Orders = {
   board() {

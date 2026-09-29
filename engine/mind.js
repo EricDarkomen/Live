@@ -771,6 +771,11 @@ const Mind = {
     if (!r || !r.plan) return;
     const pl = r.plan, s = pl.steps[pl.i];
     if (!skip && s && s.train) for (const k in s.train) this.train(n.id, k, s.train[k]);
+    /* A step can DO something — stock the bar, say — and it happens whether
+       or not you were there to see it. See NPC_ACTS in data/farm.js. */
+    if (!skip && s && s.act && typeof NPC_ACTS !== 'undefined' && NPC_ACTS[s.act]) {
+      try { NPC_ACTS[s.act](n); } catch (e) { console.warn(e); }
+    }
     pl.i++;
     if (pl.i < pl.steps.length) {
       const was = s && (s.go === 'desk' ? n.def.desk : WP[s.go]);

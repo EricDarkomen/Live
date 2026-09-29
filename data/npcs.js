@@ -274,10 +274,21 @@ islander('luca', 'Luca', {
       do() { G.flags.metCoco = true; Rel.add('coco', 1); if (!G.quests.q_garden) Q.start('q_garden'); },
       choices: [{ t: 'Let me see the seeds.', to: null, do() { Shop.open('coco'); } }, { t: 'Thank you, Mama Coco.', to: null }]
     },
+    buyFruit: {
+      text: () => ['She turns your fruit over one piece at a time, sniffing each one. “Mm. Mm-hm. This one has seen better days. So have I.”',
+        '“' + cash(Larder.sellValue()) + ' for the lot. It is a good price. It is MY price.”'],
+      choices: [
+        { t: 'Deal.', to: null, do() { Larder.sellToCoco(); } },
+        { t: 'I’ll keep it, thanks.', to: null }
+      ]
+    },
     hello: {
       text: () => pick(['“What can I get you, sweetheart?”', '“Kai was in here buying hair gel. For a surfer. Mm-hmm.”', '“Jade bought two sun creams yesterday. Two. Who is the second one for, I wonder.”', '“That Sterling man bought a newspaper and didn’t say thank you. I have written it down.”', '“Luca’s been humming since you arrived. Take from that what you will.”', '“Mari has never once smiled at a customer. She smiles at you. I’m just saying.”']),
       choices: [
         { t: 'Let me see what you’ve got.', to: null, do() { Shop.open('coco'); } },
+        /* She buys what you grew and cannot use before it turns — see Larder
+           in data/farm.js. */
+        { t: 'Want to buy some fruit?', to: 'buyFruit', if: () => typeof Larder !== 'undefined' && Larder.sellable().length > 0 },
         { t: 'Just saying hello.', to: null }
       ]
     }

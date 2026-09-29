@@ -4,7 +4,7 @@ const Player = {
   init(name) {
     P.name = name; P.level = 1; P.xpv = 0; P.xpNext = 100; P.rank = 0;
     if (typeof RANKS !== 'undefined' && RANKS[0] && RANKS[0].face) P.face = RANKS[0].face;
-    P.patience = 100; P.energy = 100; P.money = 0; P.rep = 0;
+    P.patience = 100; P.energy = 100; P.money = 0; P.rep = 0; P.food = 100;
     P.stats = { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 };
     P.skills = {}; P.skillPoints = 1; P.inventory = []; P.equipment = { headset: null, trinket: null, mug: null };
     P.x = SPAWN.x; P.y = SPAWN.y; P.buffs = [];
@@ -118,6 +118,8 @@ const Item = {
     if (u.minutes) G.minutes += u.minutes;
     const m = {}; ['energy', 'patience', 'money', 'rep'].forEach(k => { if (u[k]) m[k] = u[k]; });
     Player.mod(m);
+    /* Food fills your stomach — see Hunger in data/farm.js. */
+    if (u.food && typeof Hunger !== 'undefined') Hunger.eat(u.food);
     Object.entries(u.stats || {}).forEach(([k, n]) => { P.stats[k] = (P.stats[k] || 0) + n; });
     Object.entries(u.count || {}).forEach(([k, n]) => count(k, n));
     if (u.flag) G.flags[u.flag] = true;

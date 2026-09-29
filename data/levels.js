@@ -39,6 +39,8 @@ const LEVELS = {
       A({ x: 14, y: 4, e: '🍹', name: 'The blender', kind: 'blender', solid: true, use: 'blender' });
       A({ x: 6, y: 4, e: '🧊', name: 'The ice well', kind: 'misc', solid: true, use: 'iceWell' });
       A({ x: 5, y: 2, e: '🍾', name: 'The top shelf', kind: 'bottles', solid: true, use: 'topShelf' });
+      /* The fridge that sulks. Mari stocks the bar from it — data/farm.js. */
+      A({ x: 3, y: 2, e: '🧊', name: 'The bar fridge', kind: 'misc', solid: true, use: 'fridge' });
       A({ x: 11, y: 2, e: '🥃', name: 'The rum wall', kind: 'bottles', solid: true, use: 'topShelf' });
       A({ x: 16, y: 2, e: '📋', name: 'The cocktail board', kind: 'board', solid: true, use: 'cocktailBoard' });
       /* The stools. A guest waiting on one rings its bell. */

@@ -118,7 +118,7 @@ function bindInput() {
       return;
     }
     if (Comms.on) return;      /* the panel keys do not reach through the console */
-    const map = { KeyN: 'map', KeyI: 'inventory', KeyJ: 'quests', KeyK: 'skills', KeyP: 'stats', KeyL: 'ach', KeyT: 'shift', KeyU: 'people' };
+    const map = { KeyN: 'map', KeyI: 'inventory', KeyJ: 'quests', KeyK: 'skills', KeyP: 'stats', KeyL: 'ach', KeyT: 'shift', KeyU: 'people', KeyO: 'farm' };
     if (map[e.code]) { if (Panels.on && Panels.tab === map[e.code]) Panels.close(); else Panels.open(map[e.code]); }
   });
   /* Keep Tab inside whichever modal is open, rather than letting focus escape

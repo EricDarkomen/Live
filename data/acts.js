@@ -221,7 +221,11 @@ const Acts = {
 
   /* ---- Inside the loop ---- */
   plot(o) { Garden.act(o); },
-  waterButt() { insp('🛢️', 'The water butt', 'Full of rain', ['Rafa rigged it to the gutters. On this island the rain comes when the plants need it. Mostly.']); },
+  waterButt() { Farm.butt(); },
+  /* The farm's stations — data/farm.js. */
+  compostBin() { Stations.bin(); },
+  dryingRack() { Stations.rack(); },
+  fridge() { Larder.open(); },
   scarecrow() { insp('🧑‍🌾', 'The scarecrow', 'Wearing a Hawaiian shirt', ['It is wearing Rafa’s best shirt and a pair of sunglasses. The birds are not scared. The birds think it is cool.']); },
   fountain() {
     insp('⛲', 'The fountain', 'Wishing', ['Full of coins and one flip-flop.'],
