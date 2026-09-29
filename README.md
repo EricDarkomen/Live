@@ -212,4 +212,8 @@ list at the top of it, so the OGA-BY sentence underneath is not quietly
 covering something it does not cover. See `LICENSE`, and the build section
 above.
 
+**The fonts** — Fredoka and Nunito, in `art/fonts/` — are not ours either.
+They are used unmodified under the [SIL Open Font License 1.1](art/fonts/),
+whose full text is beside them, and are not covered by the game's licence.
+
 A work of fiction; its places, people and companies are invented.

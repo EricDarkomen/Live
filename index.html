@@ -32,6 +32,8 @@
 <link rel="stylesheet" href="css/cutscene.css?v=20260929">
 <link rel="stylesheet" href="css/title.css?v=20260929">
 <link rel="stylesheet" href="css/responsive.css?v=20260929">
+<!-- The look. Last, so it restyles everything above it; see the note at its top. -->
+<link rel="stylesheet" href="css/bubble.css?v=20261003">
 </head>
 <body>
 <div id="app">
@@ -392,9 +394,9 @@
     </div>
 
     <!-- panel -->
-    <div id="panel" role="dialog" aria-modal="true" aria-label="Employee self-service portal">
+    <div id="panel" role="dialog" aria-modal="true" aria-label="Your things">
       <div class="pn sign">
-        <div class="sign-title"><span id="pnTitle">Employee self-service portal</span>
+        <div class="sign-title"><span id="pnTitle">Your things</span>
           <button class="btn small" id="pnClose">Close · Esc</button></div>
         <div class="tabs" id="pnTabs" role="tablist"></div>
         <div class="pn-body scroll" id="pnBody"></div>
@@ -421,9 +423,9 @@
     </div>
 
     <!-- ending -->
-    <div id="ending" role="dialog" aria-modal="true" aria-label="Exit interview">
+    <div id="ending" role="dialog" aria-modal="true" aria-label="The end of summer">
       <div class="rep sign" style="text-align:center">
-        <div class="sign-title"><span>Exit interview</span><span class="badge">CONFIDENTIAL</span></div>
+        <div class="sign-title"><span>The end of summer</span><span class="badge">ISLA SOLANA</span></div>
         <div class="rep-body scroll" id="endBody"></div>
         <div style="padding:0 18px 18px;display:flex;gap:8px;justify-content:center">
           <button class="btn primary" id="endAgain">Start a new game</button>
@@ -475,7 +477,7 @@
 <script src="engine/signals.js?v=20260929"></script>
 <script src="engine/guns.js?v=20260929"></script>
 <script src="engine/render.js?v=20260929"></script>
-<script src="engine/panels.js?v=20261001"></script>
+<script src="engine/panels.js?v=20261003"></script>
 <script src="engine/map.js?v=20260929"></script>
 <script src="engine/menus.js?v=20260929"></script>
 <script src="engine/arcade.js?v=20260929"></script>
@@ -488,6 +490,7 @@
 <script src="minigames/holdmusic.js?v=20260929"></script>
 <script src="minigames/inbox.js?v=20260929"></script>
 <script src="minigames/patch.js?v=20260929"></script>
+<script src="engine/juice.js?v=20261003"></script>
 <script src="engine/boot.js?v=20260929"></script>
 </body>
 </html>
