@@ -105,7 +105,7 @@ const TEXT = {
     'Has sworn off you'
   ],
   newJob: 'New job: <b>{job}</b>',
-  trackerTip: '{press} the pin beside a job to be shown the way to it.',
+  trackerTip: 'The line under the clock points the way to your next step. {press} it to switch jobs.',
   eraseSave: 'Wash away this summer and start again?',
   saved: 'Game saved.',
   saveFailed: 'Could not save. Your browser has said no.',

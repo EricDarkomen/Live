@@ -48,7 +48,7 @@ const G = {
   /* The job tracker: which job is being followed, which are folded to their
      titles, and whether the box itself is folded away. In G so that a save
      brings them back exactly as they were left. */
-  track: null, tkShut: {}, tkFold: false, tkTitles: false,
+  track: null, trackOff: false, tkShut: {}, tkFold: false, tkTitles: false,
   /* The arcade's high scores, which games have been cleared, and how many
      rounds have been played. Plain data, so {...G} in Save.write carries it
      without knowing what a minigame is — and resetRun clears it, or a new
@@ -103,7 +103,7 @@ function resetRun() {
   G.callers = {};
   G.eventCooldown = 6; G.activeEvent = null;
   G.discovered = {}; G.endings = []; G.lastZone = null; G.objective = '';
-  G.track = null; G.tkShut = {}; G.tkFold = false; G.tkTitles = false;
+  G.track = null; G.trackOff = false; G.tkShut = {}; G.tkFold = false; G.tkTitles = false;
   G.arcade = { best: {}, won: {}, played: 0 };
   /* A new starter has not found the box. Cleared before the level is built, so
      nothing fired on the last run is still in the air on this one. */

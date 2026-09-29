@@ -87,7 +87,7 @@ const Juice = {
     }, { passive: true });
   },
   pops() {
-    const hit = '.btn,.choice,.tab,.cm-tab,.chip,#cmOne,.item,.move,#keyhints button,#touchE,#touchMenu,.tk-title';
+    const hit = '.btn,.choice,.tab,.cm-tab,.chip,#cmOne,.item,.move,#keyhints button,#touchE,#touchMenu,.gd-main,.gd-row,.gd-all';
     document.addEventListener('pointerdown', e => {
       const t = e.target.closest && e.target.closest(hit);
       if (!t || this.still()) return;
