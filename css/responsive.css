@@ -41,6 +41,10 @@
   .who-name,.who-rank{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who-name{font-size:13px}
   .who-rank{font-size:9px;letter-spacing:.04em}
+  /* The level, then the rank underneath it: there is height to spare beside
+     the portrait and no width. */
+  .who-rank .rk-sep{display:none}
+  .who-rank .rk-nm{display:block;overflow:hidden;text-overflow:ellipsis}
   /* The bars carry three numbers you glance at, not read. */
   .bar{height:5px;border-radius:4px;border-color:var(--line-soft)}
   .bar-row{gap:6px}

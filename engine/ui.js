@@ -68,14 +68,17 @@ const UI = {
     if (prop === 'w') {
       el.style.width = val;
       if (el.parentElement) el.parentElement.setAttribute('aria-valuenow', String(Math.round(parseFloat(val))));
-    } else el.textContent = val;
+    } else if (prop === 'h') el.innerHTML = val;
+    else el.textContent = val;
   },
   hud() {
     this.set('#hName', 't', P.name.toUpperCase());
     /* Your own face, alive, once your sprite is ready (engine/portrait.js);
        the rank's emoji until then, and wherever there is no sprite at all. */
     if (!(typeof Portrait !== 'undefined' && Portrait.hud())) this.set('#hFace', 't', P.face);
-    this.set('#hRank', 't', 'Lv.' + P.level + ' · ' + RANKS[P.rank].n);
+    /* In pieces, so the phone bar can put the rank on a line of its own under
+       the level rather than cutting it off after three letters. */
+    this.set('#hRank', 'h', '<span>Lv.' + P.level + '</span><span class="rk-sep"> · </span><span class="rk-nm">' + esc(RANKS[P.rank].n) + '</span>');
     this.set('#bPat', 'w', clamp(P.patience / P.patMax * 100, 0, 100).toFixed(1) + '%');
     this.set('#vPat', 't', String(Math.round(P.patience)));
     this.set('#mPat', 't', '/' + Math.round(P.patMax));
