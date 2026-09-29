@@ -1002,8 +1002,8 @@ const Mind = {
         return 'Growing towards: ' + rt.n + ' (' + MIND_SKILLS[k].n + ' ' + rt.unlock[k] + ')';
       })[0];
       const life = (m.log || []).slice(0, 3).map(e => '<li><span>Day ' + e.d + '</span> ' + esc(e.s) + '</li>').join('');
-      h += '<div class="mind-card">'
-        + '<div class="mh"><span class="mf">' + d.face + '</span><div class="mt"><div class="mnm" style="color:' + (d.colour || 'inherit') + '">' + esc(d.name) + '</div>'
+      h += '<div class="mind-card" style="--who:' + (d.colour || '#ff4f9a') + '">'
+        + '<div class="mh"><span class="mf" data-portrait="' + d.id + '">' + d.face + '</span><div class="mt"><div class="mnm" style="color:' + (d.colour || 'inherit') + '">' + esc(d.name) + '</div>'
         + '<div class="mw">' + esc(this.badge(d.id)) + '</div></div></div>'
         + '<div class="mood-row">' + bar(m.mood, 'mood ' + tone(m.mood)) + '</div>'
         + '<div class="mdo">' + chip + esc(this.doing(n)) + ' <span>· ' + esc(this.where(n)) + '</span></div>'

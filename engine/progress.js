@@ -156,6 +156,8 @@ const Rel = {
        to — a couple of seconds of it, over whatever they were holding, and
        then back to how they are with you generally. */
     if (typeof Faces !== 'undefined' && n) Faces.flash(id, n > 0 ? 'happy' : 'sad', 2.4);
+    /* And hearts off their portrait, wherever it is on screen. */
+    if (typeof Portrait !== 'undefined' && n) Portrait.burst(id, n > 0 ? '💕' : '💢', n > 0 ? 3 + Math.min(4, n) : 3);
   },
   get(id) { return G.rel[id] || 0; },
   label(v) { const l = says('relLabels'); return l[v >= 8 ? 0 : v >= 5 ? 1 : v >= 2 ? 2 : v >= 0 ? 3 : v >= -3 ? 4 : 5]; }

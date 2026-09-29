@@ -266,6 +266,8 @@ const Panels = {
        until the layout has happened. From then on the loop keeps it up to date
        four times a second; see Atlas.tick(). */
     if (this.tab === 'map') Atlas.panel();
+    /* Faces on the cards, alive — see engine/portrait.js. */
+    if (typeof Portrait !== 'undefined') Portrait.scan(b);
   },
   r_shop() { return Shop.render(); },
   r_people() { return Mind.panel(); },

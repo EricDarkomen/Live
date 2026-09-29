@@ -72,7 +72,9 @@ const UI = {
   },
   hud() {
     this.set('#hName', 't', P.name.toUpperCase());
-    this.set('#hFace', 't', P.face);
+    /* Your own face, alive, once your sprite is ready (engine/portrait.js);
+       the rank's emoji until then, and wherever there is no sprite at all. */
+    if (!(typeof Portrait !== 'undefined' && Portrait.hud())) this.set('#hFace', 't', P.face);
     this.set('#hRank', 't', 'Lv.' + P.level + ' · ' + RANKS[P.rank].n);
     this.set('#bPat', 'w', clamp(P.patience / P.patMax * 100, 0, 100).toFixed(1) + '%');
     this.set('#vPat', 't', String(Math.round(P.patience)));
