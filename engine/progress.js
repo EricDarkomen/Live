@@ -263,17 +263,26 @@ const Track = {
     };
     tap('#tkFold', () => { G.tkFold = !G.tkFold; this._sig = null; Sfx.blip(); return true; });
     tap('#tkTitles', () => { G.tkTitles = !G.tkTitles; this._sig = null; Sfx.blip(); return true; });
+    /* The guide's line opens and shuts the list; a job in the list is
+       followed (or let go of) by tapping it; the last row is the Jobs panel. */
+    tap('#gdMain', () => { this.show(!this.open); Sfx.blip(); return true; });
     tap('#tkList', e => {
       const b = e.target && e.target.closest ? e.target.closest('[data-tk]') : null;
       if (!b) return false;
-      if (b.dataset.tk === 'pin') this.follow(b.dataset.q);
-      else {
-        G.tkShut = G.tkShut || {};
-        G.tkShut[b.dataset.q] = !G.tkShut[b.dataset.q];
-        this._sig = null; Sfx.blip();
-      }
+      if (b.dataset.tk === 'all') { this.show(false); Panels.open('quests'); return true; }
+      this.follow(b.dataset.q);
+      this.show(false);
       return true;
     });
+    /* Anywhere else closes the list: it is a glance, not a place to stay. */
+    document.addEventListener('pointerdown', e => {
+      if (this.open && !(e.target.closest && e.target.closest('#guide'))) this.show(false);
+    }, true);
+    const g = $('#guide');
+    if (g) {
+      g.addEventListener('pointerenter', () => { this.hover = true; this.wake(); });
+      g.addEventListener('pointerleave', () => { this.hover = false; });
+    }
     this.measure();
     /* The bar's height is not a number anybody can write down — it depends on
        the safe-area inset, on whether a queue row is showing and on how the
@@ -302,6 +311,9 @@ const Track = {
     if (id && prev === id) id = null;
     G.track = id || null;
     this._sig = null;
+    /* Letting go on purpose is remembered, so the guide does not pick the
+       next new job back up behind your back. Following anything clears it. */
+    if (!quiet) G.trackOff = !id;
     if (quiet) return;
     Sfx.select();
     /* Tapping a tracked job's own pin again is the untrack gesture, and it used
@@ -330,55 +342,118 @@ const Track = {
     if (!id || !Q.active(id)) return false;
     return Guide.aim(this.target(id));
   },
-  /* Called from UI.hud(), so once a frame. A rebuild of a list that changes
-     twice an hour, sixty times a second, is how a phone gets warm — so nothing
-     happens unless what the box would say has actually changed. */
+  /* ---- the guide ----
+     THE ONE THING TO DO NEXT, in a line: the step of the job being followed
+     (or the standing objective when nothing is), which way it is and how far,
+     and the job's progress as dots. It used to be a card listing every open
+     job with its step spelled out, which on a phone sat over a third of the
+     bar and on a desktop was a block you read once and then walked round.
+
+     Four behaviours make it a guide rather than a label:
+       it FOLLOWS something — a newly given job is picked up if nothing is
+         being followed, unless you let go on purpose (G.trackOff);
+       it POINTS — a live arrow and a step count to the pin;
+       it STEPS BACK — faded while you are walking and nothing has changed;
+       it CELEBRATES — a finished step ticks off before the next one slides
+         in, and a new job arrives with a glow. */
+  open: false, hover: false, _last: null, _known: null, _farAt: 0, _changed: 0,
+  show(on) {
+    this.open = !!on;
+    const list = $('#tkList'), main = $('#gdMain'), g = $('#guide');
+    if (list) list.hidden = !this.open;
+    if (main) main.setAttribute('aria-expanded', String(this.open));
+    if (g) g.classList.toggle('open', this.open);
+    this.wake();
+  },
+  wake() { this._changed = performance.now(); const g = $('#guide'); if (g) g.classList.remove('quiet'); },
+  flash(kind) {
+    const g = $('#guide');
+    if (!g) return;
+    g.classList.remove('done', 'fresh'); void g.offsetWidth; g.classList.add(kind);
+    setTimeout(() => g.classList.remove(kind), 1400);
+    this.wake();
+  },
+  /* Called from UI.hud(), so once a frame. The list is rebuilt only when what
+     it would say has changed; the arrow and the distance are cheap and are
+     refreshed a few times a second. */
   sync() {
     const open = Q.list().filter(q => !q.done);
     if (G.track && !Q.active(G.track)) this.follow(null, true);
-    const sig = [G.objective, G.track, G.tkFold ? 1 : 0, G.tkTitles ? 1 : 0,
-      open.map(q => q.id + q.step + ((G.tkShut || {})[q.id] ? 's' : '')).join(',')].join('|');
-    if (sig === this._sig) return;
-    this._sig = sig;
-    this.render(open);
-    /* Untracking, or a step with nowhere to go, hands the pin back to whatever
-       was owed before — which on the first morning is still your own desk. */
-    if (!this.aim() && Guide.tx === null) Guide.setObject('playerDesk', say('yourDesk'), 'foundDesk');
+    /* New jobs: follow the newest if nothing is being followed. The first
+       look, after a load, adopts the first open job the same way. */
+    const ids = open.map(q => q.id);
+    if (this._known === null) {
+      this._known = new Set(ids);
+      if (!G.track && !G.trackOff && ids.length) this.follow(ids[0], true);
+    } else {
+      const fresh = ids.filter(i => !this._known.has(i));
+      if (fresh.length) {
+        fresh.forEach(i => this._known.add(i));
+        if (!G.track && !G.trackOff) { this.follow(fresh[fresh.length - 1], true); this.flash('fresh'); }
+      }
+    }
+    const sig = [G.objective, G.track, open.map(q => q.id + q.step).join(',')].join('|');
+    if (sig !== this._sig) {
+      this._sig = sig;
+      /* A step of the followed job done: tick it off first. */
+      const cur = G.track && G.quests[G.track] ? { id: G.track, step: G.quests[G.track].step } : null;
+      if (cur && this._last && this._last.id === cur.id && cur.step > this._last.step) this.flash('done');
+      this._last = cur;
+      this.render(open);
+      /* Untracking, or a step with nowhere to go, hands the pin back to whatever
+         was owed before — which on the first morning is still your own desk. */
+      if (!this.aim() && Guide.tx === null) Guide.setObject('playerDesk', say('yourDesk'), 'foundDesk');
+    }
+    this.point();
+  },
+  /* Which way, and how far. */
+  point() {
+    const now = performance.now();
+    if (now - this._farAt < 350) return;
+    this._farAt = now;
+    const far = $('#gdFar'), arrow = $('#gdArrow'), g = $('#guide');
+    if (!far || !arrow || !g) return;
+    const on = typeof Guide !== 'undefined' && Guide.tx !== null && G.state !== 'title';
+    g.classList.toggle('aimed', on);
+    if (on) {
+      const n = Guide.steps();
+      far.textContent = n <= 1 ? 'here' : n + (n === 1 ? ' step' : ' steps');
+      const a = Math.atan2((Guide.ty + .5) * TILE - P.y, (Guide.tx + .5) * TILE - P.x);
+      arrow.style.transform = 'rotate(' + (a * 180 / Math.PI).toFixed(0) + 'deg)';
+      g.classList.toggle('near', n <= 3);
+    } else { far.textContent = ''; arrow.style.transform = ''; g.classList.remove('near'); }
+    /* Stepping back: walking, nothing new for a while, and not being looked at. */
+    const idle = now - this._changed > 6000;
+    g.classList.toggle('quiet', idle && !!P.moving && !this.hover && !this.open);
   },
   render(open) {
     const box = $('#tkList'), el = $('#tracker');
     if (!box || !el) return;
-    el.classList.toggle('folded', !!G.tkFold);
-    el.classList.toggle('titles', !!G.tkTitles);
-    $('#tkFold').setAttribute('aria-expanded', String(!G.tkFold));
-    /* The number alone: the header is 180px on a phone and two of the words in
-       it were "job" and "s". The label says what it is counting. */
-    const n = $('#tkCount');
-    n.textContent = open.length ? String(open.length) : '';
-    n.setAttribute('aria-label', open.length === 1 ? '1 open job' : open.length + ' open jobs');
-    /* Folded, the header is the entire box, so it carries the one line worth
-       keeping: what you are following, or failing that what you are doing.
-       Unfolded it is a category label sitting above the objective line AND the
-       job list below it, so "Jobs" is both shorter and more accurate than
-       "Objective" ever was — which matters at this width: mono capitals at
-       .2em tracking made the nine letters of "OBJECTIVE" the reason the label
-       was truncating to "OBJ…" beside its own count. */
-    $('#tkLbl').textContent = G.tkFold
-      ? (G.track && QUESTS[G.track] ? '📍 ' + QUESTS[G.track].n : (G.objective || 'Jobs'))
-      : 'Jobs';
-    if (!open.length) {
-      box.innerHTML = '<p class="tk-empty">' + say('jobs.none') + '</p>';
-      return;
+    const id = G.track && Q.active(G.track) ? G.track : null;
+    const q = id && QUESTS[id], st = id && G.quests[id];
+    const lbl = $('#tkLbl'), step = $('#gdStep'), dots = $('#gdDots'), n = $('#tkCount');
+    if (q) {
+      lbl.textContent = q.n;
+      step.textContent = q.steps[st.step] || '';
+      dots.innerHTML = q.steps.map((_, i) => '<i class="' + (i < st.step ? 'd' : i === st.step ? 'c' : '') + '"></i>').join('');
+    } else {
+      lbl.textContent = open.length ? 'Next' : 'Free time';
+      step.textContent = G.objective || say('jobs.none');
+      dots.innerHTML = '';
     }
-    box.innerHTML = open.map(q => {
-      const shut = (G.tkShut || {})[q.id], on = G.track === q.id;
-      return '<div class="tk-q' + (on ? ' on' : '') + (shut ? ' shut' : '') + '">'
-        + '<button class="tk-title" type="button" data-tk="fold" data-q="' + q.id + '" aria-expanded="' + !shut + '">'
-        + '<span class="tk-nm"><b>' + esc(q.n) + '</b><i>' + (q.step + 1) + '/' + q.steps.length + '</i></span>'
-        + '<span class="tk-step">' + esc(q.steps[q.step]) + '</span></button>'
-        + '<button class="tk-pin" type="button" data-tk="pin" data-q="' + q.id + '" aria-pressed="' + on + '"'
-        + ' aria-label="' + (on ? 'Stop following ' : 'Follow ') + esc(q.n) + '">📍</button></div>';
-    }).join('');
+    /* How many more there are, as a quiet +2 — the list is a tap away. */
+    const more = open.length - (q ? 1 : 0);
+    n.textContent = more > 0 ? '+' + more : '';
+    n.setAttribute('aria-label', open.length === 1 ? '1 open job' : open.length + ' open jobs');
+    el.classList.toggle('none', !open.length);
+    box.innerHTML = (open.length ? open.map(j => {
+      const on = G.track === j.id;
+      return '<button class="gd-row' + (on ? ' on' : '') + '" type="button" data-tk="pin" data-q="' + j.id + '" aria-pressed="' + on + '">'
+        + '<span class="gd-pin" aria-hidden="true">' + (on ? '📍' : '○') + '</span>'
+        + '<span class="gd-rt"><b>' + esc(j.n) + '</b><span>' + esc(j.steps[j.step]) + '</span></span>'
+        + '<i>' + (j.step + 1) + '/' + j.steps.length + '</i></button>';
+    }).join('') : '<p class="gd-empty">' + say('jobs.none') + '</p>')
+      + '<button class="gd-all" type="button" data-tk="all">All jobs' + (TOUCH ? '' : ' · J') + '</button>';
   }
 };
 

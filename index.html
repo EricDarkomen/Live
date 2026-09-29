@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="css/title.css?v=20260929">
 <link rel="stylesheet" href="css/responsive.css?v=20260929">
 <!-- The look. Last, so it restyles everything above it; see the note at its top. -->
-<link rel="stylesheet" href="css/bubble.css?v=20261004">
+<link rel="stylesheet" href="css/bubble.css?v=20261005">
 </head>
 <body>
 <div id="app">
@@ -243,19 +243,29 @@
          under it. Every job folds to its title, the whole box folds to its
          header, and one job at a time can be tracked — which puts the same pin
          and compass on it that finding your desk gets. -->
+    <!-- THE GUIDE. One quiet line under the clock: the next thing to do, how
+         far it is and which way, with the job's progress as dots. Tap it for
+         your other jobs, and to choose which one it follows. It was a card with
+         every open job spelled out, which was mostly in the way. See Track in
+         engine/progress.js. -->
     <div class="hud" id="tracker">
-      <div class="card">
-        <div class="tk-head">
-          <span class="tk-lbl" id="tkLbl">Jobs</span>
-          <span class="tk-n" id="tkCount"></span>
-          <button class="tk-b" id="tkTitles" type="button" title="Collapse every job to its title" aria-label="Collapse every job to its title">⇕</button>
-          <button class="tk-b" id="tkFold" type="button" title="Collapse the tracker" aria-label="Collapse the tracker" aria-expanded="true">▾</button>
-        </div>
-        <div class="tk-body" id="tkBody">
-          <div class="tk-obj" id="hObj">Find The Driftwood.</div>
-          <div class="tk-list" id="tkList"></div>
-        </div>
+      <div class="guide" id="guide">
+        <button class="gd-main" id="gdMain" type="button" aria-expanded="false" aria-controls="tkList">
+          <span class="gd-ic" aria-hidden="true"><span class="gd-arrow" id="gdArrow">➤</span></span>
+          <span class="gd-txt">
+            <span class="gd-job"><b id="tkLbl">Next</b><span class="gd-dots" id="gdDots" aria-hidden="true"></span></span>
+            <span class="gd-step" id="gdStep"></span>
+          </span>
+          <span class="gd-far" id="gdFar"></span>
+          <span class="gd-n" id="tkCount"></span>
+        </button>
+        <div class="gd-more" id="tkList" hidden></div>
       </div>
+      <!-- Kept for the code that still writes to them: the standing objective
+           (UI.objective) and the old fold toggles. -->
+      <span id="hObj" hidden></span>
+      <button id="tkFold" type="button" hidden tabindex="-1"></button>
+      <button id="tkTitles" type="button" hidden tabindex="-1"></button>
     </div>
 
     <div class="hud" id="hudBottom">
@@ -440,7 +450,7 @@
      way the game still opens straight off disk. Their top-level consts land in
      the global lexical scope, which the engine below reads by bare name. -->
 <script src="art/sprites/manifest.js?v=20260929"></script>
-<script src="data/game.js?v=20260929"></script>
+<script src="data/game.js?v=20261005"></script>
 <script src="data/world.js?v=20261002"></script>
 <script src="data/roads.js?v=20260929"></script>
 <script src="data/levels.js?v=20261001"></script>
@@ -457,14 +467,14 @@
 <script src="engine/acts.js?v=20260929"></script>
 <script src="engine/controls.js?v=20260929"></script>
 <script src="engine/audio.js?v=20260929"></script>
-<script src="engine/state.js?v=20260929"></script>
+<script src="engine/state.js?v=20261005"></script>
 <script src="engine/sky.js?v=20260929"></script>
 <script src="engine/world.js?v=20260929"></script>
 <script src="engine/collide.js?v=20260929"></script>
 <script src="engine/levels.js?v=20260929"></script>
 <script src="engine/ui.js?v=20261004"></script>
 <script src="engine/comms.js?v=20260929"></script>
-<script src="engine/progress.js?v=20261004"></script>
+<script src="engine/progress.js?v=20261005"></script>
 <script src="engine/office.js?v=20260929"></script>
 <script src="engine/dialogue.js?v=20261004"></script>
 <script src="engine/combat.js?v=20261001"></script>
@@ -490,7 +500,7 @@
 <script src="minigames/holdmusic.js?v=20260929"></script>
 <script src="minigames/inbox.js?v=20260929"></script>
 <script src="minigames/patch.js?v=20260929"></script>
-<script src="engine/juice.js?v=20261004"></script>
+<script src="engine/juice.js?v=20261005"></script>
 <script src="engine/portrait.js?v=20261005"></script>
 <script src="engine/boot.js?v=20260929"></script>
 </body>

@@ -479,3 +479,126 @@ canvas.portrait{display:block;image-rendering:pixelated;image-rendering:crisp-ed
    mark on the button. */
 .dlg{background-position:right -64px bottom -70px,left -30px top 40%,0 0,0 0!important;
   background-size:150px,90px,auto,auto!important}
+
+/* ---------- the guide ----------
+   The job tracker was a card: a header, the objective, a list of every open
+   job with a step under each, parked under the clock over the top-right of
+   the world all shift. It said everything, all the time, which is the same as
+   getting in the way.
+
+   Now it is one line. An arrow that turns to point where you are going, the
+   job's name with a dot for each step (filled, current, still to come), the
+   one thing to do next, and how far away that is. Everything else — the other
+   jobs, switching between them, the full Jobs tab — is one tap on that line
+   away, in a small list that drops out of it and goes again when you tap
+   anywhere else. While you are walking and nothing has changed for a while it
+   fades back to a whisper; a step done or a new job lights it up again
+   (engine/progress.js, Track.point/flash). */
+#tracker{width:auto!important;max-width:320px;max-height:none!important;
+  display:flex;flex-direction:column;align-items:flex-end}
+#tracker.none .gd-far,#tracker.none .gd-ic{display:none}
+.guide{position:relative;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-end;
+  max-width:100%;transition:opacity .6s ease,filter .6s ease}
+.gd-main{display:flex;align-items:center;gap:9px;max-width:100%;min-height:40px;
+  padding:5px 12px 5px 5px;border-radius:var(--pill);cursor:pointer;text-align:left;
+  font:inherit;color:var(--text);
+  background:linear-gradient(180deg,rgba(38,26,52,.72),rgba(22,18,34,.66));
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 10px 26px -16px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1);
+  -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+  transition:border-color .25s,box-shadow .25s,transform .25s var(--spring)}
+.gd-main:hover{border-color:rgba(255,111,170,.45);transform:translateY(-1px)}
+.gd-main:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+.guide.open .gd-main{border-color:rgba(255,111,170,.55)}
+
+/* The compass: a small round bubble with the arrow in it, which turns to
+   face wherever the pin is. Aqua while it has somewhere to point, a soft
+   pulse when you are nearly there. */
+.gd-ic{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),transparent 55%),var(--hot);
+  box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 4px 12px -4px rgba(255,79,154,.7)}
+.gd-arrow{display:block;font-size:13px;line-height:1;color:#fff;opacity:.55;
+  font-family:var(--ui);text-shadow:0 1px 2px rgba(0,0,0,.35);
+  transition:transform .45s var(--spring),opacity .3s}
+.guide.aimed .gd-arrow{opacity:1}
+.guide.near .gd-ic{animation:gdNear 1.6s ease-in-out infinite}
+@keyframes gdNear{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 0 0 0 rgba(94,234,212,.55)}
+  50%{box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 0 0 7px rgba(94,234,212,0)}}
+
+.gd-txt{min-width:0;display:flex;flex-direction:column;gap:1px}
+.gd-job{display:flex;align-items:center;gap:7px;min-width:0}
+.gd-job b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.02em;
+  background:var(--hot);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gd-dots{flex:0 0 auto;display:flex;gap:3px}
+.gd-dots:empty{display:none}
+.gd-dots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s,transform .3s}
+.gd-dots i.d{background:var(--aqua)}
+.gd-dots i.c{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.8);transform:scale(1.25)}
+.gd-step{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:12.5px;line-height:1.3;color:var(--text)}
+.gd-step:empty{display:none}
+.gd-far{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--aqua);white-space:nowrap;letter-spacing:.02em}
+.gd-far:empty,.gd-n:empty{display:none}
+.gd-n{flex:0 0 auto;font-size:10px;font-weight:800;color:#fff;padding:2px 6px;border-radius:var(--pill);
+  background:rgba(255,255,255,.12)}
+
+/* Walking, nothing new: it steps back. Still there, still readable if you
+   look for it, not something the eye keeps landing on. */
+.guide.quiet{opacity:.42}
+.guide.quiet .gd-step{max-width:0;opacity:0}
+.gd-step{transition:max-width .5s ease,opacity .4s ease;max-width:260px}
+/* A step done: a green sweep through the pill. A new job: a pink glow. */
+.guide.done .gd-main{animation:gdDone 1.4s ease-out}
+.guide.fresh .gd-main{animation:gdFresh 1.4s ease-out}
+@keyframes gdDone{0%{box-shadow:0 0 0 0 rgba(70,227,168,.7);border-color:rgba(70,227,168,.9);transform:scale(1.04)}
+  100%{box-shadow:0 0 0 14px rgba(70,227,168,0)}}
+@keyframes gdFresh{0%{box-shadow:0 0 0 0 rgba(255,79,154,.7);border-color:rgba(255,111,170,.9);transform:scale(1.04)}
+  100%{box-shadow:0 0 0 14px rgba(255,79,154,0)}}
+
+/* The list: every open job, the one you are following marked, tap one to
+   follow it instead. */
+.gd-more{margin-top:6px;width:min(290px,calc(100vw - 24px));padding:5px;border-radius:var(--r-md);
+  display:flex;flex-direction:column;gap:3px;max-height:min(46vh,340px);overflow-y:auto;overscroll-behavior:contain;
+  background:linear-gradient(180deg,rgba(38,26,52,.9),rgba(22,18,34,.88));
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 40px -20px rgba(0,0,0,.85);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  transform-origin:top right;animation:gdOpen .28s var(--spring)}
+.gd-more[hidden]{display:none}
+@keyframes gdOpen{from{opacity:0;transform:translateY(-6px) scale(.96)}to{opacity:1;transform:none}}
+.gd-row{display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:12px;cursor:pointer;
+  background:transparent;border:1px solid transparent;color:var(--text);font:inherit;text-align:left;transition:background .15s}
+.gd-row:hover{background:rgba(255,255,255,.07)}
+.gd-row:focus-visible{outline:2px solid var(--aqua);outline-offset:-2px}
+.gd-row.on{background:rgba(70,227,168,.1);border-color:rgba(70,227,168,.35)}
+.gd-pin{flex:0 0 auto;width:18px;text-align:center;font-size:12px;color:var(--dim)}
+.gd-rt{flex:1;min-width:0;display:flex;flex-direction:column}
+.gd-rt b{font-family:var(--display);font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gd-rt span{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gd-row i{flex:0 0 auto;font-style:normal;font-size:10px;color:var(--dim)}
+.gd-row.on b{color:var(--good)}
+.gd-empty{margin:0;padding:8px;font-size:11.5px;color:var(--dim)}
+.gd-all{margin-top:2px;padding:7px;border-radius:12px;border:0;cursor:pointer;font:inherit;
+  font-family:var(--display);font-size:11.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.08)}
+.gd-all:hover{background:rgba(255,79,154,.25)}
+
+/* Phones: the same line, narrower — the job name and the arrow, the step
+   underneath, and the distance tucked in. It keeps the width the
+   notifications already leave for it (--tk-w in responsive.css). */
+@media (max-width:820px),(max-height:520px){
+  #tracker{max-width:var(--tk-w)}
+  body.southpaw #tracker,body.southpaw .guide{align-items:flex-start}
+  .gd-main{gap:6px;min-height:34px;padding:3px 9px 3px 3px}
+  .gd-ic{width:26px;height:26px}
+  .gd-job b{font-size:11px}
+  /* Two short lines rather than one cut off after three words: at this width
+     the step is the part worth reading. */
+  .gd-step{font-size:10.5px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+  .gd-far{display:none}
+  .gd-dots i{width:4px;height:4px}
+  .gd-more{width:min(250px,calc(100vw - 20px))}
+  body.southpaw .gd-more{transform-origin:top left}
+}
+@media(pointer:coarse){.gd-row{min-height:40px}}
+body.calm .guide,body.calm .gd-step,body.calm .gd-arrow{transition:none}
+body.calm .guide.near .gd-ic,body.calm .guide.done .gd-main,body.calm .guide.fresh .gd-main,body.calm .gd-more{animation:none}
