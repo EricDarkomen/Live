@@ -127,6 +127,9 @@ const Island = {
     }));
     put({ x: 51, y: 30, e: '🛢️', name: 'The water butt', kind: 'barrels', solid: true, use: 'waterButt' });
     put({ x: 34, y: 41, e: '🧑‍🌾', name: 'The scarecrow', kind: 'misc', solid: true, use: 'scarecrow' });
+    /* Where the garden's leftovers go, and where its surplus keeps. */
+    put({ x: 51, y: 40, e: '🪱', name: 'The compost bin', kind: 'barrels', solid: true, use: 'compostBin' });
+    put({ x: 44, y: 40, e: '🌞', name: 'The drying rack', kind: 'misc', solid: true, use: 'dryingRack' });
     /* The plaza, and the fountain everybody meets at. */
     room('plaza', 56, 34, 76, 50);
     surf('slab', 56, 34, 76, 50);

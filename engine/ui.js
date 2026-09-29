@@ -80,6 +80,10 @@ const UI = {
     this.set('#bEne', 'w', clamp(P.energy / P.eneMax * 100, 0, 100).toFixed(1) + '%');
     this.set('#vEne', 't', String(Math.round(P.energy)));
     this.set('#mEne', 't', '/' + Math.round(P.eneMax));
+    /* Food — data/farm.js. A save from before there was a stomach is full. */
+    const food = P.food === undefined ? 100 : P.food;
+    this.set('#bFood', 'w', clamp(food, 0, 100).toFixed(1) + '%');
+    this.set('#vFood', 't', String(Math.round(food)));
     this.set('#bXp', 'w', clamp(P.xpv / P.xpNext * 100, 0, 100).toFixed(1) + '%');
     this.set('#vXp', 't', String(P.xpv));
     this.set('#mXp', 't', '/' + P.xpNext);

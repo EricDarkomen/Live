@@ -12,9 +12,20 @@ linen suit who very much wants to buy it.
   turn-based: read the tell, pick the move that answers it, build chemistry,
   and seal the deal — hen parties, honeymooners, sunburnt tourists, a handsome
   stranger who says "surprise me".
-- **Grow the fruit.** Rafa's twelve plots grow mint, limes, strawberries,
-  mangoes, pineapples and coconuts in real island time. Blend them into
-  mojitos, daiquiris, piña coladas and the house special.
+- **Grow the fruit.** Rafa's fifteen plots grow mint, limes, strawberries,
+  mangoes, pineapples and coconuts in real island time — if you look after
+  them. Crops only grow while they are watered, and the sun dries them out;
+  fill Rafa's can at the rain butt, and ration it when the rain stays away.
+  Shoo the pests, dig in compost for faster, bigger harvests, and pick things
+  before they rot on the vine. Blend them into mojitos, daiquiris, piña
+  coladas and the house special.
+- **Keep it fresh.** Fruit spoils. The bar fridge slows it right down (when
+  it is not sulking), and Mari stocks the bar from it every morning — a
+  stocked bar tips better. What spoils becomes scraps; the compost bin turns
+  scraps into compost; the drying rack turns fruit into dried goods that keep
+  for ever and ship to the other islands. Mama Coco will buy your surplus.
+- **Eat.** You get hungry. Your own mangoes will do. The **Farm** tab (`O`)
+  shows the garden, the water, the stores and what is cooking.
 - **Ship it.** The supply boat at the jetty takes orders for the other islands
   and pays cash.
 - **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade or Luca
@@ -69,7 +80,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
 | Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
 | The map    | `N`, or the minimap             | `☰` · Map                      |
-| Panels     | `J I K U P L`, `T` for today’s takings, `Esc` for menu | `☰`          |
+| Panels     | `J I K O U P L`, `T` for today’s takings, `Esc` for menu | `☰`        |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
 | Save/load  | `F5` / `F9`                     | `☰` · Menu                     |
@@ -143,6 +154,7 @@ python3 -m http.server 8000    # then http://localhost:8000/editor.html
 | `data/minds.js` | How the islanders feel and grow: needs, passions, quirks, friendships, skills, routines, and their moods in their own words |
 | `data/callers.js` | Bar guests, messages, moves, and the two big encounters |
 | `data/garden.js` | The garden, the blender, the supply boat's orders, and dates |
+| `data/farm.js` | Water, pests, spoilage and the fridge, the compost bin and drying rack, hunger, and stocking the bar |
 | `data/items.js` | Items, skills, jobs, achievements, minigame cabinets, shops |
 | `data/office.js` | Happenings, the island chat, post, texts, endings, the opening |
 | `data/acts.js` | What every object does when you press E |

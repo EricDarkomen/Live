@@ -174,3 +174,26 @@
 .mind-card .mgrow{font-size:11px;color:var(--purple);font-style:italic}
 .mind-card .mlife{list-style:none;margin:0;padding:0;font-size:11px;color:var(--text);display:flex;flex-direction:column;gap:1px}
 .mind-card .mlife span{font-family:var(--mono);font-size:9px;color:var(--dim);margin-right:4px}
+
+/* ---- The Farm tab (data/farm.js) ---- */
+.farm-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:6px}
+.farm-sum .fs{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.farm-sum .fs span{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.farm-sum .fs b{font-size:14px;color:var(--text)}
+.farm-plots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.farm-plots .fp{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:9px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;text-align:center}
+.farm-plots .fp.s3{border-color:var(--good);box-shadow:0 0 0 1px var(--good) inset}
+.farm-plots .fp.s4{opacity:.6}
+.farm-plots .fe{font-size:22px;line-height:1.1}
+.farm-plots .fn{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.farm-plots .fsub{font-size:10px;color:var(--dim);font-family:var(--mono);line-height:1.25}
+.farm-plots .mb{width:100%;height:4px}
+.mb.grow i{background:var(--good)}
+.mb.water i{background:#4dd4ff}
+.farm-key{font-size:11px;color:var(--dim);margin:8px 0 0}
+.farm-prod{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.farm-prod .fst{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;font-size:12px}
+.farm-prod .fst > span{font-size:11px;color:var(--dim)}
+.farm-prod .fq{display:flex;flex-direction:column;gap:3px;font-size:12px}
+.farm-prod .fq i{color:var(--dim);font-size:11px}
+@media (max-width:520px){.farm-plots{gap:4px}.farm-plots .fp{padding:4px 2px}.farm-plots .fe{font-size:18px}.farm-plots .fn{font-size:9px}.farm-plots .fsub{font-size:8px}}

@@ -124,6 +124,10 @@ const MIND_SKILLS = {
                                    in a phrase, what they say on arrival, and
                                    what it trains: { skill: experience }
 
+     { act }                       and something the step DOES to the world
+                                   when it is finished: a name in NPC_ACTS
+                                   (data/farm.js)
+
    and around the steps, when it happens and what it is for:
 
      duty    it is work, and outranks a timetabled break — they cut a coffee
@@ -154,7 +158,9 @@ const MIND_THOUGHTS = {
   routine:  { n: '{what}',                   v: 4,  mins: 240, stack: 3 },
   late:     { n: 'Late for {what}',          v: -4, mins: 180, stack: 2 },
   levelup:  { n: 'Got better at {what}',     v: 7,  mins: 480, stack: 2 },
-  practise: { n: 'Practised with {you}',     v: 6,  mins: 480 }
+  practise: { n: 'Practised with {you}',     v: 6,  mins: 480 },
+  stocked:  { n: 'A full fridge to open with', v: 5, mins: 480 },
+  nostock:  { n: 'Opened up to an empty fridge', v: -6, mins: 480 }
 };
 
 const MINDS = {
@@ -190,7 +196,9 @@ const MINDS = {
           { go: 'jukebox', secs: 5, n: 'putting something on the jukebox', say: 'Something with a pulse. Not that.', train: { music: 3 } },
           { go: 'deck', secs: 7, n: 'wiping down the deck', say: 'Wipe, wipe, wipe. Who SITS like that.', train: { fitness: 4 } },
           { go: 'barTable', secs: 6, n: 'setting out the tables', train: { fitness: 2, mixology: 2 } },
-          { go: 'desk', secs: 5, n: 'cutting limes', say: 'Right. We are OPEN.', train: { mixology: 6 } }] },
+          /* `act` runs when the step is done: she stocks the bar from your
+             fridge — see NPC_ACTS in data/farm.js. */
+          { go: 'desk', secs: 5, n: 'stocking the bar from the fridge', act: 'stockBar', train: { mixology: 6 } }] },
       { id: 'lastOrders', n: 'Last orders', duty: true, at: [1110, 1140], done: 'Closed up clean',
         steps: [
           { go: 'barTable', secs: 6, n: 'collecting glasses', say: 'Glasses. Glasses. Why is there a shoe.', train: { fitness: 3 } },
