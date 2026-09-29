@@ -23,9 +23,9 @@ const Portrait = {
   live: [], last: 0, FPS: 12,
   /* Two crops of the standing, front-facing frame, in sprite pixels: the head
      alone for the small places, head and shoulders for the dialogue box, and
-     the face filling the frame for your own, in the HUD corner — where a head
-     with room round it was a small brown smudge low in a pink circle. */
-  CROPS: { head: { w: 28, h: 28, top: 2 }, bust: { w: 34, h: 40, top: 0 }, face: { w: 24, h: 24, top: 4 } },
+     your own for the HUD corner: the head crop started a few rows lower, so
+     you sit up in the circle rather than sinking to the bottom of it. */
+  CROPS: { head: { w: 28, h: 28, top: 2 }, bust: { w: 34, h: 40, top: 0 }, hud: { w: 28, h: 28, top: 5 } },
 
   can(id) { return typeof Sprites !== 'undefined' && !!id && Sprites.has(id); },
   still() { return typeof Juice !== 'undefined' ? Juice.still() : false; },
@@ -63,7 +63,7 @@ const Portrait = {
     const el = document.getElementById('hFace');
     if (!el) return false;
     if (this.live.some(p => p.el === el && p.id === 'player')) return true;
-    return this.mount(el, 'player', { crop: 'face', scale: 2 });
+    return this.mount(el, 'player', { crop: 'hud', scale: 1.5 });
   },
 
   /* ---- the loop ---- */

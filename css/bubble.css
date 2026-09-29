@@ -408,15 +408,10 @@ canvas.portrait{display:block;image-rendering:pixelated;image-rendering:crisp-ed
 .dlg{box-shadow:0 40px 90px -30px rgba(8,0,18,.9),0 0 70px -30px var(--who),var(--gloss)!important}
 .dlg::before{background:linear-gradient(90deg,var(--who),#ff7a59,#ffb938)!important;box-shadow:0 0 14px var(--who)!important}
 
-/* Your face, round, in the corner — filling the circle, on a light backdrop.
-   The pink-on-purple one it had matched the card so well that brown hair and
-   a dark shirt disappeared into it. */
-.who-face.live{padding:0!important;width:50px;height:50px;border-radius:50%!important;overflow:hidden;
-  display:block!important;font-size:0!important;
-  background:radial-gradient(circle at 50% 38%,#fff6ee 0%,#ffd9e6 58%,#ff9fc4 100%)!important;
-  box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(255,79,154,.55),var(--glow-pink)!important}
-.who-face.live canvas{width:100%!important;height:100%!important}
-@media (max-width:820px),(max-height:520px){.who-face.live{width:42px;height:42px}}
+/* Your face, round, in the corner. The same size on a phone as anywhere
+   else — shrinking it there as well made you a speck. */
+.who-face.live{padding:0!important;width:46px;height:46px;border-radius:50%!important;overflow:hidden;
+  display:grid!important;place-items:center;font-size:0!important}
 
 /* Faces on the Islanders cards, framed in their own colour. */
 .mind-card{position:relative;overflow:hidden}
