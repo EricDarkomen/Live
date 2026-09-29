@@ -35,19 +35,23 @@ function islander(id, who, o) {
     { t: 'Meet me at the cove tonight? After sunset.', to: 'date', if: () => Rel.get(id) >= 4 && !G.flags.date && G.minutes % 1440 < 1260 },
     { t: 'See you later.', to: null }
   ];
+  /* A flirt lands on the day they are having — see data/minds.js — and goes
+     one further when they are glowing. Looked up when it is used rather than
+     now: this file loads before the engine does. */
+  const mind = () => (typeof Mind !== 'undefined' ? Mind : null);
   o.nodes.flirt = {
-    text: () => pick(o.flirt),
-    do() { G.flags['flirt_' + id] = G.day; Rel.add(id, 1); Player.xp(3); },
+    text: () => (mind() && mind().flirtLine(id)) || pick(o.flirt),
+    do() { G.flags['flirt_' + id] = G.day; Rel.add(id, 1 + (mind() ? mind().charm(id) : 0)); Player.xp(3); if (mind()) mind().event(id, 'flirted'); },
     choices: [{ t: '😏', to: null }]
   };
   o.nodes.gift = {
     text: () => pick(o.gift),
-    do() { const d = takeDrink(); Rel.add(id, ITEMS[d].v >= 24 ? 3 : 2); Player.xp(5); o.onGift && o.onGift(d); },
+    do() { const d = takeDrink(); Rel.add(id, (ITEMS[d].v >= 24 ? 3 : 2) + (mind() ? mind().charm(id) : 0)); Player.xp(5); if (mind()) mind().event(id, 'gift'); o.onGift && o.onGift(d); },
     to: null
   };
   o.nodes.date = {
     text: () => pick(o.dateYes),
-    do() { Dates.ask(id, who); },
+    do() { Dates.ask(id, who); if (mind()) mind().event(id, 'date'); },
     choices: [{ t: 'It’s a date.', to: null }]
   };
   o.nodes.again = o.nodes.again || {
@@ -143,7 +147,7 @@ islander('mari', 'Mari', {
 }),
 islander('kai', 'Kai', {
   id: 'kai', name: 'Kai', face: '🏄', role: 'Surf instructor · the shack',
-  desk: [93, 79], colour: '#4dd4ff',
+  desk: [91, 77], colour: '#4dd4ff',
   level: 'island',
   stays: true,
   look: { base: 'base:masc/Tan', eyes: 'eyes:Green', hair: 'hair:Medium 03 - Idol/Blonde', torso: 'torso:masc/Swim 00 - Nothing/Skin', legs: 'legs:masc/Swim 01 - Shorts/Teal', feet: 'feet:masc/Shoes 01 - Shoes/White' },

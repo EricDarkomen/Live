@@ -95,7 +95,9 @@ const Faces = {
       if (typeof R !== 'undefined' && R.t < t.till) return t.expr;
       delete this.timed[id];
     }
-    const held = this.held[id];
+    /* Failing anything said to them, the day they are having — see
+       Mind.face(), which only answers at the ends of the scale. */
+    const held = this.held[id] || (typeof Mind !== 'undefined' ? Mind.face(id) : null);
     if (held) return this.SHUT.indexOf(held) < 0 ? (this.blink(id) || held) : held;
     return this.blink(id);
   },

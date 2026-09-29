@@ -125,3 +125,35 @@
 .verdict .vn{font-size:11px;color:var(--dim);margin-top:8px;font-style:italic}
 .ending-title{font-family:var(--mono);font-size:clamp(22px,5vw,40px);letter-spacing:.08em;color:var(--hold)}
 .ending-text{font-size:16px;line-height:1.7;margin:16px 0;max-width:620px}
+
+/* ---- The Islanders tab (engine/mind.js) ----
+   One card a person: how they feel, why, what they are doing about it. */
+.mind-intro{font-size:12px;color:var(--dim);margin:-4px 0 12px;line-height:1.5}
+.mind-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.mind-card{background:rgba(11,15,22,.5);border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.mind-card .mh{display:flex;align-items:center;gap:10px}
+.mind-card .mf{font-size:26px;line-height:1}
+.mind-card .mt{min-width:0}
+.mind-card .mnm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mind-card .mw{font-size:12px;color:var(--text)}
+.mind-card .mdo{font-size:12px;color:var(--text);line-height:1.4}
+.mind-card .mdo span{color:var(--dim)}
+.mind-card .mneeds{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.mind-card .mn{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mind-card .mk{font-size:10px;color:var(--dim);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.mb i{display:block;height:100%;border-radius:3px;background:var(--good);transition:width .6s ease}
+.mb.mid i{background:var(--hold)}
+.mb.bad i{background:var(--bad)}
+.mb.mood{height:8px;border-radius:4px}
+.mb.mood i{background:linear-gradient(90deg,var(--brand),var(--hold))}
+.mb.mood.bad i{background:var(--bad)}
+.mind-card .mth{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:11px}
+.mind-card .mth li{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mind-card .mth b{font-family:var(--mono);display:inline-block;min-width:26px}
+.mind-card .mth .up b{color:var(--good)}
+.mind-card .mth .dn b{color:var(--bad)}
+.mind-card .mth .nil{font-style:italic}
+.mind-card .mties{font-size:11px;color:var(--text)}
+.mind-card .mrel{font-size:11px;color:var(--dim);font-style:italic;border-top:1px solid var(--line-soft);padding-top:6px}
+@media (prefers-reduced-motion:reduce){.mb i{transition:none}}

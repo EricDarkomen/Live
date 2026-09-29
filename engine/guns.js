@@ -1045,6 +1045,10 @@ const Guns = {
     who.stunTimer = Math.max(who.stunTimer || 0, 0.9);
     if (who.sayT <= 0) { who.say = pick(this.NPC_LINES[id] || this.NPC_LINES.dart); who.sayT = 3.2; }
     if (typeof Faces !== 'undefined') Faces.flash(who.id, id === 'band' || id === 'pack' ? 'anger' : 'shock', 1.6);
+    /* Every hit, not only the first: the grudge below is once a shift, but how
+       their afternoon is going is not — and Kai, for one, is having a great
+       time. See `soaked` in data/minds.js. */
+    if (typeof Mind !== 'undefined') Mind.event(who.id, 'soaked');
     /* It costs you something, once per person per shift. A second dart at the
        same person is the same joke and should not be a second grudge — and
        forty darts at Marjorie should not put her below anything a conversation
