@@ -159,14 +159,115 @@ const Faces = {
     if (!this.ok || !(dir >= 1 && dir <= 3)) return;
     const row = this.row(id);
     if (row < 0) return;
-    const expr = this.of(id);
-    if (!expr) return;
     const s = this.sheet;
-    const col = s.exprs.indexOf(expr);
-    if (col < 0) return;
     const off = (s.head[dir] || [])[frame] || [0, 0];
-    c.drawImage(this.img, (col * 3 + dir - 1) * s.fw, row * s.fh, s.fw, s.fh,
+    const expr = this.of(id);
+    const col = expr ? s.exprs.indexOf(expr) : -1;
+    if (col >= 0) c.drawImage(this.img, (col * 3 + dir - 1) * s.fw, row * s.fh, s.fw, s.fh,
       Math.round(x + s.at[0] + off[0]), Math.round(y + s.at[1] + off[1]), s.fw, s.fh);
+    /* And the mouth, which the heads were drawn without — see MOUTHS. Facing
+       the camera only: in profile a mouth is a pixel on the edge of a face,
+       and there is nothing a pixel there can say. */
+    if (dir === 2) this.paintMouth(c, id, x + off[0], y + off[1]);
+  },
+
+  /* ---- mouths ----
+     THE HEADS HAVE NO MOUTHS. The kit draws a face at this size as two eyes
+     over a jaw, which is a fine face and a face that cannot talk — so a
+     portrait speaking a line could only nod. These are the frames that were
+     missing: eight mouths, four pixels wide and three high, placed on the
+     row where every adult head in the kit narrows to its chin (row 24 of the
+     frame, between the eyes — measured off the art, and the same on every
+     head in the cast, fem, masc and elderly alike).
+
+       D  the mouth itself       L  a lip at rest       I  the inside
+
+     They are painted as TRANSLUCENT darks over whatever skin is underneath
+     rather than as colours, so one set of frames suits every skin tone in
+     the game without reading a single pixel back — which this file never
+     does, because a page opened from disk cannot. */
+  MOUTHS: {
+    rest:  ['....', '.LL.', '....'],
+    small: ['....', '.DD.', '....'],
+    open:  ['....', '.DD.', '.II.'],
+    o:     ['....', '.DD.', '.DD.'],
+    smile: ['D..D', '.DD.', '.LL.'],
+    laugh: ['D..D', '.DD.', '.II.'],
+    frown: ['.DD.', 'D..D', '....'],
+    flat:  ['....', 'DDDD', '.LL.']
+  },
+  MOUTH_INK: { D: 'rgba(58,8,24,.78)', L: 'rgba(150,34,60,.38)', I: 'rgba(170,30,62,.85)' },
+  /* On the deepest skin tones a dark mouth disappears into the face, so the
+     ink turns round: a near-black line with a lighter, rosier lip — which is
+     how the art would have drawn it. Chosen from the skin a person was
+     composed from (their `look` in data/npcs.js, or yours), never from the
+     pixels. */
+  MOUTH_INK_DEEP: { D: 'rgba(12,2,6,.95)', L: 'rgba(214,112,132,.6)', I: 'rgba(232,74,104,.92)' },
+  DEEP: ['Brown', 'Coffee'],
+  _ink: Object.create(null),
+  inkFor(id) {
+    if (this._ink[id]) return this._ink[id];
+    let base = '';
+    if (id === 'player') base = ((typeof G !== 'undefined' && G.look) || (typeof Look !== 'undefined' && Look.DEFAULT) || {}).base || '';
+    else if (typeof NPCS !== 'undefined') { const d = NPCS.find(x => x.id === id); base = (d && d.look && d.look.base) || ''; }
+    const tone = String(base).split('/')[1] || '';
+    const ink = this.DEEP.includes(tone) ? this.MOUTH_INK_DEEP : this.MOUTH_INK;
+    /* The player can change skin in the wardrobe, so theirs is never kept. */
+    if (id !== 'player') this._ink[id] = ink;
+    return ink;
+  },
+  /* The mouth's top-left, in the pixels of a front-facing frame. */
+  MOUTH_AT: [30, 23],
+  /* Who is talking, and until when (R.t). Set by the dialogue portrait while
+     its words type out; somebody in the world is talking while their speech
+     bubble is new. */
+  talk: Object.create(null),
+  talking(id) {
+    const t = typeof R !== 'undefined' ? R.t : 0;
+    if (this.talk[id] > t) return true;
+    if (typeof NPCM === 'undefined' || !NPCM.byId) return false;
+    const n = NPCM.byId.get(id);
+    return !!(n && n.sayT > 2.3);
+  },
+  /* WHICH MOUTH. Talking cycles through the shapes a line of speech makes —
+     happily, if they are happy; at rest it is whatever their face is doing:
+     a smile, a frown, an o of surprise, a hard line when they are cross. */
+  TALK: ['small', 'open', 'o', 'open', 'small', 'rest', 'open', 'small'],
+  TALK_HAPPY: ['smile', 'laugh', 'smile', 'open', 'laugh', 'smile'],
+  mouthOf(id) {
+    const t = this.timed[id];
+    const t0 = typeof R !== 'undefined' ? R.t : 0;
+    const expr = (t && t0 < t.till && t.expr) || this.held[id]
+      || (typeof Mind !== 'undefined' ? Mind.face(id) : null);
+    const glad = expr === 'happy' || expr === 'blush';
+    if (this.talking(id) && !(typeof R !== 'undefined' && !R.animate)) {
+      let h = 0;
+      for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 1023;
+      const seq = glad ? this.TALK_HAPPY : this.TALK;
+      return seq[Math.floor(t0 * 9 + h) % seq.length];
+    }
+    if (glad) return 'smile';
+    if (expr === 'sad' || expr === 'shame') return 'frown';
+    if (expr === 'shock') return 'o';
+    if (expr === 'anger') return 'flat';
+    return 'rest';
+  },
+  paintMouth(c, id, x, y) {
+    const shape = this.MOUTHS[this.mouthOf(id)];
+    if (!shape) return;
+    const ax = Math.round(x + this.MOUTH_AT[0]), ay = Math.round(y + this.MOUTH_AT[1]);
+    const inks = this.inkFor(id);
+    const was = c.fillStyle;
+    for (let r = 0; r < shape.length; r++) {
+      const line = shape[r];
+      for (let k = 0; k < line.length; k++) {
+        const ink = inks[line[k]];
+        if (!ink) continue;
+        c.fillStyle = ink;
+        c.fillRect(ax + k, ay + r, 1, 1);
+      }
+    }
+    c.fillStyle = was;
   },
 
   /* The same patch as CSS, for the dialogue box's portrait — which is a window

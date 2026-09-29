@@ -85,7 +85,11 @@ const Portrait = {
     /* Talking: the person in the dialogue box, while their words are typing
        out, nods along a pixel at a time. */
     const talking = p.speaker && typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.typing;
-    const bob = still ? 0 : talking ? (Math.floor(t * 9) % 2) : 0;
+    /* Their mouth moves while the words come out (Faces.MOUTHS), and the
+       head gives the odd nod on the stressed beats rather than bouncing on
+       every one. */
+    if (talking && !still && typeof Faces !== 'undefined') Faces.talk[p.id] = t + .15;
+    const bob = still ? 0 : talking ? (Math.floor(t * 4.5) % 3 === 0 ? 1 : 0) : 0;
     /* Glancing: now and then somebody who is not mid-sentence looks off to
        one side for a moment, which is most of what makes a face read as
        somebody thinking rather than a picture of somebody. */
