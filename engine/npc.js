@@ -61,14 +61,31 @@ const Nav = {
     for (const k of block) { const [x, y] = k.split(',');
       if (x >= 0 && y >= 0 && x < MAPW && y < MAPH) m[y * MAPW + +x] = 2; }
     this.mask = m;
-    /* Only the routes that account for people. The compass's own field ignores
-       them by definition, so there is nothing in it to go stale. Measured at
-       about ten rebuilds a second and a third of a millisecond a frame on a
-       floor of twenty people, which is cheaper than being clever about it: a
-       version of this that kept stale routes and refreshed a couple per frame
-       was no faster and answered with yesterday's traffic. */
-    for (const k of [...this.fields.keys()]) if (k[0] !== 'p') this.fields.delete(k);
+    /* Only the routes that account for people go stale — the compass's own
+       field ignores them by definition. They are MARKED stale rather than
+       thrown away, and field() refreshes them a few a frame (see BUDGET).
+
+       This used to delete them all, and the note here said that was cheaper
+       than being clever: at nine people it was. At sixty it meant every route
+       on the level rebuilt in the same frame whenever anybody sat down — a
+       thirty-millisecond hitch three times a second — and past sixty the
+       cache itself could not hold everybody's desk, and routes were being
+       rebuilt six thousand times a second. A route a frame or two behind the
+       traffic is invisible; a frame that takes a tenth of a second is not. */
+    this.gen++;
   },
+  /* Which generation of the crowd the routes should account for, and how many
+     stale ones may be rebuilt this frame — reset by tick(), once a frame. */
+  gen: 0, budget: 0, BUDGET: 5,
+  tick() { this.budget = this.BUDGET; },
+  /* Can a route to here be had this frame: already built, or room to build. */
+  ready(tx, ty) { this.fresh(); return this.budget > 0 || this.fields.has(tx + ',' + ty); },
+  /* ENOUGH ROUTES FOR EVERYBODY ON THE LEVEL: a desk each, the shared spots,
+     and room to spare. Fixed at sixty-four it was a wall — the sixty-first person's
+     desk evicted somebody else's, whose walk evicted another's, and the cache
+     spent the frame rebuilding itself. Sixteen-bit routes are 23KB each on the
+     island, so even three hundred people is a few megabytes. */
+  limit() { return Math.max(this.LIMIT, NPCM.list.length * 2 + 24); },
   /* World.build() assigns a NEW solid[] every time, so identity is the whole
      test: no equal-by-value comparison of three thousand tiles, and no flag for
      anyone to forget to set. The object count catches a door being unlocked or
@@ -135,13 +152,22 @@ const Nav = {
     if (!World.solid) return null;
     this.fresh();
     const k = (plain ? 'p:' : '') + tx + ',' + ty;
-    const hit = this.fields.get(k);
+    let hit = this.fields.get(k);
+    /* Stale — the crowd has moved since it was built. Rebuilt if this frame
+       still has room for it; otherwise it answers with the traffic of a moment
+       ago, and gets its turn next frame. */
+    if (hit && !plain && hit.gen !== this.gen && this.budget > 0) {
+      this.budget--;
+      hit = this.build(tx, ty, plain); hit.gen = this.gen;
+    }
     /* Re-inserting moves the key to the end of a Map's insertion order, which
        is what makes the eviction below least-recently-asked rather than
        oldest-built — the kettle must not be evicted at 11:00 by twenty desks. */
     if (hit) { this.fields.delete(k); this.fields.set(k, hit); return hit; }
     const f = this.build(tx, ty, plain);
-    if (this.fields.size >= this.LIMIT) this.fields.delete(this.fields.keys().next().value);
+    f.gen = this.gen; this.budget--;
+    const cap = this.limit();
+    while (this.fields.size >= cap) this.fields.delete(this.fields.keys().next().value);
     this.fields.set(k, f);
     return f;
   },
@@ -184,7 +210,10 @@ const Nav = {
   _node: null, _next: null, _head: new Int32Array(16),
   build(tx, ty, plain) {
     const w = MAPW, h = MAPH, N = w * h;
-    const d = new Int32Array(N).fill(-1);
+    /* Sixteen bits a square: half the memory, and no route on any map in this
+       game comes within a factor of ten of 32,000 steps. A sweep that ever got
+       there stops and says so, the way the square cap does. */
+    const d = new Int16Array(N).fill(-1);
     const m = plain ? null : this.mask, COST = this.COST;
     const open = this.openNow();
     /* Every square can be offered from each of its four sides, plus the four
@@ -212,6 +241,7 @@ const Nav = {
         const k = head[b]; head[b] = next[k]; pending--;
         const i = node[k];
         if (d[i] !== -1) continue;
+        if (cur > 32000) { d.partial = true; return d; }
         d[i] = cur;
         if (++taken >= this.CAP) { d.partial = true; return d; }
         const x = i % w;
@@ -358,6 +388,7 @@ const NPCM = {
         homeward: 0
       };
     });
+    this.byId = new Map(this.all.map(n => [n.id, n]));
     this.enter(World.level);
     /* And then put them on the right side of five o'clock. A fresh roster is
        always built at its desks; whether that is where anybody should be
@@ -473,7 +504,37 @@ const NPCM = {
       n.errand = null; this.repath(n);
     });
   },
-  get(id) { return this.all.find(n => n.id === id); },
+  /* By id, from an index built with the roster — asked every frame by every
+     conversation and every mind, which a search of the roster was fine for at
+     nine people and is not at ninety. */
+  byId: new Map(),
+  get(id) { return this.byId.get(id) || this.all.find(n => n.id === id); },
+  /* WHO IS NEAR A POINT, from a grid of two-tile cells rebuilt once a frame.
+     Everything that asks "is anybody within arm's length" — leaning apart,
+     not walking through each other, who to strike up a conversation with —
+     used to ask it of the whole level, for every walker, every frame: a
+     hundred and fifty walkers on a level of two hundred and fifty is forty
+     thousand distances a frame, nearly all of them to people across the
+     island. Now it asks the handful of cells round the point. */
+  CELL: 2, cells: new Map(),
+  grid() {
+    const c = this.cells, S = TILE * this.CELL;
+    c.clear();
+    for (const n of this.list) {
+      const k = Math.floor(n.y / S) * 4096 + Math.floor(n.x / S);
+      const a = c.get(k);
+      if (a) a.push(n); else c.set(k, [n]);
+    }
+  },
+  near(x, y, r) {
+    const S = TILE * this.CELL, cr = Math.ceil(r / S);
+    const cx = Math.floor(x / S), cy = Math.floor(y / S), out = [];
+    for (let yy = cy - cr; yy <= cy + cr; yy++) for (let xx = cx - cr; xx <= cx + cr; xx++) {
+      const a = this.cells.get(yy * 4096 + xx);
+      if (a) for (let i = 0; i < a.length; i++) out.push(a[i]);
+    }
+    return out;
+  },
   /* Is this colleague on the level you are on. A job that points at somebody
      upstairs wants the way upstairs, not their desk coordinates applied to the
      floor you are on. */
@@ -1159,7 +1220,20 @@ const NPCM = {
      building is a set; an empty building with two people still in it is this
      building. */
   /* `stays: true` on an NPC keeps them in the building after hours. */
-  get HOME_STAY() { return NPCS.filter(n => n.stays).map(n => n.id); },
+  /* Built once per roster rather than on every read: offDuty() asks it for
+     every person every frame, and a filter of the whole cast inside a loop
+     over the whole cast was the single dearest thing on a busy island. Still
+     an array, because a few readers use .includes() on it; the roster check
+     keeps it right if the editor adds somebody. */
+  get HOME_STAY() {
+    if (this._stayFor !== NPCS || this._stayLen !== NPCS.length) {
+      this._stayFor = NPCS; this._stayLen = NPCS.length;
+      this._stay = NPCS.filter(n => n.stays).map(n => n.id);
+      this._staySet = new Set(this._stay);
+    }
+    return this._stay;
+  },
+  stays(n) { this.HOME_STAY; return this._staySet.has(n.id); },
   /* IS THIS PERSON DONE FOR THE DAY.
      It used to be one question with one answer — Sky.staffed(), the fourth
      floor's own hours — because everybody in the roster worked on the fourth
@@ -1172,7 +1246,7 @@ const NPCM = {
      day, which is what twenty of the twenty-one say. HOME_STAY still overrules
      everything: Ron and Bev are in that building whatever the clock does. */
   offDuty(n) {
-    if (this.HOME_STAY.includes(n.id)) return false;
+    if (this.stays(n)) return false;
     const h = n.def.hours;
     if (!h) return typeof Sky === 'undefined' ? false : !Sky.staffed();
     const m = Sky.m();
@@ -1249,7 +1323,7 @@ const NPCM = {
       && typeof Cam !== 'undefined' && Cam.visible && Cam.visible(n.x, n.y);
     let moved = false;
     for (const n of this.all) {
-      if (this.HOME_STAY.includes(n.id)) continue;
+      if (this.stays(n)) continue;
       /* Stable per person, so the same people are always first out of the door
          and the same people are always last, which is the single most true
          thing about an office at five o'clock.
@@ -1890,6 +1964,7 @@ const NPCM = {
   },
   update(dt) {
     this.now += dt;
+    Nav.tick();
     /* Which way you are going, so somebody can tell being walked into from
        being walked past. */
     this.pvx = P.x - (this.pxWas === undefined ? P.x : this.pxWas);
@@ -1912,6 +1987,7 @@ const NPCM = {
     this.dynamics();
     /* After everything with a claim on where somebody is, and before the walk
        that reads what the mind decided. */
+    this.grid();
     if (typeof Mind !== 'undefined') Mind.update(dt);
     /* Where everybody who is standing still is standing, once per frame, as
        tile keys. The walk below prices these up so a knot of people is walked
@@ -2035,6 +2111,11 @@ const NPCM = {
   walk(n, dt, tx, ty) {
     this.hangUp(n);
     n.walking = true;
+    /* A route not built yet, on a frame that has already built its share,
+       waits its turn: one frame of standing is invisible, and forty people
+       all choosing somewhere new at half past used to be a frame that took
+       forty milliseconds. Progress is not charged for the wait. */
+    if (!Nav.ready(tx, ty)) return;
     const fx = Math.floor(n.x / TILE), fy = Math.floor(n.y / TILE);
     /* Is this walk actually getting anywhere, in STEPS LEFT TO WALK rather than
        as the crow flies.
@@ -2619,7 +2700,7 @@ const NPCM = {
   separate(n) {
     let sx = 0, sy = 0;
     const R = TILE * .7;
-    for (const o of this.list) {
+    for (const o of this.near(n.x, n.y, R)) {
       if (o === n) continue;
       const dx = n.x - o.x, dy = n.y - o.y, d = Math.hypot(dx, dy);
       if (d > R || d < .001) continue;
@@ -2748,7 +2829,7 @@ const NPCM = {
          worse than a quiet break room — so a beat waits a second when somebody
          else nearby is mid-sentence. Not the person we are talking TO: they
          have just spoken, and waiting for them is waiting for ever. */
-      if (this.list.some(x => x !== n && x !== o && x.sayT > 1.2
+      if (this.near(n.x, n.y, TILE * 3.4).some(x => x !== n && x !== o && x.sayT > 1.2
         && Math.hypot(x.x - n.x, x.y - n.y) < TILE * 3.4)) { n.chat.t = rnd(.8, 1.6); return; }
       n.chat.turns--;
       n.chat.t = rnd(3.2, 5);
@@ -2777,7 +2858,7 @@ const NPCM = {
        whoever happens to come first in the roster — and never somebody they
        cannot stand. Standing next to a rival is a thought, not a chat. */
     let o = null, pull = -Infinity;
-    for (const x of this.list) {
+    for (const x of this.near(n.x, n.y, TILE * 2.6)) {
       if (x === n || x.walking || x.chat || x.chatCool > 0 || x.stunTimer > 0 || x.id === talkingTo) continue;
       if (Math.hypot(x.x - n.x, x.y - n.y) >= TILE * 2.6) continue;
       const lines = this.linesFor(x);
@@ -2826,7 +2907,7 @@ const NPCM = {
       const room = n.squeeze > 0 ? TILE * .18 : TILE * .55;
       if (d < room && d <= Math.hypot(n.x - P.x, n.y - P.y)) return false;
     }
-    for (const o of this.list) {
+    for (const o of this.near(nx, ny, TILE * .5)) {
       if (o === n) continue;
       const d = Math.hypot(nx - o.x, ny - o.y);
       /* Tighter than the half tile a person occupies, deliberately. Two people

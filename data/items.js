@@ -50,6 +50,12 @@ const ITEMS = {
   sotb: { n: 'Sex on the Beach', e: '🍑', d: 'Mango, strawberry, a splash of scandal. The house special.', v: 24, r: 'rare', drink: true, use: { energy: 10, patience: 20, t: 'You blush. You are not sure why. You are sure why.' } },
   colada: { n: 'Piña Colada', e: '🥥', d: 'If you like it, and getting caught in the rain.', v: 30, r: 'epic', drink: true, use: { energy: 15, patience: 22, t: 'Creamy, sweet, and it tastes like a holiday postcard.' } },
   sunset: { n: 'Driftwood Sunset', e: '🌅', d: 'Rafa’s own recipe: mango, pineapple and lime, layered like the sky at eight.', v: 40, r: 'epic', drink: true, use: { energy: 20, patience: 30, t: 'It tastes like the last night of a holiday. You feel wonderful.' } },
+  /* The newcomers' goods. Fish is fresh and does not keep — see PERISH in
+     data/farm.js. */
+  fish: { n: 'Fresh Fish', e: '🐟', d: 'Snapper, caught at dawn by Nico, who will want to know what you are going to do with it.', v: 6, r: 'common', use: { energy: 14, patience: 4, food: 28, t: 'You grill it on a stick over somebody’s fire. Perfect.' } },
+  taco: { n: 'Rosie’s Taco', e: '🌮', d: 'Pork, pineapple, a lot of lime, and a sauce Rosie will not name.', v: 4, r: 'common', use: { energy: 18, patience: 8, food: 38, t: 'Juice down your chin. Rosie shouts “SERVILLETA!” and throws a napkin at you.' } },
+  fishtaco: { n: 'Fish Taco', e: '🌮', d: 'Nico’s snapper, Rosie’s tortilla, and a truce between the two of them that lasts exactly as long as lunch.', v: 6, r: 'rare', use: { energy: 22, patience: 10, food: 45, t: 'The best thing you have eaten on this island. Do not tell Mama Coco.' } },
+  aguafresca: { n: 'Agua Fresca', e: '🥤', d: 'Watermelon, lime and ice, in a bag with a straw.', v: 2, r: 'common', use: { energy: 12, patience: 6, food: 6, t: 'Cold, pink and gone.' } },
   /* Toys. */
   soaker: { n: 'Water Pistol', e: '💦', d: 'From the surf shack. For “emergencies”.', v: 0, r: 'rare', gun: 'water' },
   /* Keepsakes. */
@@ -128,6 +134,22 @@ const QUESTS = {
     ],
     track: [{ obj: 'yogaMats' }, { obj: 'jukebox' }, { npc: 'luca' }],
     rw: { xp: 80, money: 15 } },
+  q_nico: { n: 'Chum Run', giver: 'Nico', steps: [
+      'Bring Nico three handfuls of kitchen scraps for bait.',
+    ],
+    track: [{ npc: 'nico' }],
+    rw: { xp: 70, money: 15, item: 'fish' } },
+  q_amara: { n: 'Dune Planting', giver: 'Amara', steps: [
+      'Bring Amara two scoops of compost for the dune grass.',
+    ],
+    track: [{ npc: 'amara' }],
+    rw: { xp: 90, item: 'seed_coconut' } },
+  q_tito: { n: 'Tito’s Big Break', giver: 'Tito', steps: [
+      'Help Tito practise until he is good enough to play a set (Music 4).',
+      'Catch Tito’s first set at the plaza fountain, one evening.',
+    ],
+    track: [{ npc: 'tito' }, { npc: 'tito' }],
+    rw: { xp: 100, money: 10 } },
   q_critic: { n: 'The Review', giver: 'Mari', steps: [
       'Blend three cocktails to have ready.',
       'Win over Sienna Vale on the deck.',
@@ -202,4 +224,9 @@ const SHOP = {
     stock: ['icecream', 'coconutwater'] },
   fruit: { title: 'The Fruit Stall', note: 'Whatever came in on the boat this morning.',
     stock: ['lime', 'mint', 'strawberry', 'mango'] },
+  rosie: { title: 'Rosie’s Taco Truck', note: 'Cheaper than Coco’s. Rosie will tell you that without being asked.',
+    /* Fish tacos only when Nico landed a catch today. */
+    get stock() { return G.flags.catchDay === G.day ? ['taco', 'fishtaco', 'aguafresca'] : ['taco', 'aguafresca']; } },
+  nico: { title: 'Nico’s fish crate', note: 'Caught this morning. Cash. No haggling.',
+    get stock() { return G.flags.catchDay === G.day ? ['fish'] : []; } },
 };

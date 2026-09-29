@@ -191,7 +191,7 @@ const Mind = {
        Blake. */
     if (!n.walking && n.level === World.level && NPCM.list.includes(n)) {
       let c = 0;
-      for (const o of NPCM.list) {
+      for (const o of NPCM.near(n.x, n.y, TILE * 3)) {
         if (o === n || o.walking) continue;
         if (Math.abs(o.x - n.x) > TILE * 3 || Math.abs(o.y - n.y) > TILE * 3) continue;
         c += this.opinion(n.id, o.id) < -25 ? 0 : 1;
@@ -274,7 +274,7 @@ const Mind = {
       if (sm >= 1150 && sm < 1290 && !k.fall && k.dim < .2) this.add(n.id, 'sunset');
     }
     if (!here) return;
-    for (const o of NPCM.list) {
+    for (const o of NPCM.near(n.x, n.y, TILE * 3.2)) {
       if (o === n || Math.hypot(o.x - n.x, o.y - n.y) > TILE * 3.2) continue;
       const op = this.opinion(n.id, o.id);
       if (op >= 30) this.add(n.id, 'friend', o.id);
@@ -810,6 +810,8 @@ const Mind = {
     }
     m.rcount = m.rcount || {};
     m.rcount[pl.rid] = (m.rcount[pl.rid] || 0) + 1;
+    /* …and when it is done: Tito's first set finishes his job. */
+    if (typeof rt.onDone === 'function') { try { rt.onDone(); } catch (e) { console.warn(e); } }
   },
 
   /* ---- growing ---- */
@@ -859,6 +861,9 @@ const Mind = {
          carry somebody over two levels at once. */
       if (!rt.unlock || !(rt.unlock[k] > from && rt.unlock[k] <= L) || !this.unlocked(id, rt)) continue;
       this.log(id, '✨ Can now: ' + rt.n.toLowerCase());
+      /* A routine can mean something to the story when it opens up — Tito
+         being good enough to play moves his job along. */
+      if (typeof rt.onUnlock === 'function') { try { rt.onUnlock(); } catch (e) { console.warn(e); } }
       if (G.rel[id] !== undefined && typeof UI !== 'undefined' && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
     }
   },

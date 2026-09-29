@@ -69,6 +69,11 @@ const MIND_SPOTS = {
   jetty:    { fun: 2, energy: 1.5 },
   cove:     { fun: 3.5, energy: 2 },
   lagoon:   { fun: 6, energy: 1.5 },
+  /* Rosie's truck is a drink and a chat; the end of the jetty and the cove
+     rocks are somewhere to sit and look at the sea. */
+  truck:    { thirst: 5, social: 3 },
+  pier:     { fun: 3, energy: 1.5 },
+  reef:     { fun: 4, energy: 1 },
   surfshack:{ fun: 3, social: 1.5 },
   stall:    { thirst: 7, social: 1.5 },
   /* Mama Coco's. */
@@ -90,7 +95,8 @@ const MIND_SPOT_NAMES = {
   jukebox: 'the jukebox', deck: 'the deck', rail: 'the rail', barTable: 'the corner table',
   hammock: 'the hammock', fountain: 'the plaza fountain', garden: 'the garden', yoga: 'the yoga deck',
   sands: 'Honeymoon Sands', jetty: 'the jetty', cove: 'Lovers’ Cove', lagoon: 'the lagoon',
-  surfshack: 'the surf shack', stall: 'the drinks stall', till: 'the till'
+  surfshack: 'the surf shack', stall: 'the drinks stall', till: 'the till',
+  truck: 'Rosie’s taco truck', pier: 'the end of the jetty', reef: 'the reef rocks'
 };
 
 /* Where the weather can reach somebody: anywhere on the island, and the parts
@@ -114,7 +120,10 @@ const MIND_SKILLS = {
   gossip:       { n: 'Gossip',     e: '👂' },
   seamanship:   { n: 'Seamanship', e: '⚓' },
   storytelling: { n: 'Stories',    e: '📖' },
-  content:      { n: 'Content',    e: '📸' }
+  content:      { n: 'Content',    e: '📸' },
+  fishing:      { n: 'Fishing',    e: '🎣' },
+  science:      { n: 'Science',    e: '🔬' },
+  cooking:      { n: 'Cooking',    e: '🌮' }
 };
 
 /* ROUTINES. A routine is a list of steps done in order:
@@ -138,6 +147,9 @@ const MIND_SKILLS = {
      unlock  { skill: level } — they have to have grown into it
      gives   need points on finishing, like a spot but all at once
      done    what they tell themselves afterwards (a thought, and the life log)
+     onUnlock, onDone
+             what it means to the story when they grow into it, and when it
+             is done — Tito's first set moves his job along
 
    A routine interrupted by something urgent — a need gone critical — is
    picked up again at the step it stopped on. */
@@ -160,7 +172,8 @@ const MIND_THOUGHTS = {
   levelup:  { n: 'Got better at {what}',     v: 7,  mins: 480, stack: 2 },
   practise: { n: 'Practised with {you}',     v: 6,  mins: 480 },
   stocked:  { n: 'A full fridge to open with', v: 5, mins: 480 },
-  nostock:  { n: 'Opened up to an empty fridge', v: -6, mins: 480 }
+  nostock:  { n: 'Opened up to an empty fridge', v: -6, mins: 480 },
+  tacos:    { n: 'One of Rosie’s tacos',     v: 4,  mins: 240 }
 };
 
 const MINDS = {
@@ -170,7 +183,7 @@ const MINDS = {
     weights: { passion: 1.4, social: .7 },
     rates: { thirst: .8 },
     spots: { barTable: 1.2, hammock: .6 },
-    likes: { pepe: 35, luca: 12, sienna: -18, blake: -55, coco: 25 },
+    likes: { pepe: 35, luca: 12, sienna: -18, blake: -55, coco: 25, rosie: 30, val: 20 },
     thoughts: { rained: -2 },
     words: ['On fire', 'In the zone', 'Fine', 'Frayed', 'Done with everyone'],
     lines: {
@@ -226,7 +239,7 @@ const MINDS = {
     weights: { passion: 1.3, fun: 1.2, energy: .7 },
     rates: { energy: .8, fun: 1.2 },
     spots: { sands: 1.5, lagoon: 1.4, fountain: .8 },
-    likes: { jade: 40, luca: 20, teo: 15, blake: -30 },
+    likes: { jade: 40, luca: 20, teo: 15, blake: -30, tito: 35, amara: 25, nico: 10 },
     /* A cooler of coconut water under the counter. */
     post: { thirst: .7 },
     thoughts: { rained: 1, soaked: 5 },
@@ -283,7 +296,7 @@ const MINDS = {
     weights: { passion: 1.1, social: .6, energy: 1.2 },
     rates: { social: .7 },
     spots: { cove: 1.4, fountain: 1.1, lagoon: .7 },
-    likes: { kai: 25, teo: 20, coco: 15, blake: -40 },
+    likes: { kai: 25, teo: 20, coco: 15, blake: -40, amara: 30, nico: 15 },
     /* A water bottle on the tower, which she forgets to drink. */
     post: { thirst: .45 },
     thoughts: { sunshine: 6, rained: -9, soaked: -12 },
@@ -337,7 +350,7 @@ const MINDS = {
     weights: { passion: 1.3, social: 1.1 },
     rates: { social: 1.2, energy: .9 },
     spots: { jukebox: 1.6, deck: 1.2, hammock: 1.1 },
-    likes: { kai: 20, mari: 15, sienna: 10, pepe: 20, blake: -20 },
+    likes: { kai: 20, mari: 15, sienna: 10, pepe: 20, blake: -20, tito: 40 },
     thoughts: { sunset: 10, rained: -4 },
     named: { sunset: 'The sky did a sunset, just for him' },
     words: ['Magnifico', 'Molto bene', 'Così così', 'Malinconico', 'Tragedia'],
@@ -386,7 +399,7 @@ const MINDS = {
     passion: { n: 'Gossip', e: '👂', at: [], decay: 7, chat: true },
     weights: { passion: 1.5, social: 1.2, fun: .5 },
     rates: { energy: .8, social: 1.1 },
-    likes: { mari: 30, jade: 20, kai: 15, pepe: 25, blake: -70, sienna: -10 },
+    likes: { mari: 30, jade: 20, kai: 15, pepe: 25, blake: -70, sienna: -10, rosie: -30, val: 15 },
     /* A shop full of juice, a radio, a chair nobody else is allowed in, and a
        trickle of customers — not quite enough gossip to live on. */
     post: { thirst: 2.5, fun: 1.2, energy: .8, passion: .2 },
@@ -423,7 +436,7 @@ const MINDS = {
     weights: { passion: 1.2, social: .5, fun: .6 },
     rates: { social: .6, fun: .7 },
     spots: { jetty: 1.8, stall: 1.2 },
-    likes: { kai: 15, jade: 20, coco: 20, blake: -35 },
+    likes: { kai: 15, jade: 20, coco: 20, blake: -35, nico: -35 },
     /* The boat. There is rum on the boat. */
     post: { thirst: 1.2, fun: .6 },
     thoughts: { rained: 0 },
@@ -469,7 +482,7 @@ const MINDS = {
     weights: { passion: 1.2, thirst: 1.2, energy: .6 },
     rates: { thirst: 1.3, energy: 1.2, fun: .7 },
     spots: { barTable: 1.6, deck: 1.3, hammock: 1.4 },
-    likes: { mari: 40, luca: 15, coco: 30, sienna: 25, blake: -25 },
+    likes: { mari: 40, luca: 15, coco: 30, sienna: 25, blake: -25, tito: 70, rosie: 35 },
     thoughts: { soaked: -2 },
     named: { soaked: 'Youngsters. Squirting. In MY day…' },
     words: ['Magnificent', 'Merry', 'Hm?', 'Grumbling', 'Sulking into his glass'],
@@ -552,7 +565,7 @@ const MINDS = {
     weights: { passion: 1.4, social: .9, energy: 1.1 },
     rates: { thirst: 1.5, energy: 1.2 },
     spots: { fountain: 1.3, stall: 1.4, jetty: .6 },
-    likes: { sienna: 20, teo: -5, kai: -20, coco: -30, jade: -10 },
+    likes: { sienna: 20, teo: -5, kai: -20, coco: -30, jade: -10, amara: -55, val: 5 },
     thoughts: { sunshine: -4, rained: 3, soaked: -18 },
     named: { sunshine: 'The HEAT', rained: 'Finally, some weather', soaked: 'Soaked by {you}. It is LINEN.' },
     words: ['Closing', 'Leveraged', 'Circling', 'Sweating', 'Liquidating'],
@@ -582,5 +595,237 @@ const MINDS = {
           { go: 'fountain', secs: 12, n: 'pitching a resort to anybody who will listen', say: 'Picture it. Four hundred rooms. Infinity pool.', train: { charm: 6, business: 4 } }] }
     ],
     flirt: {}
+  },
+
+  /* ---- The newcomers ---- */
+  nico: {
+    base: 3,
+    passion: { n: 'The catch', e: '🎣', at: ['desk', 'pier', 'cove'], decay: 9 },
+    weights: { passion: 1.4, social: .4, fun: .7 },
+    rates: { social: .5, energy: 1.1 },
+    spots: { pier: 1.8, cove: 1.3, truck: 1.4, fountain: .6 },
+    /* The feud with Teo is about a bollard. It has been about a bollard for
+       fifteen years. */
+    likes: { teo: -35, rosie: 40, amara: 15, jade: 15, kai: 10, blake: -45 },
+    thoughts: { rained: -1, soaked: 2 },
+    named: { rained: 'Rain. Fish don’t mind.', soaked: '{you} got him wet. He was already wet.' },
+    words: ['Catching', 'Steady', 'Mm', 'Choppy', 'Becalmed'],
+    lines: {
+      great: ['Good day.', 'Snapper jumping. Good sign.', 'Hm. Nice out.'],
+      low: ['Mm.', 'Leave it.', 'Nothing’s biting. Nothing.'],
+      energy: ['Up at four. Every day. Four.'],
+      thirst: ['Throat like a net full of sand.'],
+      fun: ['Same sea. Same fish. Same Teo.'],
+      social: ['Too quiet. Even for me.'],
+      passion: ['Should be out on the water.', 'Wind’s right. Why am I on land.'],
+      inspired: ['Going out past the reef tomorrow. Big ones out there.', 'Feel like I could catch a marlin with my hands.'],
+      moment: ['Nobody talk to me. The fish don’t.', 'Teo moved my bollard AGAIN.']
+    },
+    moment: { at: 'pier', n: 'Glaring at Teo’s boat' },
+    flirt: {
+      great: ['He holds out a fish, very seriously, like a bouquet. “For you.” He is — you realise — smiling.'],
+      low: ['“Not now.” Then, gruffer, softer: “Tomorrow. Ask me tomorrow.”']
+    },
+    skill: 'fishing',
+    teach: ['He puts a hand line in yours and says nothing for ten whole minutes. When something bites he says one word — “Now” — and you land a fish. He looks at it, and then at you, and nods once. He lands three more while you are still celebrating.',
+      '“Knots.” He ties one, slowly. You tie one, badly. He reties it, better than before. “See? Teaching sharpens the teacher.” That is the most he has ever said at once.'],
+    skills: { fishing: 7, seamanship: 5, fitness: 5, charm: 2 },
+    talent: { fishing: 1.2, seamanship: 1.1 },
+    routines: [
+      { id: 'dawnCatch', n: 'Landing the dawn catch', duty: true, at: [420, 560], done: 'Landed the morning catch',
+        steps: [
+          { go: 'pier', secs: 8, n: 'hauling in the lines', say: 'Heave. Heave. Hm.', train: { fishing: 5, fitness: 3 } },
+          /* The catch lands: his crate is open, and Rosie can do fish tacos. */
+          { go: 'desk', secs: 6, n: 'icing the catch', act: 'landCatch', train: { fishing: 4 } }] },
+      { id: 'delivery', n: 'Fish for Rosie', duty: true, at: [700, 760], done: 'Took Rosie her fish',
+        steps: [
+          { go: 'truck', secs: 6, n: 'delivering fish to Rosie', say: 'Snapper. Don’t overcook it.', train: { charm: 2 } },
+          { go: 'desk', secs: 4, n: 'back to his crate', train: {} }] },
+      { id: 'mend', n: 'Mending the boat', every: 360, gives: { passion: 35, fun: 20 }, done: 'Patched the hull',
+        steps: [
+          { go: 'pier', secs: 12, n: 'patching his hull', say: 'Hold. Hold. Good.', train: { seamanship: 6 } }] },
+      { id: 'reefFish', n: 'Fishing the reef', unlock: { fishing: 9 }, when: { from: 1080, to: 1260, dry: true }, every: 900,
+        gives: { passion: 60, fun: 40 }, done: 'Caught a fish worth telling Teo about',
+        steps: [
+          { go: 'cove', secs: 14, n: 'fishing off the cove rocks', say: 'Come on. Come on, you beauty.', train: { fishing: 10 } },
+          { go: 'desk', secs: 4, n: 'showing off the catch', say: 'TEO. Look at this. LOOK AT IT.', train: { charm: 3 } }] }
+    ]
+  },
+
+  amara: {
+    base: 4,
+    passion: { n: 'Discovery', e: '🔬', at: ['reef', 'lagoon', 'desk', 'cove'], decay: 10 },
+    weights: { passion: 1.5, social: .8 },
+    rates: { energy: 1.1, fun: .8 },
+    spots: { reef: 1.8, lagoon: 1.7, cove: 1.4, stall: .8 },
+    likes: { blake: -75, kai: 25, jade: 30, coco: 20, nico: 20, val: 15, rosie: 15 },
+    thoughts: { rained: 1, sunset: 8, soaked: 3 },
+    named: { rained: 'Rain — good for the lagoon salinity data', soaked: 'Soaked by {you}. It’s fine, she’s a marine biologist' },
+    words: ['Eureka', 'Curious', 'Measuring', 'Frustrated', 'Despairing for the reef'],
+    lines: {
+      great: ['FORTY-FIVE parrotfish! That is a record!', 'The seagrass is coming back. I could cry.', 'Science is going SO well today.'],
+      low: ['Sterling’s surveyors were on the reef again.', 'I have peer-reviewed this island and it is not okay.'],
+      energy: ['I’ve been underwater since dawn. I think I’m part fish.'],
+      thirst: ['Ironic. Surrounded by water. Parched.'],
+      fun: ['Forty jars of seawater and not one of them is a cocktail.'],
+      social: ['I’ve been talking to a sea cucumber for three hours.'],
+      passion: ['I need to get in the water. Data does not collect itself.', 'Something is happening on that reef and I am MISSING it.'],
+      inspired: ['I’m going to write the paper of my career.', 'I am going to name a species after this island.'],
+      moment: ['Do not talk to me about resorts. Do NOT.', 'I need to count something. Anything.']
+    },
+    moment: { at: 'reef', n: 'Counting fish to calm down' },
+    flirt: {
+      great: ['She takes your hand and holds it up to the light like a specimen. “Hm. Remarkable.” She does not let go.'],
+      low: ['“I’m sorry, the reef had a bad day, so I had a bad day.” She squeezes your arm. “Try me after a swim.”']
+    },
+    skill: 'science',
+    teach: ['She fits a mask on you and takes you out to the shallows. Under the water she points: a turtle, a ray, a parrotfish chewing coral. Back on the beach she is scribbling notes — “You spotted something I missed. The juvenile, by the rock. Thank you.”',
+      'She teaches you to do a transect: a tape measure, a slate, counting every fish in a two-metre strip. You count badly. She counts again, better. “Explaining it made me see it differently,” she says, delighted.'],
+    skills: { science: 7, fitness: 4, lifesaving: 3, charm: 3 },
+    talent: { science: 1.2, charm: 1.1 },
+    routines: [
+      { id: 'survey', n: 'Morning reef survey', duty: true, at: [600, 700], done: 'Surveyed the reef',
+        steps: [
+          { go: 'reef', secs: 10, n: 'counting parrotfish on the reef', say: 'Thirty-eight, thirty-nine, FORTY—', train: { science: 5, fitness: 3 } },
+          { go: 'cove', secs: 6, n: 'checking the seagrass plots', train: { science: 4 } },
+          { go: 'desk', secs: 6, n: 'writing up her notes', say: 'Data. Beautiful, beautiful data.', train: { science: 3 } }] },
+      { id: 'samples', n: 'Sampling the lagoon', every: 360, gives: { passion: 45, fun: 25 }, done: 'Took forty samples',
+        steps: [
+          { go: 'lagoon', secs: 12, n: 'filling sample jars at the lagoon', say: 'Jar thirty-one. Jar thirty-two.', train: { science: 6 } },
+          { go: 'desk', secs: 6, n: 'labelling jars', train: { science: 2 } }] },
+      { id: 'glow', n: 'The plankton bloom', unlock: { science: 9 }, when: { from: 1200, to: 1380 }, every: 1200,
+        gives: { passion: 70, fun: 50 }, done: 'Watched the lagoon glow',
+        steps: [
+          { go: 'lagoon', secs: 16, n: 'wading through the glowing lagoon', say: 'Look. LOOK. It’s alive.', train: { science: 10 } }] }
+    ]
+  },
+
+  rosie: {
+    base: 8,
+    passion: { n: 'Feeding people', e: '🌮', at: ['desk'], decay: 9, chat: true },
+    weights: { passion: 1.4, social: 1.2, energy: .8 },
+    rates: { social: 1.2, energy: 1.1 },
+    spots: { stall: 1.3, fountain: 1.3, truck: 1.2 },
+    /* The price war with Coco is eleven years old. Neither will say who
+       started it. Both know. */
+    likes: { coco: -30, nico: 40, pepe: 35, kai: 25, mari: 25, tito: 30, blake: -25 },
+    thoughts: { sunshine: 4, rained: -5 },
+    named: { rained: 'Rain — nobody queues in the rain' },
+    words: ['Sizzling', 'Cooking', 'Simmering', 'Burnt', 'Closing the hatch'],
+    lines: {
+      great: ['BEST DAY! Everybody eats!', 'I love this island. I love all of you. Eat!'],
+      low: ['Nobody’s eating. NOBODY.', 'Coco. It’s always Coco.'],
+      energy: ['Eleven years on a hot plate. My feet are tortillas.'],
+      thirst: ['Pass me an agua fresca. No — two.'],
+      fun: ['Same tacos. Same plaza. Same Coco staring at me.'],
+      social: ['Somebody come and talk to me. I’ll feed you.'],
+      passion: ['Who’s hungry? Somebody must be hungry.'],
+      inspired: ['New recipe. Mango habanero. Nobody is ready.', 'Tonight I feed the WHOLE island.'],
+      moment: ['That’s it. Hatch is shut. I’m on strike.', 'I am going to stand here and not cook. For five minutes.']
+    },
+    moment: { at: 'fountain', n: 'On strike at the fountain' },
+    flirt: {},
+    skill: 'cooking',
+    /* The truck has its own agua fresca, and she drinks it. */
+    post: { thirst: 1.5, fun: .6 },
+    skills: { cooking: 8, business: 5, charm: 5 },
+    talent: { cooking: 1.1, charm: 1.1 },
+    routines: [
+      { id: 'market', n: 'Buying for the day', duty: true, at: [600, 650], done: 'Bought the day’s limes',
+        steps: [
+          { go: 'stall', secs: 8, n: 'haggling at the fruit stall', say: 'Twelve limes. And you are robbing me.', train: { business: 4 } },
+          { go: 'desk', secs: 6, n: 'chopping salsa', train: { cooking: 4 } }] },
+      /* Lunch: everybody on the island has had a taco. See NPC_ACTS. */
+      { id: 'rush', n: 'The lunch rush', duty: true, at: [750, 800], done: 'Fed the whole plaza',
+        steps: [
+          { go: 'desk', secs: 16, n: 'serving the lunch rush', say: '¡A COMER! Queue! QUEUE!', act: 'lunchRush', train: { cooking: 5, charm: 2 } }] },
+      { id: 'gossip', n: 'Gossiping at the fountain', every: 300, gives: { social: 45, fun: 25 }, done: 'Heard everything',
+        steps: [
+          { go: 'fountain', secs: 10, n: 'swapping gossip at the fountain', say: 'No. NO. With WHO?', train: { charm: 3 } }] }
+    ]
+  },
+
+  tito: {
+    base: 9,
+    works: false,
+    passion: { n: 'Beats', e: '🎧', at: ['desk', 'fountain', 'sands', 'out'], decay: 11 },
+    weights: { passion: 1.5, social: 1.3, fun: 1.2, energy: .6 },
+    rates: { fun: 1.3, social: 1.2, energy: .8 },
+    spots: { fountain: 1.5, sands: 1.3, jukebox: 2 },
+    likes: { luca: 70, pepe: 60, kai: 40, sienna: 35, rosie: 30, blake: -10 },
+    thoughts: { soaked: 6 },
+    named: { soaked: 'Water fight with {you}! Epic' },
+    words: ['Vibing', 'Hyped', 'Chillin', 'Mid', 'Cooked'],
+    lines: {
+      great: ['Today is a BANGER.', 'I’m gonna be famous. Like, next week.', 'Everything is a beat if you listen.'],
+      low: ['Nobody gets my music.', 'Abuelo says it’s magnificent. That’s the problem.'],
+      energy: ['Stayed up till four making a mix. Worth it. Dead.'],
+      thirst: ['Is there any agua fresca left? Rosie? ROSIE?'],
+      fun: ['Bored bored bored bored bored.'],
+      social: ['Where’s everyone? Where’s Luca?'],
+      passion: ['I need to make a beat. Right now. It’s in my head.'],
+      inspired: ['I just made the best beat in the HISTORY of beats.', 'Luca is going to be SO jealous.'],
+      moment: ['I’m quitting music. Forever. Or until tomorrow.', 'Don’t look at me. I’m having a moment. An artistic one.']
+    },
+    moment: { at: 'sands', n: 'Sulking on the sand' },
+    flirt: {},
+    skill: 'music',
+    teach: ['He plays you his mix. You tell him, honestly, that the drop comes in too early. He argues for five minutes, sulks for two, then plays it again with the drop moved. It is — genuinely — much better.',
+      'You clap a rhythm. He beatboxes over it. You lose the beat; he keeps it, and keeps it, and keeps it, grinning. “Okay,” he says, breathless, “okay, THAT was something.”'],
+    /* He starts raw and learns fast: his first set unlocks at Music 4, and
+       practising with him gets him there. See q_tito. */
+    skills: { music: 2, charm: 2, fitness: 3 },
+    talent: { music: 1.6, charm: 1.2 },
+    routines: [
+      { id: 'beatbox', n: 'Beatboxing at the fountain', every: 240, gives: { passion: 40, fun: 30, social: 15 }, done: 'Drew a crowd of two',
+        steps: [
+          { go: 'fountain', secs: 10, n: 'beatboxing at the fountain', say: 'Boots and cats and — BOOTS AND CATS.', train: { music: 6, charm: 2 } }] },
+      { id: 'firstSet', n: 'Tito’s first set', unlock: { music: 4 }, when: { from: 1060, to: 1200 }, every: 1440,
+        gives: { passion: 80, social: 60, fun: 50 }, done: 'Played his first set',
+        /* Growing into it moves his job along, and playing it finishes it. */
+        onUnlock() { if (qAt('q_tito', 0)) Q.step('q_tito'); },
+        onDone() { if (qAt('q_tito', 1)) Q.complete('q_tito'); },
+        steps: [
+          { go: 'fountain', secs: 16, n: 'playing his first ever set', say: 'THIS ONE IS FOR MY ABUELO!', train: { music: 10, charm: 4 } },
+          { go: 'sands', secs: 8, n: 'screaming into the sea with joy', say: 'I DID IT! I DID IT!', train: {} }] }
+    ]
+  },
+
+  val: {
+    base: -3,
+    passion: { n: 'Five minutes’ peace', e: '☕', at: ['cove', 'garden', 'hammock'], decay: 12 },
+    weights: { passion: 1.3, energy: 1.2, social: .6 },
+    rates: { energy: 1.3, thirst: 1.2 },
+    spots: { cove: 1.6, garden: 1.5, stall: 1.2, fountain: .5 },
+    likes: { blake: -15, amara: 25, mari: 20, coco: 20, sienna: 10, rosie: 20 },
+    thoughts: { sunshine: -2 },
+    named: { sunshine: 'Thirty-four degrees in a blazer', soaked: 'Soaked by {you}. Honestly? Refreshing.' },
+    words: ['On top of it', 'Coping', 'Caffeinated', 'Drowning', 'Updating her CV'],
+    lines: {
+      great: ['He’s in a meeting. For an HOUR.', 'I took my blazer off. I feel dangerous.'],
+      low: ['Per my last email. Per my LAST email.', 'Nine missed calls. All him.'],
+      energy: ['I have been awake since his 5am idea.'],
+      thirst: ['He drank my water. MY water.'],
+      fun: ['Fun. I remember fun.'],
+      social: ['Nobody talks to the assistant.'],
+      passion: ['Five minutes. I just need five minutes.', 'If he calls me again I’m walking into the sea.'],
+      inspired: ['I could run this whole company. I basically do.', 'Today I say no to him. Once. Watch.'],
+      moment: ['I’m on a break. A BREAK. It’s in the contract.', 'No. No. Not today, Mr Sterling.']
+    },
+    moment: { at: 'cove', n: 'Hiding from Blake at the cove' },
+    flirt: {},
+    skill: 'business',
+    skills: { business: 6, charm: 4, fitness: 2 },
+    talent: { business: 1.2, charm: 1.1 },
+    routines: [
+      { id: 'agenda', n: 'Blake’s morning agenda', duty: true, at: [640, 700], done: 'Got him through the morning',
+        steps: [
+          { go: 'fountain', secs: 6, n: 'setting up Blake’s meeting spot', say: 'Umbrella. Chair. Shade. Sparkling water. Why.', train: { business: 4 } },
+          { go: 'stall', secs: 6, n: 'buying his sparkling water', say: 'Colder. He will say it isn’t cold.', train: { business: 2 } },
+          { go: 'desk', secs: 4, n: 'back at his elbow', train: { business: 2 } }] },
+      { id: 'escape', n: 'Five minutes at the cove', every: 480, gives: { passion: 60, fun: 25 }, done: 'Five whole minutes to herself',
+        steps: [
+          { go: 'cove', secs: 12, n: 'hiding at the cove with her phone off', say: 'Phone off. Phone OFF.', train: {} }] }
+    ]
   }
 };

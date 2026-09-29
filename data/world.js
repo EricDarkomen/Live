@@ -155,7 +155,10 @@ const WP = {
   fountain: [66, 45, 'island'], garden: [44, 42, 'island'], yoga: [85, 34, 'island'],
   sands: [60, 79, 'island'], jetty: [112, 47, 'island'], cove: [15, 46, 'island'],
   lagoon: [60, 16, 'island'], surfshack: [89, 77, 'island'], stall: [62, 38, 'island'],
-  till: [6, 3, 'market']
+  till: [6, 3, 'market'],
+  /* The newcomers' corners: Rosie's truck in the plaza, the end of the jetty
+     where Nico lands his catch, and the rocks at the cove Amara studies. */
+  truck: [59, 44, 'island'], pier: [121, 48, 'island'], reef: [11, 50, 'island']
 };
 
 /* ---- A LEVEL BUILT OUT OF PARTS -------------------------------------------

@@ -415,4 +415,223 @@ islander('luca', 'Luca', {
     }
   }
 },
+/* ---------------- The newcomers ----------------
+   Five more people, each one something the island was missing: somebody who
+   feeds it, somebody who fishes it, somebody who is trying to save it, a kid
+   who wants to be somebody, and the one person on Blake's payroll who is
+   quietly on your side. Their temperaments are in data/minds.js. */
+islander('nico', 'Nico', {
+  id: 'nico', name: 'Nico', face: '🎣', role: 'Fisherman · the far end of the jetty',
+  desk: [122, 46], colour: '#6fb3d2', dir: 3,
+  level: 'island',
+  stays: true,
+  look: { base: 'base:masc/Bronze', eyes: 'eyes:Hazel', hair: 'hair:Short 05 - Natural/Raven', beard: 'beard:Facial Hair 06 - Trimmed Beard/Raven', torso: 'torso:masc/Shirt 01 - Longsleeve Shirt/Denim', legs: 'legs:masc/Pants 04 - Cuffed Pants/Beige', feet: 'feet:masc/Shoes 01 - Shoes/Brown' },
+  schedule: [[660, 'desk'], [1080, 'truck'], [1120, 'desk']],
+  lines: ['Mm.', 'Wind’s coming round.', 'That’s my end of the jetty.', 'Fish don’t care who you are.'],
+  flirt: ['He looks at you for a long moment, then back at the sea. “You’re trouble.” It is not a complaint.', 'He hands you the other end of a net to hold, and does not let go of his end either.', '“You talk a lot,” he says. And then, quieter: “I don’t mind it.”'],
+  gift: ['He sniffs it suspiciously, drinks it in one go, and nods. From Nico, that is a sonnet.', '“Hm.” He drinks it slowly, looking at you over the glass. “Thank you.” He means it.'],
+  dateYes: ['He is quiet for so long you think he has not heard. Then: “Cove. After dark. I’ll bring fish.”'],
+  again: ['Catch was good.', 'Teo’s tied up at MY bollard again.', 'Sea’s flat. Good for nothing. Good for thinking.'],
+  partner: ['There you are.', 'Saved you the best one.', 'Sit. Watch the water with me.'],
+  more: [
+    { t: 'What are you selling?', to: null, do() { if (G.flags.catchDay === G.day) Shop.open('nico'); else UI.toast('🎣', 'Nothing today. “Come back at dawn. Earlier.”'); } },
+    { t: 'I brought you scraps for bait.', to: 'chumDone', if: () => qAt('q_nico', 0) && bag('scraps') >= 3 }
+  ],
+  entry() {
+    if (!G.flags.metNico) return 'first';
+    return 'again';
+  },
+  nodes: {
+    first: {
+      text: ['A broad, sunburnt man is gutting fish on an upturned crate, fast and neat, and does not look up.',
+        '“Nico.” A fish goes in the bucket. “You’re Rafa’s. You’ve got the bar. Good. Rafa bought my fish. Every morning. Twenty years.”',
+        '“Bait’s the problem. Chum. Scraps — peel, leaves, anything that went soft. You bring me some, I’ll see you right.”'],
+      do() { G.flags.metNico = true; Rel.add('nico', 1); Q.start('q_nico'); },
+      choices: [{ t: 'I’ve got a garden. I’ll bring you scraps.', to: null }, { t: 'Twenty years? You and Rafa were close.', to: 'rafa' }]
+    },
+    rafa: {
+      text: ['He stops, knife in the air. “He was the only one on this island who never told me I was rude.” A beat. “I am rude. He just didn’t mind.”'],
+      do() { Rel.add('nico', 1); },
+      to: null
+    },
+    chumDone: {
+      text: ['He takes the scraps without a word, sniffs them, and something almost like a smile happens in his beard.',
+        '“Good rot. You compost?” He nods, approving. “Here. First of the morning. On the house. Don’t tell anyone. Especially Teo.”'],
+      do() { bagTake('scraps', 3); Q.complete('q_nico'); Rel.add('nico', 2); },
+      to: null
+    }
+  }
+}),
+islander('amara', 'Amara', {
+  id: 'amara', name: 'Dr. Amara Osei', face: '🔬', role: 'Marine biologist · Lovers’ Cove',
+  desk: [14, 51], colour: '#3fd6b1', dir: 1,
+  level: 'island',
+  stays: true,
+  look: { base: 'base:fem/Coffee', eyes: 'eyes:Brown', hair: 'hair:Medium 02 - Curly/Black', torso: 'torso:fem/Shirt 07 - Buttoned Longsleeve Shirt/Teal', legs: 'legs:fem/Swim 01 - Shorts/Black', feet: 'feet:fem/Shoes 01 - Shoes/Gray' },
+  schedule: [[660, 'desk'], [900, 'lagoon'], [960, 'desk']],
+  lines: ['Forty-one parrotfish. FORTY-ONE.', 'Please do not touch the coral.', 'Sewage outflow. Look it up.', 'Oh! A nudibranch!'],
+  flirt: ['She pushes her goggles up onto her head. “Are you flirting with me? I can never tell. Say it again and I’ll collect more data.”', '“Did you know octopuses have three hearts?” She holds your gaze. “I’m using at least two of mine right now.”', 'She laughs, surprised, and goes a little pink under the sunscreen. “That was a good one. I’m writing it down.”'],
+  gift: ['“Oh, you absolute angel. I’ve been in the water since six.” She drinks it standing up, still dripping.', '“Is this reef-safe? Joking. Mostly.” She clinks it against a sample jar. “Cheers.”'],
+  dateYes: ['She drops her clipboard. “Tonight? At the cove? Where I work?” She picks up the clipboard. “Yes. I have something to show you. Scientifically.”'],
+  again: ['The reef is recovering. Slowly. Like me after a conference.', 'Blake Sterling wants to build a pier over the seagrass. Over my dead body. Or his.', 'Did you know the sand here is mostly parrotfish poo? You do now.'],
+  partner: ['Hello, you.', 'I named a sea cucumber after you. It’s a compliment.', 'Come snorkelling with me tomorrow. I’ll hold your hand. For safety.'],
+  more: [
+    { t: 'What are you actually studying?', to: 'science' },
+    { t: 'I brought compost for the dunes.', to: 'dunesDone', if: () => qAt('q_amara', 0) && bag('compost') >= 2 },
+    { t: 'Val gave me Sterling’s plans.', to: 'plans', if: () => G.flags.valTold && !G.flags.amaraPlans }
+  ],
+  entry() {
+    if (!G.flags.metAmara) return 'first';
+    return 'again';
+  },
+  nodes: {
+    first: {
+      text: ['A woman in a wetsuit peeled to the waist is counting something through a pair of binoculars and whispering numbers.',
+        '“Thirty-nine, forty — sorry. Hi. Amara. Doctor, technically, which only matters when I am arguing with Blake Sterling, which is always.”',
+        '“The dunes behind the cove are washing away. Grass holds them. Grass needs good soil. If anybody on this island made COMPOST —” she looks at you meaningfully, “— I would marry them. Figuratively.”'],
+      do() { G.flags.metAmara = true; Rel.add('amara', 1); Q.start('q_amara'); },
+      choices: [{ t: 'I might know somebody with a compost bin.', to: null, do() { Rel.add('amara', 1); } }, { t: 'Figuratively?', to: 'fig' }]
+    },
+    fig: {
+      text: ['“For now,” she says, and goes straight back to counting fish. Her ears have gone red.'],
+      do() { Rel.add('amara', 1); },
+      to: null
+    },
+    science: {
+      text: () => pick([
+        ['“Parrotfish eat algae off the coral and poo out sand. Every beach you have ever loved is fish poo. You are welcome.”'],
+        ['“Seagrass. It stores more carbon than rainforest, it feeds the turtles, and Sterling wants to put a jetty on it.”'],
+        ['“The lagoon glows at night — plankton. It is the most beautiful thing on this island and nobody has ever put it on a postcard.”']]),
+      to: null
+    },
+    dunesDone: {
+      text: ['She kneels and pushes her hands into the compost like somebody greeting an old friend. “Oh, that is GOOD soil. Worms and everything.”',
+        '“The grass will take in a fortnight. Here — a coconut that fell off the research palm and decided to sprout. Plant it for me.”'],
+      do() { bagTake('compost', 2); Q.complete('q_amara'); Rel.add('amara', 2); },
+      to: null
+    },
+    plans: {
+      text: ['She reads the page twice, very still. Then she laughs — not happily. “A pier. Right over the seagrass. I KNEW it.”',
+        '“This is protected habitat. With this, I can go to the ministry.” She grips your arm. “Tell Val — no. Don’t tell Val anything. Thank you. Both of you.”'],
+      do() { G.flags.amaraPlans = true; Rel.add('amara', 2); Rel.add('val', 1); Player.xp(40); },
+      to: null
+    }
+  }
+}),
+{
+  id: 'rosie', name: 'Rosie', face: '🌮', role: 'Rosie’s Taco Truck · the plaza',
+  desk: [58, 43], colour: '#ff9f43', dir: 3,
+  level: 'island',
+  stays: true,
+  look: { base: 'base:fem/Tawny', eyes: 'eyes:Brown', hair: 'hair:Medium 04 - Bangs & Bun/Chestnut', torso: 'torso:fem/Shirt 04 - T-shirt/Red', legs: 'legs:fem/Pants 03 - Pants/Black', feet: 'feet:fem/Shoes 01 - Shoes/White' },
+  schedule: [[600, 'desk']],
+  lines: ['¡Tacos! ¡Tacos calientes!', 'Cheaper than Coco’s!', 'Eat, mija, you look like a breadstick.', 'Who wants lime? Everybody wants lime.'],
+  entry() {
+    if (!G.flags.metRosie) return 'first';
+    return 'hello';
+  },
+  nodes: {
+    first: {
+      text: ['“HEY! You! Rafa’s one!” A woman leans so far out of the truck hatch she is mostly outside it. “Come here. Closer. Eat this.”',
+        'You are holding a taco. You do not remember taking it. It is the best thing that has happened to you this week.',
+        '“Rosie. Tacos, eleven years, same spot. Coco will tell you I overcharge. Coco sells SUN CREAM. At PRICES.” She winks. “First one’s free. Second one’s also free because I like your face.”'],
+      do() { G.flags.metRosie = true; Rel.add('rosie', 2); Item.give('taco'); },
+      choices: [{ t: 'Rosie, marry me.', to: null, do() { Rel.add('rosie', 1); UI.toast('🌮', '“Get in line, mija.”'); } }, { t: 'Thank you!', to: null }]
+    },
+    hello: {
+      text: () => pick(['“What are we eating? Don’t say nothing. Nothing is not on the menu.”', '“Nico’s been out — fish tacos! Don’t tell him I said his fish is good. It makes him unbearable.”',
+        '“Coco put her prices DOWN. Ha! Down! She saw me coming.”', '“Mari came by at six this morning for a taco and a cry. Don’t ask her about it. Ask her about it.”',
+        '“That Sterling man asked if I had a vegan option. I gave him a lime.”']),
+      choices: [
+        { t: 'What’s good today?', to: null, do() { Shop.open('rosie'); } },
+        { t: 'Just saying hello.', to: null }
+      ]
+    }
+  }
+},
+{
+  id: 'tito', name: 'Tito', face: '🎧', role: 'Pepe’s grandson · future superstar',
+  desk: [73, 42], colour: '#ffd166', dir: 2,
+  level: 'island',
+  home: { at: [31, 77], where: 'Pepe’s spare room, which is also Pepe’s shed' },
+  /* Evenings, he is at the Driftwood, as close to the decks as Luca lets him. */
+  out: [{ from: 1200, to: 1320, level: 'bar', tile: [18, 6], face: 'n',
+    lines: ['Luca. LUCA. Can I just touch the decks.', 'Abuelo, stop telling people I cried at Titanic.', 'This track is SO hard.'] }],
+  look: { base: 'base:masc/Tawny', eyes: 'eyes:Brown', hair: 'hair:Short 07 - Flat Top/Black', torso: 'torso:masc/Shirt 04 - T-shirt/Yellow', legs: 'legs:masc/Swim 01 - Shorts/Purple', feet: 'feet:masc/Shoes 01 - Shoes/White' },
+  schedule: [[660, 'desk'], [840, 'sands'], [900, 'desk']],
+  lines: ['Boots and cats and boots and cats.', 'That’s a BANGER.', 'Luca said I’ve got “potential”. POTENTIAL.', 'Don’t tell Abuelo.'],
+  entry() {
+    if (qAt('q_tito', 1) || Q.complete2('q_tito')) return 'star';
+    if (!G.flags.metTito) return 'first';
+    return 'hello';
+  },
+  nodes: {
+    first: {
+      text: ['A lanky kid in enormous headphones is beatboxing at the fountain with his eyes shut. He opens them, sees you, and yanks the headphones off.',
+        '“Oh my God, you own the DRIFTWOOD. I’m Tito. Pepe’s my abuelo. I’m going to be a DJ. Like Luca. Better than Luca. Don’t tell Luca.”',
+        '“I just need to get GOOD. Like, actually good. Would you — could you listen to me practise sometimes? Honestly. Nobody’s honest with me. Abuelo says everything I do is magnificent.”'],
+      do() { G.flags.metTito = true; Rel.add('tito', 1); Q.start('q_tito'); },
+      choices: [{ t: 'I’ll be brutally honest.', to: null, do() { Rel.add('tito', 1); } }, { t: 'Your abuelo is right. Magnificent.', to: null }]
+    },
+    hello: {
+      text: () => pick(['“Okay okay okay, listen to THIS.” He beatboxes. It is, genuinely, getting better.', '“Luca let me carry his record box. CARRY IT. We’re basically partners now.”',
+        '“Abuelo told the whole Driftwood I’m going to be famous. I have played zero gigs.”']),
+      choices: [
+        /* Developing him, like the islanders: once a day. See Mind 'practise'. */
+        { t: 'Let’s practise. Hit me.', to: 'practise', if: () => G.flags.prac_tito !== G.day },
+        { t: 'Later, superstar.', to: null }
+      ]
+    },
+    practise: {
+      text: () => (typeof Mind !== 'undefined' && Mind.teachLine('tito')) || '“Again. From the top.”',
+      do() { G.flags.prac_tito = G.day; Rel.add('tito', 1); Player.xp(4); if (typeof Mind !== 'undefined') Mind.event('tito', 'practise'); },
+      choices: [{ t: 'Better. Much better.', to: null }]
+    },
+    star: {
+      text: () => qAt('q_tito', 1)
+        ? ['“LUCA SAID I CAN PLAY. At the fountain. One evening. A real set. People might COME.”', '“You have to be there. You HAVE to. You’re my honest person.”']
+        : pick([['“Did you SEE them? Dancing? At my thing?” He is vibrating. “Abuelo cried. He says he didn’t. He did.”'], ['“Luca wants me to open for him. OPEN. For LUCA.”']]),
+      choices: [{ t: 'Wouldn’t miss it.', to: null }]
+    }
+  }
+},
+{
+  id: 'val', name: 'Val', face: '📋', role: 'Sterling Resorts · Executive Assistant',
+  desk: [68, 46], colour: '#c3a6ff', dir: 2,
+  level: 'island',
+  home: { at: [104, 76], where: 'The Coral Resort, in the room next to Blake’s. Thin walls.' },
+  look: { base: 'base:fem/Honey', eyes: 'eyes:Gray', hair: 'hair:Medium 07 - Bob, Side Part/Black', torso: 'torso:fem/Shirt 07 - Buttoned Longsleeve Shirt/White', legs: 'legs:fem/Pants 03 - Pants/Charcoal', feet: 'feet:fem/Shoes 01 - Shoes/Black' },
+  schedule: [[660, 'desk'], [900, 'stall'], [920, 'desk']],
+  lines: ['Yes, Mr Sterling.', 'I’ll move the two o’clock.', 'It’s thirty-four degrees and I’m in a blazer.', 'Per my last email.'],
+  entry() {
+    if (!G.flags.metVal) return 'first';
+    if (Rel.get('val') >= 5 && !G.flags.valTold) return 'secret';
+    return 'hello';
+  },
+  nodes: {
+    first: {
+      text: ['A woman in a white shirt is typing on a phone with one thumb and holding an umbrella over Blake Sterling with the other hand. He does not appear to notice.',
+        'When he wanders off to glare at the fountain she lowers the umbrella and looks at you properly. “Val. I work for him.” A pause. “I’m aware.”',
+        '“If you need to reach Mr Sterling, you go through me. If you need a sandwich, also me, apparently.”'],
+      do() { G.flags.metVal = true; Rel.add('val', 1); },
+      choices: [{ t: 'Do you like working for him?', to: 'like' }, { t: 'Nice to meet you, Val.', to: null }]
+    },
+    like: {
+      text: ['She looks at you for a long moment. “I like the pension,” she says, very evenly. Then, quieter: “I like this island more than I’m supposed to.”'],
+      do() { Rel.add('val', 1); },
+      to: null
+    },
+    hello: {
+      text: () => pick(['“He asked me to find out if the sea could be made quieter.” She does not blink. “I’m looking into it.”', '“Mari gave me a free mojito yesterday. I nearly cried. Nobody gives me anything.”',
+        '“Dr. Osei keeps leaving pamphlets in his briefcase. I keep not taking them out.”']),
+      choices: [{ t: 'Hang in there.', to: null }, { t: 'Take five. He won’t notice.', to: null, do() { if (typeof Mind !== 'undefined') Mind.event('val', 'talked'); Rel.add('val', 1); } }]
+    },
+    secret: {
+      text: ['She checks Blake is out of earshot, then steps closer. “Off the record. The board has approved him to go up to four million for The Driftwood. Not two. Four.”',
+        '“And the pier over the seagrass is in the plans whether you sell or not. Dr. Osei needs to see these.” She presses a folded page into your hand. “I didn’t give you that.”'],
+      do() { G.flags.valTold = true; Rel.add('val', 2); UI.toast('📋', 'Val slipped you Sterling’s plans. Amara will want to see them.', 'gold'); },
+      to: null
+    }
+  }
+},
 ];

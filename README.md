@@ -28,8 +28,15 @@ linen suit who very much wants to buy it.
   shows the garden, the water, the stores and what is cooking.
 - **Ship it.** The supply boat at the jetty takes orders for the other islands
   and pays cash.
-- **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade or Luca
-  to the lantern at Lovers' Cove after sunset.
+- **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade, Luca,
+  Nico or Amara to the lantern at Lovers' Cove after sunset.
+- **Meet the island.** Nico lands the dawn catch at the end of the jetty and
+  has been feuding with Teo over a bollard for fifteen years. Dr. Amara Osei
+  counts parrotfish at the cove and would like Blake Sterling to leave. Rosie
+  feeds the plaza from her taco truck and is in an eleven-year price war with
+  Mama Coco. Pepe's grandson Tito wants to be a DJ — help him practise and he
+  will play his first set. And Val, Blake's assistant, knows more than she is
+  supposed to.
 - **Get to know them.** Everybody on the island has needs — energy, a cold
   drink, fun, company, and a passion of their own (Kai's stoke, Luca's groove,
   Mama Coco's gossip) — and a mood built out of those and of whatever has
