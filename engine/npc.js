@@ -574,7 +574,12 @@ const NPCM = {
     const commuting = this.commute(n, want);
     if (commuting) return commuting;
     const e = n.errand;
-    if (e) {
+    /* OUTRANKED. An errand is a commitment against the timetable, not against
+       everything: a coffee is cut short to open the bar on time, and a
+       bartender about to faint does not finish carrying the glasses first.
+       The mind knows the priorities — see THE AGENDA in engine/mind.js. */
+    if (e && typeof Mind !== 'undefined' && Mind.preempt(n, e)) n.errand = null;
+    else if (e) {
       /* Still on the way. The timetable can say what it likes. */
       if (!e.arrived && this.now - e.began < 90) return this.aim(n, e.wp);
       /* Been and stood there. It is over when they have had their moment AND
@@ -583,16 +588,22 @@ const NPCM = {
       const done = e.arrived && this.now - e.arrived >= e.dwell;
       if (!done && this.now - e.began < 90) return this.aim(n, e.wp);
       n.errand = null;
-      if (e.mind && typeof Mind !== 'undefined') Mind.done(n);
+      /* Given up on without getting there is a step skipped, not a step done:
+         nobody gets better at surfing by failing to reach the sea. */
+      if (e.mind && typeof Mind !== 'undefined') Mind.done(n, !e.arrived);
     }
     /* THE DAY SAYS "YOUR OWN SPOT", which is most of the day — and so the
        mind gets a say. Asked here, after the errand above has had its chance
        to finish, so an errand the mind made and has just been ended is not
        immediately made again. See engine/mind.js. */
     let minded = false;
-    if (want === 'desk' && typeof Mind !== 'undefined') {
-      const w = Mind.want(n);
-      if (w && WP[w]) { want = w; minded = true; }
+    if (typeof Mind !== 'undefined') {
+      /* Asked whatever the timetable says, because a duty or an emergency
+         outranks a timetabled break; Mind.want() declines anything that does
+         not. 'desk' is a real answer — a step behind their own counter. */
+      const w = Mind.want(n, want);
+      if (w === 'desk') want = 'desk';
+      else if (w && WP[w]) { want = w; minded = true; }
     }
     if (want !== 'desk' && WP[want]) {
       /* Not the instant the clock says so. Nobody stands up mid-sentence
@@ -601,16 +612,20 @@ const NPCM = {
          cluster, because a day has a shape — took the whole floor out of their
          chairs on the same frame, and twenty people crossing the office at once
          is a fire drill, not a Tuesday. */
-      if (n.holdWant !== want) { n.holdWant = want; n.holdFor = this.now + rnd(1, 11); }
+      /* The next step of something already under way is not a new decision,
+         and gets no pause for thought. */
+      if (n.holdWant !== want) { n.holdWant = want; n.holdFor = this.now + (minded ? rnd(0, 1.2) : rnd(1, 11)); }
       if (this.now < n.holdFor) return this.aim(n, n.lastAim || 'desk');
       /* Forgotten once they have set off, so the next time the day asks them to
          go there they take a moment about it again rather than leaping up. */
       n.holdWant = null;
+      const tag = minded ? Mind.errandTag(n) : null;
       n.errand = { wp: want, began: this.now, arrived: 0, mind: minded,
+        pid: tag ? tag.pid : 0, step: tag ? tag.step : 0,
         /* Long enough to have been worth the walk, short enough that a quick
-           one reads as a quick one. One the mind made lasts as long as it
-           takes to fix what they came for. */
-        dwell: minded ? Mind.dwell(n, want) : clamp(this.slotSecs(n), 7, 26) };
+           one reads as a quick one. One the mind made lasts as long as its
+           step says — shorter, the better they are at it. */
+        dwell: tag ? tag.dwell : clamp(this.slotSecs(n), 7, 26) };
       return this.aim(n, want);
     }
     return this.aim(n, want);
@@ -943,7 +958,16 @@ const NPCM = {
      doors are in the bottom wall and the car park's in the top one, and
      neither of those is a fact worth writing down twice. */
   doorSide(rec, use) {
-    const o = (rec.objects || []).find(x => x.use === use);
+    /* The way out is asked for as 'exit', which is what the office's front
+       doors were used for. A level whose way out does something else when
+       pressed — the Driftwood's door is `use: 'barOut'`, because pressing it
+       takes you to the Promenade — still says what it IS with `kind: 'exit'`.
+       Without that second look runHome() and runErrands() found no door on
+       the hub and gave up every frame: nobody went home at closing, came back
+       in the morning, or went out to yoga or the sunset unless a load snapped
+       them there. */
+    const list = rec.objects || [];
+    const o = list.find(x => x.use === use) || (use === 'exit' ? list.find(x => x.kind === 'exit') : null);
     if (!o) return null;
     const free = (x, y) => x >= 0 && y >= 0 && x < rec.w && y < rec.h
       && !rec.solid[y][x] && rec.zone[y][x];

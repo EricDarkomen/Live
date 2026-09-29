@@ -33,6 +33,10 @@ function islander(id, who, o) {
     { t: 'Flirt.', to: 'flirt', if: () => !flirted() },
     { t: 'Offer them a drink.', to: 'gift', if: hasDrink },
     { t: 'Meet me at the cove tonight? After sunset.', to: 'date', if: () => Rel.get(id) >= 4 && !G.flags.date && G.minutes % 1440 < 1260 },
+    /* Developing them: once a day, spend some time on the thing they love.
+       They get better at it (see Mind.event 'practise'), and they remember
+       who they got better with. */
+    { t: 'Show me how you do that.', to: 'practise', if: () => G.flags['prac_' + id] !== G.day && Rel.get(id) >= 1 },
     { t: 'See you later.', to: null }
   ];
   /* A flirt lands on the day they are having — see data/minds.js — and goes
@@ -48,6 +52,11 @@ function islander(id, who, o) {
     text: () => pick(o.gift),
     do() { const d = takeDrink(); Rel.add(id, (ITEMS[d].v >= 24 ? 3 : 2) + (mind() ? mind().charm(id) : 0)); Player.xp(5); if (mind()) mind().event(id, 'gift'); o.onGift && o.onGift(d); },
     to: null
+  };
+  o.nodes.practise = {
+    text: () => (mind() && mind().teachLine(id)) || pick(o.again),
+    do() { G.flags['prac_' + id] = G.day; Rel.add(id, 1); Player.xp(4); if (mind()) mind().event(id, 'practise'); },
+    choices: [{ t: 'Same time tomorrow?', to: null }]
   };
   o.nodes.date = {
     text: () => pick(o.dateYes),
