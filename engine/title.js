@@ -1,15 +1,8 @@
 'use strict';
 /* ---------------- The title screen ----------------
-   A sunset over the sea, drawn live: a sky that drifts through the last hour of
-   the day, a sun sinking into a sea that glitters, palms leaning in from the
-   edges, a few birds going home. Over it, the name, the menu, and the beach
-   board — sea temperature, time till sunset, and how many couples are on the
-   sand — which counts down while you stand there reading it, because the best
-   part of the day does not wait for anybody.
-
-   Everything here runs on the page's ONE loop, for the same reason the arcade
-   does: same dt, same clamp, same stop when the tab goes away. Title.tick is a
-   no-op the instant the screen is not showing, which is most of the game. */
+   A sunset over the sea, drawn live, with the name, the menu and the beach
+   board, which counts down to sunset while you read it. Runs on the page's one
+   loop; a no-op once the screen is gone. */
 const Title = {
   cv: null, ctx: null, on: false, motion: true,
   w: 0, h: 0, dpr: 1, t: 0,
@@ -159,8 +152,7 @@ const Title = {
     a.textContent = this.couples;
     n.textContent = say('board.' + (this.left <= 0 ? 0 : this.left < 60 ? 1 : this.couples > 12 ? 2 : this.couples > 6 ? 3 : 4));
   },
-  /* The strip along the bottom, moving. Built here rather than written into
-     the page twice, because a seamless loop needs the same list end to end. */
+  /* The ticker along the bottom: the list twice end to end for a seamless loop. */
   get LINES() { return says('ticker'); },
   ticker() {
     const run = $('#tickerRun'); if (!run) return;
@@ -188,8 +180,7 @@ const Title = {
     if (!b || b.disabled) { Sfx.deny(); return; }
     b.click();
   },
-  /* With a game in progress the primary button is Continue; Boot decides
-     which by moving `.primary`, so this reads it back. */
+  /* Continue is primary when there is a save; Boot moves `.primary`, this reads it. */
   sync() {
     const i = this.menu.findIndex(b => b.classList.contains('primary'));
     this.point(i < 0 ? 0 : i);

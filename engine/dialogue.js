@@ -1,10 +1,13 @@
 'use strict';
-/* ---------------- DialogueSystem ---------------- */
+/* ---------------- Dialogue ----------------
+   A node is `text` (pages, or a function), then `choices` or `to`; `do` runs
+   on entry and `done` when the box closes. See data/npcs.js. */
 const Dialogue = {
   on: false, npc: null, node: null, pages: [], page: 0, typed: 0, full: '', typing: false, sel: 0,
+  speakerId(who) { return who && (who.id || (who.def && who.def.id)); },
   openNPC(npc) {
     /* Being spoken to is company, and some people live for it. */
-    if (typeof Mind !== 'undefined' && npc.id) Mind.event(npc.id, 'talked');
+    if (npc.id) Mind.event(npc.id, 'talked');
     const id = npc.def.entry ? npc.def.entry() : 'again';
     const node = npc.def.nodes[id] || npc.def.nodes.again || { text: ['...'] };
     this.open(npc, node, npc.def);
@@ -15,56 +18,43 @@ const Dialogue = {
   open(who, node, def) {
     G.state = 'dialogue'; this.on = true; this.npc = who; this.def = def || (who.def || null);
     $('#dialogue').classList.add('on');
-    /* The dialogue box owns the bottom of a phone screen, so the pad sits under
-       it and cannot be tapped. Movement is locked here anyway — take the pad
-       away and let the box itself be the tap target. */
+    /* On a phone the box covers the pad, and movement is locked anyway. */
     document.body.classList.add('talking');
-    const id = who.id || (who.def && who.def.id);
-    /* Portrait: the character's own sprite head where there is one, so the
-       face in the box is the person you walked up to. Callers on the phone and
-       anyone without a sprite keep their emoji. */
+    const id = this.speakerId(who);
     const face = $('#dFace');
     face.style.cssText = '';
     face.classList.remove('live');
-    /* Their colour, for the name tag, the ring and the glow — so a
-       conversation with Mari is pink and one with Nico is sea-blue. */
+    /* Their colour tints the name tag, the ring and the glow. */
     const col = (who.def && who.def.colour) || who.colour || '';
     $('#dialogue').style.setProperty('--who', col || 'var(--brand)');
-    /* ALIVE where it can be — breathing, blinking, talking, glancing; see
-       engine/portrait.js — and the old still crop where it cannot. */
-    const alive = id && typeof Portrait !== 'undefined' && Portrait.mount(face, id, { crop: 'bust', scale: TOUCH ? 2 : 3, speaker: true });
+    /* A live portrait (engine/portrait.js), else a still crop, else the emoji. */
+    const alive = id && Portrait.mount(face, id, { crop: 'bust', scale: TOUCH ? 2 : 3, speaker: true });
     const pic = !alive && id && Sprites.portrait(id, TOUCH ? 2 : 3);
     face.classList.toggle('sprite', !!pic);
     if (alive) { /* drawn by Portrait */ }
     else if (pic) { face.textContent = ''; Object.assign(face.style, pic); }
     else face.textContent = who.face || (who.def && who.def.face) || '🧑';
-    /* How they are with you, on their face rather than only in the line of
-       text beside it. Held for the conversation and cleared when you walk
-       away — anything that happens DURING it (see Rel.add) flashes over the
-       top of this and then hands it back. */
-    if (typeof Faces !== 'undefined' && id) {
+    /* How they feel about you, held on their face for the conversation;
+       anything that happens during it flashes over the top. */
+    if (id) {
       Faces.hold(id, G.rel[id] !== undefined ? Faces.mood(G.rel[id]) : null);
       this.faceExpr = null;
       this.eyes();
     }
     $('#dName').textContent = (who.name || (who.def && who.def.name) || '???').toUpperCase();
     $('#dRole').textContent = who.role || (who.def && who.def.role) || '';
-    /* How they are with you, and then how they are — the second is the day
-       they are having, which is worth knowing before you flirt. */
-    const badge = id && typeof Mind !== 'undefined' ? Mind.badge(id) : '';
+    /* How they are with you, then the day they are having. */
+    const badge = id ? Mind.badge(id) : '';
     $('#dMood').textContent = [id && G.rel[id] !== undefined ? Rel.label(G.rel[id]) : '', badge].filter(Boolean).join(' · ');
     this.setNode(node);
   },
-  /* The portrait's expression, kept up with the conversation. A face that is
-     set once when the box opens is a photograph: this is the same person
-     blinking, and pleased or unimpressed by what you just said, while you
-     read what they said back. Cheap enough to do every frame — it is one
-     string compare until the expression actually changes. */
+  /* Keep the still portrait's expression up with the conversation: one
+     compare a frame until it changes. */
   eyes() {
-    if (typeof Faces === 'undefined' || !this.on) return;
+    if (!this.on) return;
     const face = $('#dFace');
     if (!face || !face.classList.contains('sprite')) return;
-    const id = this.npc && (this.npc.id || (this.npc.def && this.npc.def.id));
+    const id = this.speakerId(this.npc);
     const expr = id ? Faces.of(id) : null;
     if (expr === this.faceExpr) return;
     this.faceExpr = expr;
@@ -85,7 +75,7 @@ const Dialogue = {
   showPage() {
     this.full = this.pages[this.page] || '';
     this.typed = 0; this.typing = true;
-    /* stale choices left in `avail` would keep swallowing the movement keys */
+    /* Stale choices would keep swallowing the movement keys. */
     this.avail = null; this.sel = 0;
     $('#dChoices').innerHTML = ''; $('#dCont').textContent = TOUCH ? 'Tap to continue' : 'Space — continue';
     this.render();
@@ -101,8 +91,7 @@ const Dialogue = {
     if (!this.typing) return;
     const before = Math.floor(this.typed);
     this.typed += dt * this.speed;
-    /* One blip every few characters actually revealed, rather than per frame —
-       the old modulo test fired at frame rate and stacked up oscillators. */
+    /* A blip every third character revealed. */
     if (Math.floor(this.typed / 3) !== Math.floor(before / 3)) Sfx.talk();
     if (this.typed >= this.full.length) { this.typed = this.full.length; this.typing = false; this.afterType(); }
     this.render();
@@ -134,8 +123,7 @@ const Dialogue = {
         : (this.node.to ? 'Space — continue' : 'Space — end conversation');
     }
   },
-  /* Keyboard selection of dialogue choices. The .sel style existed from the
-     start but nothing ever applied it. */
+  /* Keyboard selection of choices. */
   select(i) {
     const n = (this.avail || []).length; if (!n) return;
     this.sel = ((i % n) + n) % n;
@@ -163,18 +151,13 @@ const Dialogue = {
     this.close();
   },
   close() {
-    /* The expression was for the conversation, not for the rest of the day.
-       A flash set during it is left alone: it is already on its own clock and
-       will run out on the floor, which is the point of it. */
-    if (typeof Faces !== 'undefined') {
-      const id = this.npc && (this.npc.id || (this.npc.def && this.npc.def.id));
-      if (id) Faces.hold(id, null);
-    }
+    /* The held expression ends with the conversation; a flash runs its course. */
+    const id = this.speakerId(this.npc);
+    if (id) Faces.hold(id, null);
     this.faceExpr = null;
     this.on = false; $('#dialogue').classList.remove('on');
     document.body.classList.remove('talking');
-    /* A d-pad key held when the conversation started never received its
-       touchend, so clear the direction rather than walking off on your own. */
+    /* A d-pad key held as the box opened never got its touchend. */
     Keys.up = Keys.down = Keys.left = Keys.right = 0;
     const done = this.node && this.node.done;
     this.node = null; this.avail = null; this.sel = 0;

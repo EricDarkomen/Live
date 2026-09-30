@@ -1,20 +1,11 @@
 'use strict';
 /* ---------------- Juice: the interface's small motions ----------------
-   css/bubble.css is how the interface looks; this is the handful of things a
-   stylesheet cannot do on its own:
-
-     the dock      the desktop's row of key hints, turned into round bubbles
-                   with the key in a badge and the name as a tooltip — read
-                   off each button's own "N · Map" text, so the markup and
-                   everything that builds it stay exactly as they were
-     the bump      a meter or the takings give a little bounce when they
-                   change by enough to matter, so a drink or a tip is felt
-                   and not only read
-     the pop       a bubble pops under your finger on anything you press
-
-   Every one of them stands down with the game's Reduced motion setting
-   (FX.motion) and the system's own preference, which is what `body.calm`
-   says to bubble.css. */
+   What css/bubble.css cannot do alone:
+     the dock   the desktop's key hints as round bubbles, read off each
+                button's own "N · Map" text
+     the bump   a meter or the takings bounce when they change enough to notice
+     the pop    a bubble pops under your finger
+   All stand down with Reduced motion or the system preference (body.calm). */
 const Juice = {
   init() {
     this.dock();
@@ -25,18 +16,17 @@ const Juice = {
     setInterval(() => this.calm(), 1000);
   },
   still() {
-    return (typeof FX !== 'undefined' && FX.motion === false)
+    return (FX.motion === false)
       || matchMedia('(prefers-reduced-motion: reduce)').matches;
   },
   calm() { document.body.classList.toggle('calm', this.still()); },
 
   dock() {
     const k = document.getElementById('keyhints');
-    if (!k || (typeof TOUCH !== 'undefined' && TOUCH)) return;
+    if (!k || TOUCH) return;
     k.classList.add('dock');
     k.querySelectorAll('button').forEach(b => {
-      /* The words only — the icon is in its own span, and belongs on the
-         bubble rather than in the badge. */
+      /* The words only; the icon span belongs on the bubble. */
       const words = [...b.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim();
       const m = words.match(/^(\S+)\s*·\s*(.+)$/);
       if (!m) return;
@@ -47,9 +37,7 @@ const Juice = {
     });
   },
 
-  /* A bounce when a number moves by enough to notice: a drink, a tip, a
-     meal. Not the energy ticking down a point at a time, which would be the
-     HUD fidgeting all afternoon. */
+  /* A bounce when a number moves by enough to notice, not the energy ticking down. */
   watch() {
     const rows = [['#vPat', '.bar-row', 3], ['#vEne', '.bar-row', 3], ['#vFood', '.bar-row', 3],
       ['#vXp', '.bar-row', 1], ['#hMoney', '.money-row', .01]];
@@ -64,14 +52,13 @@ const Juice = {
         last = v;
         if (Math.abs(d) < min || this.still()) return;
         row.classList.remove('bump'); void row.offsetWidth; row.classList.add('bump');
-        /* A tip lands, and you look pleased with yourself for a moment. */
-        if (sel === '#hMoney' && d > 0 && typeof Faces !== 'undefined') Faces.flash('player', 'happy', 1.6);
+        /* A tip lands and you look pleased with yourself. */
+        if (sel === '#hMoney' && d > 0) Faces.flash('player', 'happy', 1.6);
       }).observe(el, { childList: true, characterData: true, subtree: true });
     }
   },
 
-  /* Cards lean towards the pointer, a few degrees, with a highlight that
-     follows it — css/bubble.css reads the four variables this writes. */
+  /* Cards lean a few degrees towards the pointer; bubble.css reads the variables. */
   tilt() {
     const sel = '.item,.mind-card,.farm-plots .fp,.stat-box,.ach';
     document.addEventListener('pointermove', e => {

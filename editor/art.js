@@ -1,26 +1,14 @@
 'use strict';
 /* ---------------- Bringing art in ----------------
-   The fourth document. A level is tiles and objects, a job is data and a
-   conversation is prose — this one is PIXELS, and it is the only place in the
-   editor where something arrives from outside the project.
-
-   Which is the whole reason it is careful. `art/sprites/*.png` is third-party
-   work under OGA-BY 3.0, licensed SEPARATELY from the game (LICENSE part 2),
-   and `tools/build-sprites.mjs` refuses to build an asset whose licence it
-   cannot prove — `USABLE = ['OGA-BY', 'CC0']`, and the note beside it says do
-   not relax that to reach a nicer asset. An importer that let you drop a PNG in
-   without saying where it came from would be the hole in that, so this one
-   asks first and says no when the answer is wrong.
-
-   Nothing is written anywhere. The sheet lives in this tab as a data: URI, the
-   game's own Tiles and Sprites adopt it so the map really draws with it, and
-   the export is the manifest entry, the credits stanza and the PNG itself —
-   the same deal every other document here offers.
-
-   The file arrives through an <input type="file">, NOT a fetch. That matters:
-   this project is built on a page that must open from file://, where a fetch of
-   a local file is refused outright — but a file the person chose is handed over
-   by the browser and works everywhere the editor does. */
+   The only document whose content arrives from outside the project, so it is
+   careful. art/sprites/*.png is third-party (OGA-BY 3.0, licensed separately,
+   LICENSE part 2), and tools/build-sprites.mjs only builds assets whose
+   licence it can prove (`USABLE = ['OGA-BY', 'CC0']`). So this asks where a
+   file came from first and refuses the wrong answer.
+   Nothing is written: the sheet lives in this tab as a data: URI, adopted by
+   Tiles and Sprites so the map draws it, and the export is the manifest
+   entry, the credits stanza and the PNG. Files come through
+   <input type="file">, not fetch, which file:// refuses. */
 
 const Art = {
   /* Sheets imported in this tab. The shipped ones are not in here: they are the
@@ -31,11 +19,8 @@ const Art = {
   base: null, undoStack: [], redoStack: [],
 
   /* ---- what this project can accept ----
-     The same two the build gate accepts, named the same way, because a second
-     opinion about a licence is how you ship an asset under one you were never
-     granted. CC-BY-SA and GPL are refused with the reason rather than left to
-     be discovered: ShareAlike forces the derivative to relicense, and the game
-     is CC BY-NC-ND — they cannot both apply to one asset, ever. */
+     The build gate's two, named the same. ShareAlike (CC-BY-SA, GPL) is refused
+     with the reason: it cannot coexist with the game's CC BY-NC-ND. */
   LICENCES: [
     { k: 'CC0', label: 'CC0 1.0 — public domain', ok: true },
     { k: 'OGA-BY 3.0', label: 'OGA-BY 3.0', ok: true },
@@ -82,10 +67,8 @@ const Art = {
   },
 
   /* ---- reading a file ----
-     Resolves with a decoded <img> and the data: URI it came from. Both: the
-     image is what the slicer measures against, and the URI is what Tiles and
-     Sprites are handed, because they take an <img>.src and know nothing about
-     where the bytes came from. */
+     Resolves with the decoded <img> (for slicing) and its data: URI (for Tiles
+     and Sprites). */
   read(file) {
     return new Promise((resolve, reject) => {
       if (!file) return reject(new Error('no file'));
@@ -111,9 +94,8 @@ const Art = {
   },
 
   /* ---- adding one ----
-     `kind` is 'tiles' (named rectangles, the world atlas) or 'people' (rows of
-     one character each). They are two different geometries over the same idea
-     and the manifest already carries both, so this does too. */
+     `kind` is 'tiles' (named rectangles) or 'people' (one character per row),
+     as the manifest has both. */
   add(meta, loaded) {
     const id = meta.id;
     const s = {
@@ -161,10 +143,8 @@ const Art = {
     this.rebuild();
     return true;
   },
-  /* One named rectangle. Written in PIXELS, always: the kit's wall items are
-     not on the 32px grid (a framed picture at x=141 on a 192px sheet straddles
-     the boundary at 160), and rounding one to a cell clips the frame off one
-     side. The grid is how you PICK one, not how it is stored. */
+  /* One named rectangle, in pixels: wall items are off the 32px grid. The grid
+     is for picking, not storage. */
   addEntry(name, rect, anchor) {
     const s = this.sheet();
     if (!s) return false;
@@ -212,9 +192,7 @@ const Art = {
   },
 
   /* ---- what the manifest would say ----
-     Exactly the shape build-sprites.mjs writes, so what the editor hands the
-     engine and what it hands you to paste are the same object. No `v`: the
-     cache key is a hash of a file's bytes and this one has no file yet. */
+     build-sprites.mjs's shape. No `v` until there is a file to hash. */
   def(s) {
     s = s || this.sheet();
     if (!s) return null;
@@ -230,20 +208,12 @@ const Art = {
   path(s) { return 'art/sprites/' + (s || this.sheet()).id + '.png'; },
 
   /* ---- into the running game ----
-     The preview is the game's renderer, so a sheet that is not in the game's
-     own tables is a sheet you cannot see. Both engines adopt by id and refuse
-     a duplicate, so this is safe to call after every edit — and re-adopting
-     under a new id after a geometry change is what makes the map redraw. */
+     The preview is the renderer, so the sheet must be in its tables. */
   publish() {
     const s = this.sheet();
     if (!s) return;
-    /* One adopted sheet per import, restocked in place. Both engines take a
-       sheet by id and re-reading one is a no-op for its bitmap, which is what
-       makes this safe to call after every keystroke: what changes is the
-       geometry, and the pixels were decoded once when the file arrived.
-       The `ed:` prefix is what marks it as this tab's rather than the
-       manifest's — the checks read it to tell "already claimed by somebody
-       else" from "claimed by me". */
+    /* One adopted sheet per import, re-adopted in place on each edit (geometry
+       changes, pixels decoded once). The `ed:` prefix marks it as this tab's. */
     const def = Object.assign({}, this.def(s), { id: 'ed:' + s.id });
     if (s.kind === 'people') Sprites.adopt(def);
     else Tiles.adopt(def);
@@ -260,12 +230,8 @@ const Art = {
 Object.assign(Art, HIST);
 
 /* ---------------- What is wrong with an imported sheet ----------------
-   Three kinds again, and the first is the one that matters most to this
-   project: a sheet whose licence cannot be proved must never reach the build,
-   because LICENSE part 2 is a list of files and the list is only true if
-   somebody checked. The other two are the ordinary ways a slice goes wrong —
-   a rectangle that runs off the edge of its own PNG, and a name that already
-   belongs to somebody else's pixels. */
+   An unproven licence (must never reach the build), a rectangle off the edge
+   of its PNG, and a name already owned by other pixels. */
 
 const ArtCheck = {
   faults: [],
@@ -350,10 +316,8 @@ const ArtCheck = {
           + 'collapses the walk to a single frame and draws the chair as a person.');
       }
       if (s.dirs.length !== 4) fault('error', 'Four directions, in the LPC order: up, left, down, right.');
-      /* A row is the four direction-blocks side by side, so the sheet's width
-         is fw × frames × 4. Anything else means one of the three is wrong, and
-         a frame index that runs past the end of a row draws the next
-         direction's pose without throwing anything at all. */
+      /* A row is four direction blocks: width must be fw × frames × 4, or frames
+         silently read the next direction. */
       const wide = s.fw * s.frames * s.dirs.length;
       if (s.w !== wide) {
         fault('warn', 'A row of ' + s.frames + ' frames at ' + s.fw + 'px across '

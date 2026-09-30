@@ -43,16 +43,10 @@ const Garden = {
      the crop, when it went in, how many minutes of GROWING it has had (only
      wet minutes count — see Farm.update()), how wet it is, how long it has
      been bone dry, whether it was composted, whether something is eating it,
-     when it ripened, and whether it is past saving. A plot from an older
-     save is only { c, at } and is read as having grown the whole time. */
-  fix(p) {
-    if (p && p.g === undefined) { p.g = Math.min(CROPS[p.c].t, islandNow() - p.at); p.w = 1; p.dry = 0; if (p.g >= CROPS[p.c].t) p.ripeAt = islandNow(); }
-    return p;
-  },
+     when it ripened, and whether it is past saving. */
   /* 0 bare · 1 seedling · 2 growing · 3 ripe · 4 dead */
   stage(p) {
     if (!p) return 0;
-    this.fix(p);
     if (p.dead) return 4;
     const f = p.g / CROPS[p.c].t;
     return f >= 1 ? 3 : f >= .5 ? 2 : 1;
@@ -73,7 +67,7 @@ const Garden = {
   /* Keep the plots on the ground looking like what is in them. Cheap: fifteen
      objects, only while you are on the island. */
   refresh() {
-    if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
+    if (World.level !== 'island' || !World.objects) return;
     for (const o of World.objects) {
       if (o.kind !== 'plot') continue;
       const l = this.look(o);
@@ -191,9 +185,6 @@ function clockDur(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return h + (h === 1 ? ' hour' : ' hours') + (r >= 15 ? (r >= 45 ? ' and three-quarters' : r >= 25 ? ' and a half' : ' and a quarter') : '');
 }
-/* The farm's clock: water, growth, pests, spoilage and hunger, caught up
-   from the island's own minutes — see Farm.update() in data/farm.js. */
-setInterval(() => { try { if (typeof Farm !== 'undefined') Farm.update(); Garden.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1000);
 
 /* ---------------- The blender ---------------- */
 const RECIPES = [

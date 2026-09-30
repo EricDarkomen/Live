@@ -10,9 +10,8 @@
    so the pixel art stays crisp at 2-3x, and flex-shrink:0 so a long role line
    cannot squash the face. */
 .dlg-face.sprite{background-repeat:no-repeat;image-rendering:pixelated;flex:0 0 auto;position:relative}
-/* The expression is a second window onto a second sheet, laid over the first
-   one — see engine/faces.js. Absolute inside the portrait, sized and placed by
-   the script, and never a hit target: it is a face, not a control. */
+/* The expression: a second sheet laid over the portrait (engine/faces.js),
+   placed by script, never a hit target. */
 .dlg-face.sprite .expr{position:absolute;background-repeat:no-repeat;image-rendering:pixelated;pointer-events:none}
 .dlg-name{font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;font-size:13px;color:var(--hold)}
 .dlg-role{font-size:11px;color:var(--dim)}

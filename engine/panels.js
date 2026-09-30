@@ -1,5 +1,5 @@
 'use strict';
-/* ---------------- Interaction ---------------- */
+/* ---------------- Interaction, shops and the panel ---------------- */
 const Interact = {
   target: null, kind: null, _label: null,
   scan() {
@@ -7,15 +7,8 @@ const Interact = {
       if (this.target || this._label) { this.target = null; this.kind = null; this._label = null; $('#prompt').classList.remove('on'); }
       return;
     }
-    /* From a driving seat there is almost always exactly one thing to interact
-       with and it is the door handle. Tested before anything else, and before
-       the reach: a car stopped beside a lamppost still offers the way out of
-       itself.
-       The exception is anything furnished `fromCar` — a drive-thru window, and
-       whatever else somebody points at a lane one day. Those are the things
-       you are meant to reach WITHOUT getting out, so while one is alongside it
-       takes the key off the door. Measured from the car rather than from the
-       player, which are the same point while driving but only by accident. */
+    /* Driving, E is the door, unless something furnished `fromCar` (a drive-thru
+       window) is alongside, measured from the car. */
     if (Cars.driving) {
       const car = Cars.driving;
       let win = null, wd = TILE * 2.1;
@@ -29,10 +22,7 @@ const Interact = {
       if (label !== this._label) {
         this._label = label;
         const el = $('#prompt');
-        /* The chip names the control you actually have. On a phone that
-           button says OUT while you are driving (see Cars.showControls), and
-           a prompt telling you to press a key that is not on screen is a
-           prompt telling you nothing. */
+        /* Name the control you have: on a phone it says OUT. */
         el.innerHTML = '<span class="kbd">' + (TOUCH && !win ? 'OUT' : 'E') + '</span> &nbsp;' + esc(label);
         el.classList.add('on'); el.classList.remove('urgent');
       }
@@ -40,31 +30,12 @@ const Interact = {
     }
     const REACH = TILE * 1.05;
     let bestObj = null, od = REACH;
-    /* Objects sit on integer tiles and the reach is about one tile, so only the
-       3×3 neighbourhood can ever match — no need to measure all 230 of them. */
+    /* Reach is about a tile, so only the 3×3 neighbourhood can match. */
     const ptx = Math.floor(P.x / TILE), pty = Math.floor(P.y / TILE);
-    /* TWO QUESTIONS, and they are not the same question, which is the whole of
-       why this is two lines rather than one.
-
-       CAN I REACH IT is surface to surface: the gap between your body and the
-       thing's, each of them as big as it is drawn (see Collide.reach()). That
-       is why a copier can be reached from a step further back than a mug can,
-       and it is the same capsule that any physical event between two things
-       standing on a floor would use. Never tighter than the old whole-tile
-       reach for anything, so nothing that could be pressed has stopped being
-       pressable.
-
-       WHICH ONE is still the distance between tile centres, unchanged — and it
-       has to be, for two reasons. A size-aware ranking hands every tie to the
-       biggest thing in the neighbourhood, which quietly made the stationery
-       cupboard unpressable because the copier next to it is bigger. And this
-       number is compared against `nd` below, which is a distance between
-       centres; ranking one in surface gaps and the other in centres is not a
-       comparison at all.
-
-       A thing on a table beats the table, as a person beats their chair: same
-       tile means the same distance to the pixel, and the tie went to whichever
-       was pushed first — the table. You were offered the formica. */
+    /* Whether you can reach it is surface to surface (Collide.reach), so a big
+       thing reaches further; which one wins is still centre distance, or the
+       biggest thing nearby would win every tie. Something on a table beats
+       the table. */
     const SURFACE = TILE * 0.6;
     const dist = o => Math.hypot((o.x + .5) * TILE - P.x, (o.y + .5) * TILE - P.y)
       - (o.onTable ? 1 : 0);
@@ -83,21 +54,12 @@ const Interact = {
       const d = Math.hypot(n.x - P.x, n.y - P.y);
       if (d < nd) { nd = d; bestNpc = n; }
     }
-    /* A person beats the furniture they are sitting in. Colleagues stand on the
-       chair tile at their desk, so on raw distance the chair — measured from the
-       tile centre, and found first — would win the tie and you would offer to
-       sit on Dave. A person only loses to something you are clearly closer to. */
+    /* A person beats the chair they stand on unless you are clearly closer to it. */
     const PERSON_BIAS = TILE * .36;
     let best = null, kind = null;
     if (bestNpc && (!bestObj || nd <= od + PERSON_BIAS)) { best = bestNpc; kind = 'npc'; }
     else if (bestObj) { best = bestObj; kind = 'obj'; }
-    /* And the two things that are neither furniture nor colleagues: somebody
-       walking past, and a car. Neither is on a tile, so neither can be in
-       byTile, and both are a further question rather than a special case
-       inside the first two. Both lose every tie — a car parked over a drain
-       should still offer you the drain, and a colleague standing beside one is
-       still a colleague — and between themselves the person wins, because a
-       person does. */
+    /* Passers-by and cars lose every tie; between them the person wins. */
     const ped = Peds.near(P.x, P.y);
     if (ped && !best) { best = ped; kind = 'ped'; }
     const car = Cars.near(P.x, P.y);
@@ -107,16 +69,14 @@ const Interact = {
       : kind === 'npc' ? 'Talk to ' + best.name
       : kind === 'ped' ? 'Talk to ' + best.name
       : kind === 'car' ? 'Look at ' + best.name
-      : best.ringing ? (TEXT['act.answer'] ? say('act.answer') : 'ANSWER') + ' — ' + best.name
+      : best.ringing ? sayOr('act.answer', 'ANSWER') + ' — ' + best.name
       : (best.kind === 'chair' || best.use === 'playerDesk') ? 'Use ' + best.name
-      /* A push button is the one piece of street furniture out there that
-         DOES something, so it says so. "Inspect the crossing" is what you do
-         to a bollard. */
+      /* The one piece of street furniture that does something says so. */
       : best.use === 'crossingButton' ? 'Press the button'
-      /* Driftwood, shells and stones are for picking up, not for looking at. */
+      /* Driftwood, shells and stones are picked up. */
       : best.kind === 'pickup' ? 'Pick up ' + best.name
       : 'Inspect ' + best.name;
-    if (label === this._label) return;      /* only touch the DOM when it changes */
+    if (label === this._label) return;      /* the DOM only when it changes */
     this._label = label;
     const el = $('#prompt');
     if (label) {
@@ -128,10 +88,7 @@ const Interact = {
   go() {
     if (G.state !== 'play' || !this.target) return;
     if (this.kind === 'npc') { Sfx.select(); Dialogue.openNPC(this.target); return; }
-    /* From inside, E is the door. From outside it is whatever the car's own
-       `use` says, exactly as it is for a filing cabinet — which is what lets
-       one car offer to be got into and the next six explain why they will not
-       be, in data/acts.js, where the writing lives. */
+    /* People, cars and objects each fall back to the engine's act if theirs throws. */
     if (this.kind === 'ped') {
       const ped = this.target;
       const fn = Acts[ped.use] || Acts.passerby;
@@ -155,15 +112,14 @@ const Interact = {
   }
 };
 
-/* ---------------- Shop ---------------- */
-/* SHOP, the stock list, is in data/items.js. */
+/* ---------------- Shop (SHOP is in data/items.js) ---------------- */
 const Shop = {
   open(id) {
     this.id = id;
     Panels.open('shop');
   },
   render() {
-    const s = SHOP[this.id || 'vending'];
+    const s = SHOP[this.id];
     let h = '<div class="h2">' + s.title + ' — ' + say('shop.pocket', { money: cash(P.money) }) + '</div><p class="empty" style="text-align:left;padding:0 0 12px">' + s.note + '</p><div class="grid">';
     s.stock.forEach(k => {
       const it = ITEMS[k];
@@ -175,36 +131,17 @@ const Shop = {
     const it = ITEMS[k];
     if (P.money < it.v) { Sfx.deny(); UI.toast('💶', say('shop.poor')); return; }
     Player.mod({ money: -it.v }); Item.give(k); Sfx.cash(); Panels.render();
-    /* A job that advances on buying something is HOOKS.bought in data/game.js. */
     Hook('bought', k, this.id);
   }
 };
 
-/* ---------------- Panels / UIManager ---------------- */
+/* ---------------- The panel ---------------- */
+/* The engine's tabs, with the game's own (GAME.tabs) after Skills. */
 const TABS = [
-  /* The map is first, and it is the only tab in here that is about the world
-     rather than about the employee: everything else on this row is a thing the
-     company would like you to fill in. It is here at all because the panel is
-     the one piece of UI a phone can reach — the key-hint row is a menu button
-     on a touch screen and the minimap is not drawn there at all — so a map
-     that lived anywhere else would be a map only a desktop has. */
   { id: 'map', n: 'Map', e: '🗺️' },
-  /* The shift page, which used to be a screen that arrived at five whether you
-     were at a desk or on a dual carriageway. It is a tab now, and a live one:
-     today's figures whenever you ask for them. See Report in engine/menus.js. */
-  { id: 'shift', get n() { return TEXT['tab.shift'] ? say('tab.shift') : 'Shift'; }, e: '💶' },
+  { id: 'shift', get n() { return say('tab.shift'); }, e: '💶' },
   { id: 'quests', n: 'Jobs', e: '🗂️' }, { id: 'inventory', n: 'Inventory', e: '🎒' }, { id: 'skills', n: 'Skills', e: '📈' },
-  /* CHAT AND EMAIL USED TO BE TWO OF THESE and they are not administration.
-     A portal tab is where you go to look something up about yourself — your
-     jobs, your kit, your skills, your figures. An inbox is a place you WORK,
-     and putting it behind the eighth of ten tabs in a self-service portal is
-     what made reading it feel like filing a form. They are two of the five
-     channels in the comms console now (engine/comms.js), which takes this
-     strip from ten tabs to eight on a screen that has room for about four. */
-  /* The garden, the water, the stores and what is cooking — data/farm.js. */
-  { id: 'farm', n: 'Farm', e: '🌾' },
-  /* Gathering, woodcutting, mining, crafting and building — data/craft.js. */
-  { id: 'workshop', n: 'Workshop', e: '🛠️' },
+  ...(GAME.tabs || []),
   /* How everybody you have met is doing, and why — engine/mind.js. */
   { id: 'people', n: 'Islanders', e: '🌴' },
   { id: 'ach', n: 'Achievements', e: '🏆' },
@@ -213,13 +150,13 @@ const TABS = [
 const Panels = {
   tab: 'quests', on: false,
   open(tab) {
-    if (tab === 'shop') { this.tab = 'shop'; } else this.tab = tab || this.tab;
+    this.tab = tab || this.tab;
     const first = !this.on;
     if (first) this._returnFocus = document.activeElement;
     this.on = true; G.state = 'panel';
     $('#panel').classList.add('on');
     this.tabs(); this.render(); Sfx.blip();
-    /* move focus into the dialog so the keyboard and screen readers follow it */
+    /* Focus into the dialog, for the keyboard and screen readers. */
     if (first) setTimeout(() => { const t = $('#pnTabs .tab.on') || $('#pnClose'); if (t) t.focus(); }, 20);
   },
   close() {
@@ -244,43 +181,28 @@ const Panels = {
       b.onclick = () => { this.tab = t.id; this.tabs(); this.render(); Sfx.blip(); };
       box.appendChild(b);
     });
-    /* On a phone the tabs are one sideways-scrolling row, and this function
-       rebuilds it from scratch on every switch — which resets that scroll. Put
-       the selected tab back where the player can see it. Harmless on a desktop,
-       where the row wraps and nothing is ever out of view. */
+    /* Rebuilding resets a phone's scrolling tab row: bring the selected one back. */
     const cur = box.querySelector('.tab.on');
     if (cur && cur.scrollIntoView) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
   },
   render() {
     if (!this.on) return;
     const b = $('#pnBody');
-    /* The portal's own name is the least useful thing in a header that has one
-       line on a phone, and the dialog is labelled with it anyway. */
-    /* Your name and rank — it was the office's "Employee self-service portal"
-       for a long time after there stopped being an office. */
     $('#pnTitle').textContent = '🌺 ' + P.name + ' · ' + RANKS[P.rank].n;
-    b.innerHTML = this['r_' + this.tab] ? this['r_' + this.tab]() : '';
+    const tab = TABS.find(t => t.id === this.tab);
+    b.innerHTML = tab && tab.panel ? tab.panel() : this['r_' + this.tab] ? this['r_' + this.tab]() : '';
     b.querySelectorAll('[data-item]').forEach(el => el.onclick = () => Item.use(el.dataset.item));
     b.querySelectorAll('[data-uneq]').forEach(el => el.onclick = () => Item.equip(el.dataset.uneq));
     b.querySelectorAll('[data-skill]').forEach(el => el.onclick = () => Sk.buy(el.dataset.branch, el.dataset.skill));
     b.querySelectorAll('[data-buy]').forEach(el => el.onclick = () => Shop.buy(el.dataset.buy));
     b.querySelectorAll('[data-act]').forEach(el => el.onclick = () => Menu[el.dataset.act]());
-    /* The map is a canvas rather than a list, so it is drawn rather than
-       written — and it is drawn AFTER the body, because a canvas has no size
-       until the layout has happened. From then on the loop keeps it up to date
-       four times a second; see Atlas.tick(). */
+    /* The map canvas has no size until layout, so it is drawn after the body. */
     if (this.tab === 'map') Atlas.panel();
-    /* Faces on the cards, alive — see engine/portrait.js. */
-    if (typeof Portrait !== 'undefined') Portrait.scan(b);
+    Portrait.scan(b);   /* live faces on the cards */
   },
   r_shop() { return Shop.render(); },
   r_people() { return Mind.panel(); },
-  r_farm() { return Farm.panel(); },
-  r_workshop() { return Craft.panel(); },
-  /* WHERE YOU ARE, WHAT IT IS CALLED, AND THE WAY OUT OF IT. The canvas is
-     sized by the stylesheet and drawn by Atlas.panel(); everything here is the
-     furniture round it. The line under the map is the legend, and it is short
-     on purpose: a legend that has to be read is a map that has failed. */
+  /* Where you are, the map (Atlas.panel draws it) and a short legend. */
   r_map() {
     const here = World.zoneAt(Math.floor(P.x / TILE), Math.floor(P.y / TILE));
     const level = (World.def && World.def.name) || '';
@@ -296,15 +218,10 @@ const Panels = {
       + '<span><i class="mp-ring"></i>A guest waiting at the bar</span>'
       + '</div>';
   },
-  /* TODAY, AND WHETHER IT IS OVER YET. One page, two moods: during the shift it
-     is a tally with the clock at the top of it, and after five it is the report
-     that used to be thrown across the screen — the same figures, plus the
-     rating and whatever the evening said on the way out.
-
-     The rows come from Report so there is exactly one list of what a day is
-     made of, and the counters they read are today's. */
+  /* Today: a live tally while the day runs, the report with its rating after
+     closing. The rows are Report's. */
   r_shift() {
-    const done = !!G.flags.clockedOff;
+    const done = !!G.today.clockedOff;
     const head = done
       ? say('shift.after', { time: clockStr(G.minutes) })
       : Sky.working()
@@ -317,11 +234,9 @@ const Panels = {
       const v = Report.verdict();
       h += '<div class="verdict"><div class="sk" style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">' + say('shift.verdict') + '</div>'
         + '<div class="vt">“' + v[0] + '”</div><div class="vn">*' + v[1] + '</div></div>';
-      if (G.flags.leaving)
-        h += '<p style="margin-top:14px;font-size:13px;color:var(--dim);font-style:italic">' + esc(G.flags.leaving) + '</p>';
+      if (G.today.leaving)
+        h += '<p style="margin-top:14px;font-size:13px;color:var(--dim);font-style:italic">' + esc(G.today.leaving) + '</p>';
     } else {
-      /* What the page is for while the day is still in front of you: not a
-         verdict, a clock. */
       h += '<p style="margin-top:14px;font-size:13px;color:var(--dim);font-style:italic">'
         + (Sky.working()
           ? say('shift.rating')
@@ -349,7 +264,7 @@ const Panels = {
     for (const slot in P.equipment) {
       const id = P.equipment[slot]; if (!id) continue; any = true;
       const it = ITEMS[id];
-      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + (TEXT['slot.' + slot] ? say('slot.' + slot) : slot) + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + (TEXT['stat.' + k] ? say('stat.' + k) : k)).join(' · ') + '</div><div class="idesc">Click to unequip</div></button>';
+      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + sayOr('slot.' + slot, slot) + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div><div class="idesc">Click to unequip</div></button>';
     }
     if (!any) h += '<p class="empty">Nothing equipped.</p>';
     h += '</div><div class="h2">Carried (' + P.inventory.length + ')</div>';
@@ -360,7 +275,7 @@ const Panels = {
     Object.keys(counts).forEach(id => {
       const it = ITEMS[id];
       h += '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + (counts[id] > 1 ? ' ×' + counts[id] : '') + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
-        (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + (TEXT['stat.' + k] ? say('stat.' + k) : k)).join(' · ') + '</div>' : '') +
+        (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div>' : '') +
         '<div class="ieff" style="color:var(--dim)">' + (it.slot ? 'Click to equip' : it.use ? 'Click to use' : it.quest ? 'Quest item' : 'Click to examine') + '</div></button>';
     });
     return h + '</div>';
@@ -388,32 +303,20 @@ const Panels = {
   },
   r_stats() {
     const s = P.eff || P.stats;
-    /* The five stats are keyed in code; what they are CALLED is TEXT's
-       `stat.<key>` and `statNote.<key>`. */
+    /* Named by TEXT's `stat.<key>` and `statNote.<key>`. */
     let h = '<div class="h2">' + say('stats.title') + '</div><div class="stat-grid">';
     ['empathy', 'knowledge', 'patience', 'bullshit', 'chaos'].forEach(k => {
       h += '<div class="stat-box"><div class="sk">' + say('stat.' + k) + '</div><div class="sv">' + (s[k] || 0).toFixed(1) + '</div><div class="sn">' + say('statNote.' + k) + '</div></div>';
     });
-    /* ALL TIME, and it always was: these come off G.totals, which is the
-       lifetime tally, and the heading said "Today" — so a profile opened on
-       day four reported four days of coffee as this morning's. Today has a page
-       of its own now and it is the one above. */
+    /* Lifetime totals, labelled like the day's report. */
     h += '</div><div class="h2">' + say('stats.allTime') + '</div><div class="stat-grid">';
     const t = G.totals;
-    /* Same labels as the day's report, and the same rule: a tally with no
-       `report.<stat>` in TEXT is not shown. */
     Object.keys(t).filter(k => TEXT['report.' + k] && k !== 'money' && k !== 'xp')
       .map(k => [say('report.' + k), t[k] || 0]).concat([[say('stats.rep'), Math.round(P.rep)]]).forEach(([k, v]) => {
       h += '<div class="stat-box"><div class="sk">' + k + '</div><div class="sv">' + v + '</div></div>';
     });
-    /* TWO LISTS, because they are two different things. A colleague is
-       somebody on the fourth floor; a person whose def names a `level` runs a
-       shop on a street outside and is not your colleague, however well the two
-       of you are getting on. Filing Pat under Colleagues would be the panel
-       telling you something about your job that is not true. */
-    /* Where somebody lives, under how they feel about you, and only once you
-       have actually watched them go — `home.where` is a fact about a person
-       and this panel is not a staff directory you were handed on day one. */
+    /* People with no `level` are colleagues; the rest run places elsewhere.
+       Where somebody lives shows once you have seen them go home. */
     const box = n => '<div class="stat-box"><div class="sk">' + n.face + ' ' + esc(n.name)
       + '</div><div class="sn">' + Rel.label(G.rel[n.id])
       + (G.flags.sawThemGo && n.home ? '<br><i>' + esc(n.home.where) + '</i>' : '')
@@ -427,6 +330,11 @@ const Panels = {
       town.forEach(n => { h += box(n); });
     }
     return h + '</div>';
+  },
+  /* The tabs a player looks things up in, each with its shortcut, for the help. */
+  tabList() {
+    const keyOf = id => Object.keys(PANEL_KEYS).find(k => PANEL_KEYS[k] === id);
+    return TABS.filter(t => !['map', 'shift', 'settings'].includes(t.id)).map(t => ({ n: t.n, key: keyOf(t.id) }));
   },
   r_settings() {
     const t = (on) => on ? 'On' : 'Off';
@@ -471,11 +379,11 @@ const Panels = {
             + ' &nbsp; <span class="kbd">OUT</span> — get out<br>' +
           'Tap the conversation box — advance dialogue &nbsp; tap a reply — choose it<br>' +
           'Tap a move — at the bar, and in messages<br>' +
-          '<span class="kbd">☰</span> — jobs, inventory, skills, farm, workshop, islanders, profile, achievements &nbsp; the 📨 chip under the bar — post, texts, chat, the log and every guest<br>' +
+          '<span class="kbd">☰</span> — ' + this.tabList().map(t => t.n.toLowerCase()).join(', ') + ' &nbsp; the 📨 chip under the bar — post, texts, chat, the log and every guest<br>' +
           'The game saves itself, and <span class="kbd">☰</span> · Menu has Save and Load.'
         : '<span class="kbd">W A S D</span> / arrows — move, and drive &nbsp; <span class="kbd">E</span> — interact, and get out &nbsp; <span class="kbd">H</span> — horn &nbsp; <span class="kbd">Space</span> — advance dialogue<br>' +
           '<span class="kbd">↑ ↓</span> then <span class="kbd">Enter</span>, or <span class="kbd">1–9</span> — dialogue choices &nbsp; <span class="kbd">1–9</span> — moves at the bar<br>' +
-          '<span class="kbd">J</span> jobs &nbsp; <span class="kbd">I</span> inventory &nbsp; <span class="kbd">K</span> skills &nbsp; <span class="kbd">O</span> farm &nbsp; <span class="kbd">Y</span> workshop &nbsp; <span class="kbd">U</span> islanders &nbsp; <span class="kbd">P</span> profile &nbsp; <span class="kbd">L</span> achievements<br>' +
+          this.tabList().filter(t => t.key).map(t => '<span class="kbd">' + t.key.slice(3) + '</span> ' + t.n.toLowerCase()).join(' &nbsp; ') + '<br>' +
           '<span class="kbd">M</span> post &nbsp; <span class="kbd">C</span> chat &nbsp; <span class="kbd">V</span> texts &nbsp; <span class="kbd">B</span> the log — or the rail in the corner, which is all five channels<br>' +
           '<span class="kbd">Esc</span> menu &nbsp; <span class="kbd">F5</span> quick save &nbsp; <span class="kbd">F9</span> quick load') + '</p>';
   }

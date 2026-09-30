@@ -1,30 +1,16 @@
 'use strict';
 /* ---------------- What a room is made of ----------------
-   A zone is the difference between a corridor and a break room, and it is nine
-   fields in `ZONES` (data/world.js). Everything about how a level LOOKS comes
-   from here: the level editor paints zones onto tiles, and the renderer bakes a
-   floor and a wall bitmap per zone and draws nothing else.
-
-   Which is why a different game needs this mode more than it needs any other.
-   You can lay out a new building with the level editor and it will still be
-   this office, in these thirteen greys, until the zones change.
-
-     name          what the HUD calls the room you are standing in
+   A zone is nine fields in ZONES (data/world.js), and how every level looks:
+   the renderer bakes a floor and wall per zone.
+     name          what the HUD calls the room
      floor / alt   the two floor shades, alternating per tile
-     wall          the wall colour, tinted per room
-     tint          the minimap and the room chip
-     surf / wsurf  a PROCEDURAL texture the renderer knows by name
-     tile / wtile  a named rect in the world atlas, which wins over surf
-
-   Two of those are strings matched by nobody. A `surf` the renderer has never
-   heard of falls through to plain carpet; a `tile` that is not in the atlas
-   falls back to the procedural one. Both look like decisions.
-
-   THIS DOCUMENT WRITES BACK INTO ZONES, and it is the only one besides the
-   object editor that does. There is nowhere else for R.floorTile() to read a
-   colour from — and because the renderer BAKES each combination once and keeps
-   it, writing the table is not enough on its own: R.rebake() has to throw the
-   cached bitmaps away or the map goes on showing the old colour for ever. */
+     wall          the wall colour
+     tint          the minimap and room chip
+     surf / wsurf  a procedural texture the renderer knows by name
+     tile / wtile  an atlas rect, which wins over surf
+   An unknown `surf` falls back to carpet and a missing `tile` to the texture,
+   both silently. This document writes into the live ZONES, and R.rebake()
+   drops the cached bitmaps so the change shows. */
 
 const Zones = {
   id: null,
@@ -33,52 +19,26 @@ const Zones = {
   z: null,
   base: null, undoStack: [], redoStack: [],
 
-  /* What the renderer actually knows. Anything else is silently the default,
-     which is the fault this mode exists to make visible. Read off render.js's
-     own switch statements — if a case is added there it belongs here too. */
+  /* The procedural surfaces the renderer knows; keep in step with render.js. */
   SURF: ['stone', 'vinyl', 'tile', 'raised', 'concrete'],
   WSURF: ['tile', 'block'],
   FIELDS: ['name', 'floor', 'alt', 'wall', 'tint', 'surf', 'wsurf', 'tile', 'wtile'],
 
   /* ---- what a floor or a wall can be made of ----
-     Two answers per surface, and `tile`/`wtile` win over `surf`/`wsurf`: a rect
-     in the world atlas, or a texture the renderer draws itself. The atlas half
-     used to be offered as every name beginning `wall.`, which is four framed
-     pictures, a mirror and a television — none of which tiles — while
-     `loo.wall`, the one glazed brick in the game and the wall of an actual
-     room, was not on the list at all. The toilets could not be repainted and
-     every other room could be papered in a photograph of a beach.
-
-     So it is asked of the ATLAS rather than of the name:
-
-       SQUARE, and the size of a tile. A poster is 39×31 and a fire door 39×87;
-         a surface is 32×32 because it is laid edge to edge.
-       ANCHORED FLAT. `wall`-anchored art hangs on the face of a wall and
-         `floor`-anchored art stands on the ground — both are things IN a room
-         rather than what the room is made of.
-       NOT an object and not a door, which are square and flat often enough
-         (`obj.mug`, `obj.laptop`) to be worth saying.
-
-     One name test then decides which of the two lists it is in, and it is the
-     only part of this that reads a name at all: a wall is anything with `wall`
-     as a word in it, because that is what the atlas calls one at either end,
-     and everything else that tiles is a floor. A sheet imported on the Art tab
-     naming a tile `grass` is offered as a floor, which is the useful way to be
-     wrong. */
+     Atlas rects that tile: square at tile size, anchored flat, not an object or
+     door. Names with `wall` as a word are walls; everything else is a floor. */
   tileable(n) {
-    if (typeof Tiles === 'undefined' || !Tiles.rects) return false;
+    if (!Tiles.rects) return false;
     const r = Tiles.rects[n];
     if (!r || r[2] !== r[3] || r[2] !== TILE) return false;
     if ((Tiles.anchors || {})[n] !== 'flat') return false;
     return !/^(obj|door)\./.test(n);
   },
   isWall(n) { return /(^|\.)wall(\.|$)/.test(n); },
-  /* The atlas rects on offer for one surface of the open zone. Whatever the
-     zone already names is on its list even when nothing else would have put it
-     there: a value you cannot see is a value you cannot put back, which is how
-     `loo.wall` came to be uneditable in the first place. */
+  /* The rects on offer for a surface; the zone's current value is always
+     included so it can be put back. */
   materials(where) {
-    if (typeof Tiles === 'undefined' || !Tiles.rects) return [];
+    if (!Tiles.rects) return [];
     const wall = where === 'wall';
     const out = Object.keys(Tiles.rects)
       .filter(n => this.tileable(n) && this.isWall(n) === wall).sort();
@@ -88,18 +48,11 @@ const Zones = {
   },
 
   /* ---- what one of them looks like ----
-     Baked by the RENDERER, not drawn again here: R.floorTile() is the only
-     thing that knows the kit is multiplied through the room's own colours, and
-     a swatch painted any other way is a picture of a decision you are not
-     making. So a candidate is previewed by being a zone for as long as the bake
-     takes — one scratch entry, keyed per candidate so the bake cache tells them
-     apart, and removed in a `finally` because every export walks ZONES and a
-     `__swatch` left in it is a line written into data/world.js.
-
-     Nothing has to invalidate these: rebuild() throws the whole bake cache away
-     on every edit, which is the same reason it has to. */
+     Baked by R.floorTile() itself, via a temporary `__swatch` zone keyed per
+     candidate and removed in `finally` (exports walk ZONES). rebuild() clears
+     the bake cache on every edit. */
   swatch(where, patch, key) {
-    if (typeof R === 'undefined' || !this.z) return null;
+    if (!this.z) return null;
     const id = '__swatch:' + where + ':' + key;
     ZONES[id] = Object.assign({}, this.z, patch);
     try {
@@ -114,7 +67,7 @@ const Zones = {
      inspector over in the level editor shows. No scratch entry: the renderer
      is being asked about a room the game has. */
   tileOf(where, id) {
-    if (typeof R === 'undefined' || !ZONES[id]) return null;
+    if (!ZONES[id]) return null;
     try { return where === 'wall' ? R.wallTile(id, 1) : R.floorTile(id, 1); } catch (_) { return null; }
   },
 
@@ -172,10 +125,8 @@ const Zones = {
     p[k] = v;
     this.setAll('edit ' + k, p);
   },
-  /* Several fields, one intent, one undo step. Choosing a drawn surface while
-     the zone names a rect in the atlas is choosing something you would never
-     see — the atlas wins in R.floorTile() — so the art goes with it, in the
-     same edit rather than as a second one you have to know to make. */
+  /* Several fields, one undo step. Choosing a procedural surface clears the
+     atlas rect that would override it. */
   setAll(label, patch) {
     this.mark(label);
     Object.keys(patch).forEach(k => {
@@ -186,10 +137,7 @@ const Zones = {
     this.rebuild();
   },
 
-  /* Where each zone is used, so the list can say which rooms are actually
-     painted with it and the check can spot one nothing uses. Walked across
-     every level, with the OPEN one read from the document — the same rule the
-     job and object checks follow. */
+  /* Where each zone is used across levels (the open one from the document). */
   usage() {
     const map = new Map();
     this.ids().forEach(z => map.set(z, []));
@@ -250,9 +198,7 @@ const ZonesMake = {
 };
 
 /* ---------------- What is wrong with a zone ----------------
-   Three of these are the same shape as every other join in this project: a
-   string in one file that has to exist somewhere else, checked by nobody. The
-   fourth is about whether you can see the room at all. */
+   Three string joins, and whether the room can be seen at all. */
 const ZoneCheck = {
   faults: [], per: new Map(),
 
@@ -264,9 +210,7 @@ const ZoneCheck = {
     return this;
   },
 
-  /* A colour the renderer can actually use. It hands these straight to canvas
-     as a fillStyle, where an unparseable value is silently ignored and the
-     previous colour is kept — which paints one room in another's floor. */
+  /* A colour canvas can use: an unparseable fillStyle is silently ignored. */
   colour(v) { return typeof v === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim()); },
   /* How light a colour is, 0..1, for the contrast check below. */
   lum(hex) {
@@ -323,7 +267,7 @@ const ZoneCheck = {
        not in it falls back to the procedural surface, silently. */
     [['tile', 'floor'], ['wtile', 'wall']].forEach(([k, what]) => {
       if (z[k] === undefined) return;
-      if (typeof Tiles === 'undefined' || !Tiles.rects) return;   /* opened without art/ */
+      if (!Tiles.rects) return;   /* opened without art/ */
       if (!Tiles.rects[z[k]]) {
         fault('error', '`' + k + ': ' + JSON.stringify(z[k]) + '` is not a rect in the atlas, so '
           + 'the ' + what + ' quietly falls back to the drawn one.', { field: k });

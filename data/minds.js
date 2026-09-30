@@ -103,12 +103,10 @@ const MIND_SPOT_NAMES = {
    of the Driftwood that are a deck rather than a roof. */
 const MIND_OUTDOORS = { levels: ['island'], spots: ['deck', 'rail', 'hammock'] };
 
-/* SKILLS. Everybody has every skill; most of them are nought. A level is
-   15 × level² experience, so the first few come in a day and the last few
-   take a week. They come from doing things — a routine step names what it
-   trains — from chatting, from time spent on their passion, and from you
-   (see `practise` in data/npcs.js). A level makes them quicker at every step
-   that trains it, and some routines only open once a skill is high enough. */
+/* SKILLS. Everybody has every skill, mostly at nought; level n needs 15 × n²
+   experience. They grow from routine steps, chatting, time on their passion,
+   and practising with you (`practise` in data/npcs.js). A level speeds every
+   step it trains, and some routines need one. */
 const MIND_SKILLS = {
   mixology:     { n: 'Mixology',   e: '🍹' },
   surfing:      { n: 'Surfing',    e: '🏄' },
@@ -126,33 +124,22 @@ const MIND_SKILLS = {
   cooking:      { n: 'Cooking',    e: '🌮' }
 };
 
-/* ROUTINES. A routine is a list of steps done in order:
-
-     { go, secs, n, say, train }   a waypoint (or 'desk'), how long to spend
-                                   there in real seconds, what they are doing
-                                   in a phrase, what they say on arrival, and
-                                   what it trains: { skill: experience }
-
-     { act }                       and something the step DOES to the world
-                                   when it is finished: a name in NPC_ACTS
-                                   (data/farm.js)
-
-   and around the steps, when it happens and what it is for:
-
-     duty    it is work, and outranks a timetabled break — they cut a coffee
-             short to open up. Duties happen once a day, started inside `at`
-     at      [from, to] game minutes: the window a duty may start in
-     every   game minutes before a leisure routine can come round again
-     when    { mood, from, to, dry, rain } — conditions for starting at all
-     unlock  { skill: level } — they have to have grown into it
-     gives   need points on finishing, like a spot but all at once
-     done    what they tell themselves afterwards (a thought, and the life log)
-     onUnlock, onDone
-             what it means to the story when they grow into it, and when it
-             is done — Tito's first set moves his job along
-
-   A routine interrupted by something urgent — a need gone critical — is
-   picked up again at the step it stopped on. */
+/* ROUTINES. A list of steps done in order:
+     { go, secs, n, say, train }  a waypoint (or 'desk'), real seconds there,
+                                  a phrase for it, what they say on arrival,
+                                  and what it trains: { skill: experience }
+     { act }                      something done to the world on finishing:
+                                  a name in NPC_ACTS (data/farm.js)
+   and around the steps:
+     duty              work: outranks a timetabled break; once a day
+     at                [from, to] game minutes a duty may start in
+     every             game minutes before a leisure routine can recur
+     when              { mood, from, to, dry, rain }: conditions to start
+     unlock            { skill: level } needed first
+     gives             need points on finishing
+     done              what they tell themselves afterwards
+     onUnlock, onDone  story hooks (Tito's first set moves his job along)
+   An interrupted routine resumes at the step it stopped on. */
 const MIND_THOUGHTS = {
   sunshine: { n: 'Sunshine on their face',   v: 3,  mins: 60 },
   rained:   { n: 'Caught in the rain',       v: -6, mins: 90 },

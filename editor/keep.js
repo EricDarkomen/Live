@@ -1,14 +1,8 @@
 'use strict';
 /* ---------------- What the editor keeps outside itself ----------------
-   Two things leave this page. The bench goes into localStorage so a reload is
-   not an afternoon; a level goes to the game so you can walk around the thing
-   you have been drawing. Both are the same shape of problem — JSON, an origin,
-   and a browser that may refuse the lot — so they live together.
-
-   Neither is allowed to be silently wrong. Storage is refused outright on a
-   `file://` origin in Chromium, so every call is guarded and every failure is
-   said out loud rather than swallowed: an autosave you believe in and do not
-   have is worse than none at all. */
+   The bench goes to localStorage so a reload keeps it; a level goes to the
+   game so you can walk it. Chromium refuses storage on file://, so every call
+   is guarded and every failure reported. */
 
 const Store = {
   ok: null,
@@ -45,17 +39,8 @@ const Store = {
 };
 
 /* ---------------- The bench, across a reload ----------------
-   The bench is this tab's memory and the export is still the only way anything
-   reaches data/. That has not changed: what has changed is that a reload used
-   to take the lot, and the bench can now hold a dozen subjects across ten
-   documents. Twine and LDtk both keep a working copy; so does this, with one
-   difference that matters.
-
-   IT IS NEVER PUT BACK WITHOUT ASKING. A bench restored beside a data/ file
-   somebody has edited since is a working copy of something that no longer
-   exists, and applying that silently would be the tool lying about what you
-   are looking at. So it is offered, once, on the way in, with what is in it
-   named. */
+   Never restored without asking: the files may have changed since. Offered
+   once on the way in, with its contents named. */
 const Bank = {
   KEY: GAME.id + '.bench',
   V: 3,
@@ -88,10 +73,9 @@ const Bank = {
         if (r.how === 'gone') { gone.push(r.key); return; }
         if (r.how !== 'new') return;
         const e = this.entryOf(mode, r.key);
-        /* A move's run() and an event's go() are functions. JSON drops them and
-           rebuilding one would mean evaluating a string out of storage, which
-           nothing in this project does. So they are not restored at all rather
-           than restored broken, and the offer says which. */
+        /* Functions (a move's run(), an event's go()) do not survive JSON and are
+           never evaluated from storage, so those subjects are not restored, and the
+           offer says which. */
         if (e && Object.keys(e).some(k => typeof e[k] === 'function')) { lost.push(r.label); return; }
         if (e) made[r.key] = e;
       });
@@ -260,16 +244,8 @@ const Bank = {
 };
 
 /* ---------------- Walking around what you have drawn ----------------
-   The play button every map editor has, and the reason this one took a while:
-   the game loads from data/, so `index.html?level=x` would play the FILE's
-   level while you sit there looking at your edited one. A play button that
-   silently ignores your work is worse than no play button.
-
-   So the level goes with it. Geometry, objects, FURN and ZONES — the four
-   things that decide what a level is and how it looks, all of them pure data.
-   Writing and code do not: a `do()` and a `run()` are functions, JSON drops
-   them, and rebuilding one would mean evaluating a string out of storage.
-   The button says so rather than letting you find out. */
+   The play button sends the edited level: geometry, objects, FURN and ZONES,
+   all data. Code does not survive JSON, and the button says so. */
 const Play = {
   KEY: GAME.id + '.trial',
 
@@ -284,20 +260,14 @@ const Play = {
         entries: clone(Doc.entries), links: clone(Doc.links),
         objects: objects, desks: clone(Doc.desks),
       },
-      /* The two tables that decide how everything in it is furnished and what
-         the rooms are made of. Both are what the object and room editors have
-         already written into, so they are what you are looking at. */
+      /* FURN and ZONES as the object and room editors have written them. */
       furn: clone(FURN),
       zones: clone(ZONES),
     };
   },
 
-  /* Which level to try a ROOM TYPE on. ZONES crosses over whole, so repainting
-     a room is a thing you can walk around — but only somewhere it is actually
-     painted, and the Rooms tab is not the Levels tab and has no opinion about
-     which map you were looking at. The one you have open wins if the room type
-     is on it at all; otherwise the level with the most of it. Nowhere is a real
-     answer and the button is not offered. */
+  /* Which level to try a room type on: the open one if it uses it, else the
+     one using it most; none means no button. */
   levelFor(zone) {
     const used = Zones.usage().get(zone) || [];
     if (!used.length) return null;
@@ -307,11 +277,8 @@ const Play = {
     return Object.keys(by).sort((a, b) => by[b] - by[a])[0];
   },
 
-  /* `id` names a level other than the open one, which is what the Rooms tab
-     hands over. Swapping the document is the same manoeuvre Sync.levels()
-     makes for the same reason — the payload is read off Doc and there is only
-     one Doc — and the open level is put back before this returns, whichever
-     way out is taken. */
+  /* `id` names another level (from the Rooms tab): the document is swapped for
+     the payload and restored before returning, as Sync.levels() does. */
   go(id) {
     const want = id || Doc.id;
     if (!want || !LEVELS[want]) { Side.say('There is no level to try this on.'); return; }

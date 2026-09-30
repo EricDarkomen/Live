@@ -1,53 +1,31 @@
 'use strict';
 /* ---------------- Mind: what the islanders want ----------------
-   Until this, an islander's day was a timetable. Mari was behind the bar
-   because data/npcs.js said so, went to the deck at one because it said so,
-   and nothing that happened to her — a downpour, a slow afternoon, you — made
-   the slightest difference to where she stood or how she stood there.
-
-   This is the other half, and it is the half the colony games get right:
-   Oxygen Not Included's needs and stress responses, RimWorld's moods built out
-   of thoughts. Every islander has five needs that run down with the clock and
-   fill back up where they stand; a mood made of those needs and of the things
-   that have happened to them lately; opinions of each other; and, when the
-   timetable leaves them free, the sense to go and do something about it.
-
-   THE TIMETABLE STILL WINS. Nothing here moves anybody the schedule, an `out:`
-   window, home time or a drill has a claim on — the mind is asked only when
-   the day says "your own spot", which is most of the day. On shift it speaks
-   up only for something critical; off shift, or for somebody with no shift at
-   all, it runs their afternoon. And when it does send somebody somewhere, it
-   is the same errand the timetable makes — the same commitment, the same walk,
-   the same routes — so nothing downstream had to learn a new kind of person.
-
-   THE CHARM IS IN data/minds.js. This file is the arithmetic; that one is Kai
-   being delighted by rain because rain means waves, Blake sweating through a
-   linen suit, and Pepe telling you about 1974 because nobody else will listen.
-
-   COST. Needs tick four times a second for the whole roster, in a loop of
-   nine. Deciding where to go is the dear part — it asks the routes how far
-   every candidate is — so each person thinks every three seconds or so, on
-   their own phase, and no more than three of them in any one frame. */
+   Needs and moods in the manner of Oxygen Not Included and RimWorld: five
+   needs that drain with the clock and refill where they stand, a mood built
+   from those and recent thoughts, opinions of each other, and, when free, the
+   sense to go and do something about it.
+   - The timetable still wins. The mind is asked only when the day says "your
+     own spot"; on shift it speaks up only for something critical. It sends
+     people on the same errands the timetable makes.
+   - The character is in data/minds.js; this file is the arithmetic.
+   - Cost: needs tick four times a second; deciding is dear (route lengths), so
+     each person thinks every three seconds or so, at most three per frame. */
 const Mind = {
   now: 0, acc: 0, TICK: .25, lastClock: null,
-  /* Per person, not saved: what they are thinking about right now. Needs,
-     mood, thoughts and opinions are in G.minds and are saved with everything
-     else; a plan to go and sit on the deck is not worth remembering across a
-     reload, and nobody is half way to the deck after one. */
+  /* Per person, unsaved: the current plan. Needs, mood, thoughts and opinions
+     live in G.minds and are saved. */
   rts: new Map(),
   reset() { this.rts.clear(); this.lastClock = null; this.acc = 0; },
   clock() { return (G.day || 1) * 1440 + (G.minutes || 0); },
-  persona(id) { return (typeof MINDS !== 'undefined' && MINDS[id]) || this.NOBODY; },
+  persona(id) { return MINDS[id] || this.NOBODY; },
   NOBODY: {},
   WORDS: ['Happy', 'Good', 'Okay', 'Low', 'Miserable'],
   /* Where the mood bands start, best first. */
   BANDS: [80, 62, 40, 22],
   band(v) { const b = this.BANDS; return v >= b[0] ? 0 : v >= b[1] ? 1 : v >= b[2] ? 2 : v >= b[3] ? 3 : 4; },
 
-  /* ONE PERSON'S MIND, made on first asking. Needs start well fed and a little
-     different for everybody — stable per person, so a new game's Tuesday is
-     the same Tuesday — which keeps the whole island from getting thirsty in
-     the same minute of the first afternoon. */
+  /* One person's mind, made on first ask. Needs start full and stably varied
+     per person, so the island does not get thirsty in the same minute. */
   of(id) {
     if (!G.minds) G.minds = {};
     let m = G.minds[id];
@@ -73,10 +51,10 @@ const Mind = {
   /* ---- the clock ---- */
   update(dt) {
     this.now += dt;
-    if (!NPCM.all.length || typeof MIND_NEEDS === 'undefined') return;
+    if (!NPCM.all.length) return;
     const c = this.clock();
-    /* A clock that went backwards or leapt — a load, a new game, a night
-       skipped — is not twelve hours of thirst. It is a fresh start from here. */
+    /* A clock that went backwards or leapt (a load, a new game, a skipped night)
+       restarts from here rather than charging hours of need. */
     if (this.lastClock === null || c < this.lastClock || c - this.lastClock > 240) this.lastClock = c;
     this.acc += dt;
     if (this.acc >= this.TICK) {
@@ -94,26 +72,17 @@ const Mind = {
       r.next = this.now + 2.6 + Math.random() * 1.8;
       this.think(n, r);
     }
-    /* The Islanders tab is live while it is open, like the map: a panel about
-       how people are doing that only knew how they were doing when you opened
-       it would be a photograph. Once a second is often enough to watch a bar
-       fill up. */
-    if (typeof Panels !== 'undefined' && Panels.on && Panels.tab === 'people') {
+    /* Refresh the Islanders tab once a second while it is open. */
+    if (Panels.on && Panels.tab === 'people') {
       this.panelT = (this.panelT || 0) - dt;
       if (this.panelT <= 0) { this.panelT = 1; Panels.render(); }
     }
   },
 
-  /* WHERE SOMEBODY IS, as far as their needs are concerned: a waypoint name,
-     'desk', 'out', 'home', or null while they are on their way somewhere.
-
-     OFF YOUR LEVEL is the colony games' other trick. Nobody there is simulated
-     on foot — nothing is — so without help they stood at their posts all day
-     and ran dry: an island of people parched, exhausted and furious by the
-     time you walked out of the bar to meet them. So off camera a plan is a
-     place they simply ARE for as long as it would have taken, walk included
-     (see `away` in choose()), and the plan is still there when you arrive —
-     at which point they walk it, because now somebody can see. */
+  /* Where somebody is for their needs: a waypoint, 'desk', 'out', 'home', or
+     null in transit. Off your level nobody is walked, so a plan is a place they
+     simply are for as long as it would take (`away` in choose()); on arrival
+     the plan is walked for real. */
   spotOf(n) {
     if (n.away || n.level === 'away') return 'home';
     if (n.level !== World.level) {
@@ -125,25 +94,21 @@ const Mind = {
     if (n.walking || !n.parked) return null;
     return n.dest === 'desk' ? this.post(n) : n.dest;
   },
-  /* Their own spot, which at night is somewhere to doze for anybody who never
-     goes home — Kai does not stand to attention at his shack until dawn. */
+  /* Their own spot; at night, somewhere to doze for anybody who never goes home. */
   post(n) {
-    if (typeof Sky === 'undefined') return 'desk';
     const m = Sky.m();
     return (m >= 1380 || m < 420) ? 'home' : 'desk';
   },
   working(n) {
     const p = this.persona(n.id);
-    return p.works !== false && typeof Sky !== 'undefined' && Sky.working();
+    return p.works !== false && Sky.working();
   },
 
   tick(n, real, gm) {
     const m = this.of(n.id), p = this.persona(n.id), r = this.rt(n);
     const rates = p.rates || this.NOBODY, like = p.spots || this.NOBODY;
     const spot = this.spotOf(n);
-    /* A post can have comforts of its own — Coco has a shop full of juice and
-       a radio, Teo has a boat with rum on it — written as `post:` in
-       data/minds.js. Everybody else's post gives them nothing but work. */
+    /* A post's own comforts (`post:` in data/minds.js); otherwise only work. */
     const eff = spot === 'desk' && p.post ? p.post : spot && MIND_SPOTS[spot];
     const atWork = spot === 'desk' && this.working(n);
     for (const k in MIND_NEEDS) {
@@ -158,11 +123,9 @@ const Mind = {
       if (eff && eff[k]) v += eff[k] * real * (like[spot] || 1);
       m.needs[k] = v < 0 ? 0 : v > 100 ? 100 : v;
     }
-    /* THE STEP IN FRONT OF THEM. Off camera it is a stretch of time, over when
-       its time is up — or, for a trip for a need, when the need is fixed. On
-       your level it is an errand the engine walks; the mind only notices the
-       arrival, and a step behind their own counter, which is not an errand at
-       all and is timed here. */
+    /* The current step. Off camera it is a stretch of time, over when its time
+       is up or its need is met. On your level it is an errand the engine walks;
+       a step behind their counter is timed here. */
     const pl = r.plan;
     if (pl && pl.away) {
       if (this.now >= pl.arrive) {
@@ -177,18 +140,14 @@ const Mind = {
         else if (this.now - pl.at >= this.stepSecs(n, pl.steps[pl.i])) this.done(n);
       }
     }
-    /* Their passion, where it lives. Mari's is behind the bar, Kai's is in the
-       water, and a person doing the thing they love is refilled by it faster
-       than by anything a spot can offer. */
+    /* Doing their passion, where it lives, refills faster than any spot. */
     if (spot && p.passion && p.passion.at && p.passion.at.includes(spot)) {
       const lv = p.skill ? this.level(n.id, p.skill) : 0;
       m.needs.passion = Math.min(100, m.needs.passion + 4.5 * real * (1 + lv * .04));
       /* And the more they do it, the better they get. */
       if (p.skill) this.train(n.id, p.skill, .06 * real);
     }
-    /* Company. Standing near people fills it slowly, and standing near people
-       you like fills it faster — a crowded bar is not company if it is full of
-       Blake. */
+    /* Company: people nearby fill it slowly, liked people faster. */
     if (!n.walking && n.level === World.level && NPCM.list.includes(n)) {
       let c = 0;
       for (const o of NPCM.near(n.x, n.y, TILE * 3)) {
@@ -216,17 +175,13 @@ const Mind = {
     this.feel(n, m, here);
     r.target = this.target(m, p);
 
-    /* THE ENDS OF THE SCALE. Too low for too long and something gives — ONI's
-       stress response, RimWorld's mental break — though nothing on this
-       island breaks anything but their own afternoon. Too high for long enough
-       and they are inspired, which you will notice the next time you flirt. */
+    /* The ends of the scale: too low for too long and they have a moment; high
+       enough for long enough and they are inspired. */
     r.lowFor = m.mood < 18 ? r.lowFor + since : 0;
     r.highFor = m.mood > 84 ? r.highFor + since : 0;
     if (r.moment && this.now >= r.moment) this.endMoment(n, r);
     if (!r.moment && r.lowFor > 25) this.startMoment(n, r, here);
-    /* Rare, and it has to be: a mood that stays high would otherwise be
-       inspired from breakfast to bed, and something that is always on is not
-       an event. Half a day before the next one at the earliest. */
+    /* Inspiration is rare: at most once per half day. */
     if (r.highFor > 30 && m.insp <= clk && !(m.inspNext > clk)) {
       m.insp = clk + 180; m.inspNext = clk + 720;
       this.add(n.id, 'inspired');
@@ -234,17 +189,16 @@ const Mind = {
       if (here && l && n.sayT <= 0 && Cam.visible(n.x, n.y)) { n.say = pick(l); n.sayT = 3.6; }
     }
 
-    /* What they would do about it, if they are free to — here on foot, or
-       anywhere else by the clock. Claimed by the engine (home time, a drill,
-       an `out:` window, you), a plan is let go; a routine is put aside. */
+    /* Decide what to do, if free. A plan claimed by the engine (home time, a
+       drill, an `out:` window, you) is dropped; a routine is set aside. */
     if (!r.moment && !this.blocked(n) && n.level !== 'away') this.decide(n, m, p, r, here);
     else if (r.plan && !(n.errand && n.errand.mind)) {
       if (r.plan.rid && !r.paused && !(n.away || n.level === 'away')) r.paused = r.plan;
       r.plan = null;
     }
 
-    /* And what shows: the icon over their head, what they say next, how fast
-       they walk. Decided here, three times a minute, and read every frame. */
+    /* What shows: the icon, what they say, how fast they walk. Decided here,
+       read every frame. */
     const insp = m.insp > clk;
     let low = null, lv = 101;
     for (const k in MIND_NEEDS) if (m.needs[k] < lv) { lv = m.needs[k]; low = k; }
@@ -265,7 +219,6 @@ const Mind = {
   /* THE WORLD, AS IT LANDS ON SOMEBODY: the weather where they are standing,
      the sunset, and who they are standing next to. */
   feel(n, m, here) {
-    if (typeof Sky === 'undefined') return;
     const outdoors = MIND_OUTDOORS.levels.includes(n.level) || (here && MIND_OUTDOORS.spots.includes(n.dest));
     if (outdoors && !n.away) {
       const k = Sky.kind(), sm = Sky.m();
@@ -295,10 +248,8 @@ const Mind = {
   },
 
   /* ---- thoughts ---- */
-  /* A thing that happened to somebody. Ambient ones — the sun, the rain, who
-     they are standing near — are refreshed rather than repeated; events stack
-     up to their limit, so being soaked three times is worse than once and the
-     fourth time is not worse than the third. */
+  /* Something happened to somebody. Ambient thoughts (sun, rain, company)
+     refresh rather than repeat; events stack to their limit. */
   add(id, key, who) {
     const T = MIND_THOUGHTS[key];
     if (!T || !id) return;
@@ -320,15 +271,13 @@ const Mind = {
     const p = this.persona(id);
     const s = (p.named && p.named[t.k]) || (MIND_THOUGHTS[t.k] || {}).n || t.k;
     const who = t.who && (NPCS.find(x => x.id === t.who) || {}).name;
-    const what = t.who && ((typeof MIND_SKILLS !== 'undefined' && MIND_SKILLS[t.who]) ? MIND_SKILLS[t.who].n.toLowerCase() : t.who);
+    const what = t.who && (MIND_SKILLS[t.who] ? MIND_SKILLS[t.who].n.toLowerCase() : t.who);
     return s.replace('{who}', who || 'somebody').replace('{what}', what || 'it').replace('{you}', (P && P.name) || 'you');
   },
 
   /* ---- opinions ---- */
-  /* What one islander thinks of another, -100..100. Seeded from data/minds.js
-     and from chemistry — a stable number per pair, so two people nobody wrote
-     a history for still get on or do not, the same way every game — and
-     moved by what happens between them. */
+  /* What one islander thinks of another, -100..100: seeded from data/minds.js
+     and a stable per-pair chemistry, then moved by events. */
   opinion(a, b) {
     const m = this.of(a);
     let v = m.op[b];
@@ -355,7 +304,6 @@ const Mind = {
   /* Would these two talk. A rival is somebody you stand near and resent, not
      somebody you start a conversation with. */
   canChat(a, b) {
-    if (typeof MINDS === 'undefined') return true;
     if (this.opinion(a, b) < -25 || this.opinion(b, a) < -25) return false;
     return true;
   },
@@ -385,7 +333,7 @@ const Mind = {
   /* What you did to somebody. Called from the shared islander moves in
      data/npcs.js, the dialogue box and the water pistol. */
   event(id, key) {
-    if (typeof MIND_NEEDS === 'undefined' || !NPCS.some(x => x.id === id)) return;
+    if (!NPCS.some(x => x.id === id)) return;
     const m = this.of(id), p = this.persona(id);
     if (key === 'talked') {
       m.needs.social = Math.min(100, m.needs.social + 8);
@@ -393,9 +341,8 @@ const Mind = {
     }
     if (key === 'flirted') m.needs.fun = Math.min(100, m.needs.fun + 8);
     if (key === 'gift') m.needs.thirst = Math.min(100, m.needs.thirst + 60);
-    /* YOU, DEVELOPING THEM: an hour of their craft with somebody keen to
-       learn it is worth a morning of it alone — and they remember who it
-       was with. */
+    /* Practising with a keen learner beats practising alone, and they remember who
+       with. */
     if (key === 'practise' && p.skill) {
       this.train(id, p.skill, 30);
       this.train(id, 'charm', 4);
@@ -407,9 +354,7 @@ const Mind = {
     const n = NPCM.get(id), r = n && this.rts.get(id);
     if (r) r.target = this.target(m, p);
   },
-  /* How much further a flirt or a drink goes today: one more, when they are
-     glowing. Nothing less when they are low — being in a mood is not your
-     fault, and the game should not charge you for it. */
+  /* One extra flirt or drink today when they are glowing; never less when low. */
   charm(id) {
     const m = G.minds && G.minds[id];
     return m && (m.mood >= 80 || this.inspired(id)) ? 1 : 0;
@@ -431,34 +376,17 @@ const Mind = {
   },
 
   /* ---- deciding what to do ----
-     THE AGENDA. Everything an islander might do is a PLAN: a list of steps,
-     each a place to be and how long to spend there. A trip for a drink is a
-     plan of one step; opening the bar is a plan of four. One shape, so one
-     runner walks them all, and the rest of the engine only ever sees the
-     step in front of them — an errand to a waypoint, exactly as the
-     timetable makes.
-
-     PRIORITIES, highest first, and the ladder is the whole of how they choose
-     between things that want them at once:
-
-       5 URGENT     a need gone critical. Outranks everything the mind owns,
-                    including work: a bartender who is about to faint gets a
-                    glass of water first and apologises after.
-       4 DUTY       a routine that is part of the job — opening up, the flags,
-                    unloading the boat. Outranks a timetabled break, so a
-                    coffee is cut short to open on time.
-       3 TIMETABLE  the day in data/npcs.js. The mind does not argue with it
-                    for anything less than a duty.
-       2 NEED       a trip to fix something that is running low.
-       1 LEISURE    a routine they do for the love of it — a surf, a crate
-                    dig, a constitutional.
-
-     Above all five, and never the mind's business: drills, home time, `out:`
-     windows and being spoken to. Those are the engine's (see blocked()).
-
-     A plan is kept until something of HIGHER priority comes along, so nobody
-     flip-flops between two equal ideas. A routine that is interrupted is put
-     aside and picked up again at the step it stopped on. */
+     Everything is a plan: a list of steps, each a place and a duration. One
+     runner walks them all; the engine only ever sees the current step as an
+     errand. Priorities, highest first:
+       5 urgent     a need gone critical; outranks work.
+       4 duty       part of the job (opening up, the flags); outranks a break.
+       3 timetable  data/npcs.js; only a duty or worse overrides it.
+       2 need       a trip to fix something running low.
+       1 leisure    a routine they love.
+     Drills, home time, `out:` windows and conversation are the engine's
+     (blocked()). A plan is kept until something higher comes along; an
+     interrupted routine resumes at the step it stopped on. */
   P: { urgent: 5, duty: 4, schedule: 3, need: 2, leisure: 1 },
   PNAME: ['', 'Leisure', 'Need', 'Timetable', 'Duty', 'Urgent'],
   seq: 0,
@@ -467,7 +395,7 @@ const Mind = {
   blocked(n) {
     if (NPCM.drill || n.callOut || n.away || n.outward || n.leaving || n.homeward || n.lift) return true;
     if (n.stunTimer > 0 || NPCM.errandFor(n)) return true;
-    if (typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return true;
+    if (Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return true;
     return false;
   },
   decide(n, m, p, r, here) {
@@ -533,22 +461,14 @@ const Mind = {
     return { id: ++this.seq, rid: rt.id, name: rt.n, def: rt, prio, steps: rt.steps, i: 0,
       wp: rt.steps[0].go, until: this.now + 120, began: Sky.m() };
   },
-  /* THE CHOICE. `urgent` asks only whether something has gone critical;
-     otherwise every waypoint on their level is scored by what it would do
-     for them — each need's urgency times what the spot gives, their passion
-     five times over — divided by how far it is to walk, lifted by friends
-     already there and weighed down by a crowd; and every leisure routine they
-     are ready for is scored the same way, by what it gives. Their own spot is
-     a candidate too, when their passion lives there.
-
-     AND THEY LOOK AHEAD. A plan that would not be finished before the next
-     thing their day holds — a timetable entry, a duty, the start of a shift —
-     is not started: nobody walks to the lagoon ten minutes before they open
-     the bar. Urgent needs do not look ahead. That is what urgent means.
-
-     On shift only a need under about a fifth gets them off their post, which
-     is a break and not a stroll. Off shift they are pickier about staying
-     put than about going, so the island does not turn into musical chairs. */
+  /* The choice. `urgent` only checks for something critical. Otherwise every
+     waypoint on their level scores what it gives each need times that need's
+     urgency (passion five times over), divided by walking distance, lifted by
+     friends there and lowered by a crowd; leisure routines score the same way.
+     Their own spot counts when their passion lives there.
+     A plan that would not finish before their next commitment is not started;
+     urgent needs ignore that. On shift only a need under about a fifth gets them
+     off post; off shift they are slow to switch. */
   choose(n, m, p, away, urgent) {
     const working = this.working(n);
     const w = p.weights || this.NOBODY, like = p.spots || this.NOBODY;
@@ -560,21 +480,18 @@ const Mind = {
       if (urg[k] > top) { top = urg[k]; why = k; }
       if (v < worst) { worst = v; worstK = k; }
     }
-    /* Nothing wrong enough to fix. Somebody off shift with a routine of their
-       own may still fancy it — doing the thing you love is not a need, it is
-       what a free afternoon is for — so only they get past this. */
+    /* Nothing worth fixing; only somebody off shift with a routine of their own
+       goes on. */
     const spots = !(urgent ? worst >= 12 : working ? worst >= 22 : top < .12);
     const fancy = !urgent && (!working || p.works === false) && p.routines && p.routines.some(rt => this.ready(n, m, rt));
     if (!spots && !fancy) return null;
     const [fx, fy] = away ? [Math.floor(n.x / TILE), Math.floor(n.y / TILE)] : this.origin(n);
-    /* How far, in steps. On your level the routes know; anywhere else the
-       level is not loaded and there are no routes to ask, so it is the
-       straight line with a third on for the corners — which is only ever used
-       to rank places and time an absence nobody is watching. */
+    /* Distance in steps: routes on your level, else the straight line plus a
+       third, used only to rank and time an unseen absence. */
     const far = (x, y) => away ? Math.hypot(x - fx, y - fy) * 1.3 : Nav.steps(fx, fy, x, y, true);
     const pace = Math.max(.5, (n.t && n.t.pace) || 1);
     const left = urgent ? Infinity : this.timeLeft(n, p, m);
-    const toGame = secs => secs * 1000 / (typeof Sky !== 'undefined' && Sky.pace ? Sky.pace() : MS_PER_GAME_MIN);
+    const toGame = secs => secs * 1000 / Sky.pace();
     const passionAt = (p.passion && p.passion.at) || [];
     const others = away ? NPCM.all.filter(o => o !== n && o.level === n.level) : NPCM.list;
     let best = null, bs = working ? .04 : .08, bWhy = why, bRt = null;
@@ -583,9 +500,7 @@ const Mind = {
       const s = MIND_SPOTS[wp];
       if (!s || NPCM.wpLevel(wp) !== n.level) continue;
       if (urgent && !(s[worstK] > 0)) continue;
-      /* And WHY this one, which is whichever need it would do most for —
-         not whichever need is worst, or a drinks stall is somewhere you go
-         for a rest. */
+      /* The need this spot helps most, not the worst need. */
       let gain = 0, most = 0, what = null;
       for (const k in s) if (s[k] > 0 && urg[k]) {
         const g = urg[k] * s[k];
@@ -639,10 +554,8 @@ const Mind = {
     return { id: ++this.seq, prio: urgent ? this.P.urgent : this.P.need, why: bWhy, wp: best,
       steps: [{ go: best, secs: this.dwell(n, best) }], i: 0, until: this.now + 90 };
   },
-  /* Where somebody is standing, for the routes — or the nearest square that is
-     actually floor, for anybody the data has put a foot into the furniture. A
-     post inside a counter used to mean no route from it to anywhere, and so a
-     person who could never go for a drink however thirsty they got. */
+  /* Their route origin: where they stand, or the nearest floor if data has put
+     them inside furniture (else they could never leave). */
   origin(n) {
     const fx = Math.floor(n.x / TILE), fy = Math.floor(n.y / TILE);
     Nav.fresh();
@@ -654,13 +567,9 @@ const Mind = {
     }
     return [fx, fy];
   },
-  /* HOW LONG UNTIL THEY ARE NEXT NEEDED, in game minutes: the next line of
-     their timetable, the next duty not yet done today, or the start of a
-     shift for somebody who has one. This is the whole of "understanding a
-     schedule" — not the timetable itself, which the engine has always
-     followed, but the gap before it, and what will fit in it. */
+  /* Game minutes until they are next needed: the next timetable entry, the next
+     undone duty, or the start of their shift. */
   timeLeft(n, p, m) {
-    if (typeof Sky === 'undefined') return Infinity;
     const sm = Sky.m(), now = G.minutes + (n.t ? n.t.drift : 0);
     let next = Infinity;
     for (const [t] of n.def.schedule || []) if (t > now) next = Math.min(next, t - now);
@@ -726,17 +635,16 @@ const Mind = {
     pl.leave = pl.arrive + this.stepSecs(n, s) * (pl.rid ? 1 : 1.5);
     pl.said = false;
   },
-  /* Read by NPCM.destTile(): where the plan wants them, if it outranks what
-     the timetable wants. `'desk'` is a real answer — a step behind the bar. */
+  /* For NPCM.destTile(): where the plan wants them, if it outranks the
+     timetable. 'desk' means behind their counter. */
   want(n, sched) {
     const r = this.rts.get(n.id);
     if (!r || !r.plan || r.plan.away) return null;
     if (sched !== 'desk' && r.plan.prio <= this.P.schedule) return null;
     return r.plan.wp;
   },
-  /* Read by NPCM.destTile() before it honours an errand already under way:
-     has something outranked it? A timetabled break gives way to a duty or an
-     emergency; an errand the mind made gives way to a newer plan. */
+  /* For NPCM.destTile(): has something outranked the errand under way? A break
+     yields to a duty or emergency; a mind errand yields to a newer plan. */
   preempt(n, e) {
     const r = this.rts.get(n.id);
     if (!r || !r.plan || r.plan.away) return false;
@@ -773,7 +681,7 @@ const Mind = {
     if (!skip && s && s.train) for (const k in s.train) this.train(n.id, k, s.train[k]);
     /* A step can DO something — stock the bar, say — and it happens whether
        or not you were there to see it. See NPC_ACTS in data/farm.js. */
-    if (!skip && s && s.act && typeof NPC_ACTS !== 'undefined' && NPC_ACTS[s.act]) {
+    if (!skip && s && s.act && NPC_ACTS[s.act]) {
       try { NPC_ACTS[s.act](n); } catch (e) { console.warn(e); }
     }
     pl.i++;
@@ -815,9 +723,7 @@ const Mind = {
   },
 
   /* ---- growing ---- */
-  /* SKILLS, which are the part of a person that stays changed. Experience
-     is kept rather than levels, so nothing is rounded away; a level is
-     15 × level², capped at ten. */
+  /* Skills, which last. XP is kept, not levels; level n needs 15 × n², max ten. */
   skills(id) {
     const m = this.of(id);
     if (!m.skills) {
@@ -838,7 +744,7 @@ const Mind = {
   /* Practice. Talent makes it quicker, a good mood quicker still, and a bad
      one slower: nobody learns much on the worst day of their week. */
   train(id, k, xp) {
-    if (typeof MIND_SKILLS === 'undefined' || !MIND_SKILLS[k] || !(xp > 0)) return;
+    if (!MIND_SKILLS[k] || !(xp > 0)) return;
     const m = this.of(id), p = this.persona(id), sk = this.skills(id);
     const mult = ((p.talent && p.talent[k]) || 1) * (this.inspired(id) ? 1.5 : m.mood < 30 ? .7 : 1);
     const before = this.level(id, k);
@@ -851,7 +757,7 @@ const Mind = {
     this.add(id, 'levelup', k);
     this.log(id, S.e + ' ' + S.n + ' reached ' + L);
     const n = NPCM.get(id);
-    if (n && n.level === World.level && Cam.visible(n.x, n.y) && typeof FX !== 'undefined') {
+    if (n && n.level === World.level && Cam.visible(n.x, n.y)) {
       FX.float(n.x, n.y - 46, S.e + ' ' + S.n + ' ' + L + '!', '#ffd166');
     }
     /* And what it opens up. Told to you only if you know them — the island
@@ -864,7 +770,7 @@ const Mind = {
       /* A routine can mean something to the story when it opens up — Tito
          being good enough to play moves his job along. */
       if (typeof rt.onUnlock === 'function') { try { rt.onUnlock(); } catch (e) { console.warn(e); } }
-      if (G.rel[id] !== undefined && typeof UI !== 'undefined' && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
+      if (G.rel[id] !== undefined && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
     }
   },
   /* THE LIFE LOG: the handful of things that have happened to somebody that
@@ -879,8 +785,7 @@ const Mind = {
   /* ---- a moment ---- */
   startMoment(n, r, here) {
     const p = this.persona(n.id), mo = p.moment;
-    /* Off your level it happens where you cannot see it, which is where most
-       of anybody's worst afternoons happen. They come back having had it. */
+    /* Off your level the moment happens unseen; they come back having had it. */
     if (!here || !mo || this.blocked(n)) { this.add(n.id, 'moment'); r.lowFor = 0; return; }
     let tile = null;
     if (mo.at === 'desk') tile = n.def.desk;
@@ -907,8 +812,7 @@ const Mind = {
   lines(n) { const r = this.rts.get(n.id); return r && r.say && r.say.length ? r.say : null; },
   icon(n) { const r = this.rts.get(n.id); return r ? r.icon : null; },
   pace(n) { const r = this.rts.get(n.id); return r ? r.pace : 1; },
-  /* A face for the day they are having — only at the ends of the scale, which
-     is where Faces.mood() draws the line for how they feel about YOU. */
+  /* A face for their day, only at the ends of the scale (see Faces.mood()). */
   face(id) {
     const m = G.minds && G.minds[id];
     if (!m) return null;
@@ -924,11 +828,11 @@ const Mind = {
   },
   EMO: ['😄', '🙂', '😐', '😕', '😣'],
   badge(id) {
-    if (typeof MIND_NEEDS === 'undefined' || !NPCS.some(x => x.id === id)) return '';
+    if (!NPCS.some(x => x.id === id)) return '';
     const m = this.of(id);
     return this.EMO[this.band(m.mood)] + ' ' + this.word(id) + (this.inspired(id) ? ' ✨' : '');
   },
-  spotName(wp) { return (typeof MIND_SPOT_NAMES !== 'undefined' && MIND_SPOT_NAMES[wp]) || wp; },
+  spotName(wp) { return MIND_SPOT_NAMES[wp] || wp; },
   WHY: { energy: 'for a rest', thirst: 'for a drink', fun: 'for some fun', social: 'for some company', passion: '' },
   doing(n) {
     const p = this.persona(n.id), r = this.rts.get(n.id), m = this.of(n.id);
@@ -961,9 +865,8 @@ const Mind = {
   },
 
   /* ---- the Islanders tab ---- */
-  /* RimWorld's needs tab, on a beach: how everybody you have met is doing,
-     why, and what they are doing about it. Only people you have met — the
-     panel is gossip, and you have to know somebody to gossip about them. */
+  /* The needs tab: everybody you have met, how they are and what they are doing
+     about it. */
   panel() {
     const known = NPCS.filter(d => G.rel[d.id] !== undefined);
     if (!known.length) return '<div class="h2">Islanders</div><p class="idesc">Nobody yet. Say hello to somebody.</p>';

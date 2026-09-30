@@ -1,15 +1,7 @@
 'use strict';
 /* ---------------- Asking for something ----------------
-   A <dialog> rather than window.prompt/confirm, and not for taste: a page
-   served inside a sandboxed frame is refused the native ones outright, so every
-   feature built on prompt() — adding a link, naming an arrival point, making up
-   an object — silently did nothing anywhere but a local tab. This works
-   everywhere the editor does.
-
-   It also asks better. prompt() takes one string at a time, so adding a way out
-   was three questions in a row with no way back if you got the second one
-   wrong; this is one form with all three on it, a real <select> where the
-   answer is one of a known set, and Escape to abandon the lot. */
+   A <dialog>, since sandboxed frames refuse prompt() and confirm(). One form
+   holds every field, selects cover known sets, and Escape abandons it. */
 
 const Ask = {
   el: null, resolve: null,
@@ -34,12 +26,9 @@ const Ask = {
     this.el.classList.remove('picking');
   },
 
-  /* fields: [{ k, label, value, hint, options }]. `options` makes it a select,
-     which is the whole reason "which level does this go to" stops being a
-     spelling test. Resolves with { k: value } or null if cancelled. */
-  /* `intro` is markup above the fields, for the one form that has to explain
-     itself before it can be filled in. Built in code and never from anything
-     typed, exactly as tell() is — which is why it is not escaped. */
+  /* fields: [{ k, label, value, hint, options }]; `options` makes a select.
+     Resolves with { k: value }, or null if cancelled. */
+  /* `intro` is markup above the fields, built in code, so not escaped. */
   form(title, fields, okLabel, intro) {
     return new Promise(resolve => {
       this.close();
@@ -74,12 +63,7 @@ const Ask = {
     });
   },
 
-  /* Not a question — something to read. The help sheet is the only thing on
-     this page long enough to want a dialog of its own, and it is the one thing a
-     phone cannot get any other way: the hint line under the map is the first
-     casualty of a short viewport, so on a phone it was never there at all.
-     Content is built in code, never from anything typed, which is why it is
-     handed over as markup rather than escaped. */
+  /* Something to read (the help sheet); markup built in code, not escaped. */
   tell(title, html, okLabel) {
     return new Promise(resolve => {
       this.close();
@@ -96,17 +80,9 @@ const Ask = {
   },
 
   /* ---- a list to choose from ----
-     A <select> is the right control for "which of these five", and the wrong
-     one for "which of these seventy": it cannot be filtered, it cannot show a
-     hint under an option, and on a phone its closed state has whatever width
-     the bar can spare — which for the level list was eighty pixels. This is a
-     dialog with the list in it, and the caller draws the list, because what a
-     subject looks like is the caller's business and re-rendering it in place is
-     how the mode tiles at the top of it can switch the list underneath.
-
-     `render(host, api)` fills the box; `api.redraw()` calls it again and
-     `api.close()` puts it away. Nothing resolves — a picker acts as you press
-     things rather than handing an answer back at the end. */
+     For choices too many for a <select>: filterable, with hints. The caller
+     draws the list: `render(host, api)` fills it, `api.redraw()` redraws and
+     `api.close()` closes. Nothing resolves; a picker acts as you press. */
   picker(title, render) {
     this.close();
     this.resolve = null;

@@ -1,13 +1,8 @@
 'use strict';
 /* ---------------- Pointer and keyboard ----------------
-   One pointer handler, switched on the current tool. Everything that changes
-   the level goes through a Doc method, so every edit is undoable and every edit
-   rebuilds the map — there is no path from a gesture to World that skips
-   either.
-
-   Dragging deliberately does not commit until the pointer comes up. Moving an
-   object rebuilds the whole level, and doing that per pointermove would put
-   sixty entries on the undo stack for one drag. */
+   One pointer handler, switched on the tool. Every change goes through a Doc
+   method, so it is undoable and rebuilds. A drag commits on pointer-up, not
+   per move. */
 
 const Tools = {
   current: 'select',
@@ -32,13 +27,10 @@ const Tools = {
     window.addEventListener('pointercancel', e => this.up(e));
     cv.addEventListener('pointerleave', () => { View.hover = null; Side.readout(); });
 
-    /* touch-action only governs a gesture that STARTS on the element declaring
-       it, so a thumb landing a few pixels off the canvas still drags the whole
-       page around — which on a fixed layout reads as the editor falling apart.
-       Decided once per touch, in touchstart, because the answer cannot change
-       half way through a drag: a touch that began somewhere genuinely scrollable
-       (a pane, a toolbar strip, the tab row, a text field) is left alone and
-       everything else is refused. Non-passive, or preventDefault is ignored. */
+    /* touch-action only governs gestures that start on its element, so a thumb
+       just off the canvas would drag the page. Decided per touch: one starting on
+       something scrollable is left alone, everything else refused. Non-passive,
+       or preventDefault is ignored. */
     let letScroll = false;
     document.addEventListener('touchstart', e => {
       letScroll = !!(e.target && e.target.closest
@@ -65,11 +57,8 @@ const Tools = {
     Side.context();
   },
 
-  /* Capture is an optimisation — it keeps the drag alive when the pointer
-     leaves the canvas — and it throws if the browser has no active pointer with
-     that id. An exception here would take the whole pointerdown handler with it
-     and the tool would simply not act, so it is allowed to fail: the move and up
-     handlers are bound to the window and work either way. */
+  /* Capture keeps a drag alive off the canvas but throws without an active
+     pointer; allowed to fail, since move and up are bound to the window. */
   capture(e) {
     try { R.cv.setPointerCapture(e.pointerId); } catch (_) { /* drag still works */ }
   },
@@ -83,11 +72,8 @@ const Tools = {
   /* ---- pointer ---- */
 
   /* ---- two fingers ----
-     One finger uses the tool; two move the map. That is the convention every
-     map on a phone follows, and it is what makes the editor usable without the
-     wheel and the space bar it was written for. A second finger landing ABORTS
-     whatever the first was doing rather than committing it — you were reaching
-     for the map, not placing a chair. */
+     One finger uses the tool, two move the map. A second finger aborts the
+     first's action. */
   centroid() {
     let x = 0, y = 0;
     this.pointers.forEach(p => { x += p.x; y += p.y; });
@@ -121,11 +107,8 @@ const Tools = {
     if (this.pointers.size > 2) return;
 
     const t = View.toTile(p.x, p.y);
-    /* Middle button and space-drag always pan, whatever the tool is — you need
-       to get somewhere else without changing tool and back. Neither exists on a
-       touch device, which is the whole reason there is a Pan tool as well: with
-       no third button and no keyboard, those two shortcuts are not shortcuts,
-       they are the only way to move and it is unreachable. */
+    /* Middle button and space-drag pan with any tool; the Pan tool is the touch
+       equivalent. */
     if (e.button === 1 || this.spaceDown || this.current === 'pan') {
       this.drag = { mode: 'pan', px: e.clientX, py: e.clientY };
       this.capture(e);
@@ -133,11 +116,8 @@ const Tools = {
     }
     if (e.button === 2) { this.rightClick(t); return; }
     if (!View.inMap(t)) return;
-    /* Alt-click takes a copy of whatever is under it into the object tool — the
-       one gesture every painting program has, and the difference between
-       "another one of those" and finding it again in a palette of two hundred.
-       There is no alt key on a phone, so the object inspector carries the same
-       thing as a button. */
+    /* Alt-click copies what is under it into the object tool (the inspector has a
+       button for phones). */
     if (e.altKey) { this.sample(t); return; }
     /* Something elsewhere in the editor asked for a tile — a person's desk is
        the first, and it is the only honest way to set one: (33,19) means
@@ -154,12 +134,8 @@ const Tools = {
       this.drag = { mode: 'band', x0: t.x, y0: t.y };
       View.band = { x0: t.x, y0: t.y, x1: t.x, y1: t.y };
     } else if (e.pointerType === 'touch') {
-      /* A finger does not act until it lifts. The placing tools act on the way
-         DOWN for a mouse, which is right there and wrong here: the first finger
-         of a pinch lands a few milliseconds before the second, so reaching for
-         the map with the object tool up dropped a chair every single time. A
-         tap still acts; a finger that turns out to be half a gesture, or the
-         start of a drag, does not. */
+      /* A finger acts on lift, not touch-down, so the first finger of a pinch does
+         not place anything. A tap still acts. */
       this.tap = { tool: this.current, x: p.x, y: p.y, shift: e.shiftKey };
     } else this.act(this.current, t, e.shiftKey);
   },
@@ -335,11 +311,8 @@ const Tools = {
     if (room >= 0) { Doc.removeRoom(room); this.select(null); }
   },
 
-  /* Move the arrival point you are holding, or make one. Shift asks for a new
-     one — and so does having none to move, because there is no shift key on a
-     phone and "add the first arrival point" is exactly what a level made here
-     needs first. Tapping one that is already there picks it up instead of
-     dropping another on top of it. */
+  /* Move the held arrival point, or make one: shift, or having none, adds one
+     (phones have no shift). Tapping an existing one picks it up. */
   doEntry(t, e) {
     const on = Doc.entryAt(t.x, t.y);
     if (on && !e.shiftKey) { this.select('entry', -1, on); return; }
@@ -363,9 +336,8 @@ const Tools = {
   },
 
   /* ---- picking a tile for somebody else ----
-     `ask` switches to the map and waits for one tap. Escape or a second call
-     cancels it, and the readout says what it is waiting for — a mode you cannot
-     see you are in is a mode that eats your next tap. */
+     `ask` waits for one tap on the map; Escape or a second call cancels, and the
+     readout says what it is waiting for. */
   picking: null,
   askTile(label, cb) {
     this.picking = { label: label, cb: cb };
@@ -388,10 +360,7 @@ const Tools = {
   },
 
   /* ---- the eyedropper ----
-     Everything about an object except where it is. Taken from the doc rather
-     than from the palette, so it carries whatever was edited onto it — a `furn:`
-     override, a custom `use` — and placing the copy places THAT, not something
-     that merely looks like it. */
+     Everything but position, from the doc, overrides included. */
   sample(t) {
     const objs = Doc.objectsAt(t.x, t.y);
     if (!objs.length) { Side.say('Nothing here to take a copy of.'); return; }
@@ -407,9 +376,7 @@ const Tools = {
   key(e) {
     if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).nodeName)) return;
 
-    /* Undo, redo and Escape belong to the page; everything below them belongs
-       to the map, and there is no map in the other two modes — where `D` and
-       `X` would otherwise silently change a tool nobody can see. */
+    /* Undo, redo and Escape belong to the page; map keys only in Levels mode. */
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault(); Side.step(e.shiftKey); return;
     }
@@ -431,7 +398,7 @@ const Tools = {
       if (Mode.id === 'levels') this.select(null);
       return;
     }
-    if (typeof Mode !== 'undefined' && Mode.id !== 'levels') return;
+    if (Mode.id !== 'levels') return;
 
     if (e.code === 'Space') { this.spaceDown = true; e.preventDefault(); return; }
 
@@ -473,10 +440,7 @@ const Tools = {
     Side.refresh();
   },
 
-  /* A quarter turn on the selected object, the same edit the inspector's four
-     buttons make — one place, so the key and the buttons cannot drift apart.
-     Art only: what an object is solid on and what pressing E does are the same
-     whichever way round it is drawn. */
+  /* A quarter turn on the selection, as the inspector's buttons do. Art only. */
   turn(by) {
     if (Sel.kind !== 'object') { Side.say('Select an object to turn it.'); return; }
     const o = Doc.objects[Sel.i];

@@ -1,17 +1,9 @@
 'use strict';
 /* ---------------- Popovers, and the help sheet ----------------
-   A popover is a menu that does NOT take the map away: you point at something,
-   then reach for the layers or the zone list, and a modal backdrop in between
-   would hide the very thing you were looking at. So this is a plain positioned
-   <div> rather than a <dialog> — deliberately the opposite call from Ask, which
-   is modal because it is asking a question you have to answer before anything
-   else can happen.
-
-   It exists at all because the bar used to carry fifteen controls and a phone
-   has room for about five. The four layer switches, the zone list and the
-   things you press once an afternoon are all here now; the desktop still shows
-   the layer switches in the open, because it has the room and a menu you have to
-   open is a control you have to remember. */
+   A popover is a menu that leaves the map visible: a positioned <div>, not a
+   modal (Ask is modal because it needs an answer). It holds the controls a
+   phone's bar has no room for; the desktop also shows the layer switches in
+   the bar. */
 
 const Pop = {
   el: null,
@@ -30,9 +22,8 @@ const Pop = {
     this.place();
     if (wire) wire(el);
 
-    /* Anything outside it closes it. `pointerdown` rather than `click`, so the
-       menu is gone before whatever you pressed acts — and the anchor is exempt,
-       or pressing the button that opened it would close and reopen. */
+    /* Anything outside closes it, on pointerdown so the menu is gone before the
+       press acts. The anchor is exempt. */
     this.away = e => {
       if (el.contains(e.target) || (anchor && anchor.contains(e.target))) return;
       this.close();
@@ -42,9 +33,8 @@ const Pop = {
     return el;
   },
 
-  /* Under the anchor and aligned to whichever of its edges leaves the menu on
-     screen. Fixed positioning, because the anchor may be inside the bar, inside
-     the dock or inside a pane and all three scroll differently. */
+  /* Under the anchor, aligned to keep it on screen. Fixed, since anchors sit in
+     differently scrolling containers. */
   place() {
     const el = this.el, a = this.anchor;
     if (!el || !a) return;
@@ -99,9 +89,7 @@ const Pop = {
   },
 
   /* ---- the layers ----
-     The same four checkboxes the desktop shows in the bar, wired to the same
-     four fields. Written here rather than moved, because on a desktop both are
-     showing and either has to work. */
+     The bar's four checkboxes, wired to the same fields; both work. */
   LAYERS: [
     { k: 'grid', id: 'edGrid', label: 'Tile grid' },
     { k: 'plan', id: 'edPlan', label: 'Rooms, doors and arrivals' },
@@ -130,9 +118,7 @@ const Pop = {
   },
 
   /* ---- which zone the room tool paints ----
-     A list with the tint on it, not a <select>. The zones are thirteen dark
-     variations of the same navy-grey and their names do not tell them apart;
-     the swatch is the only thing that does. */
+     A list with tints; the names alone do not tell the zones apart. */
   zones(anchor) {
     const html = '<div class="pop-h">Room tool paints</div>'
       + Object.keys(ZONES).map(z => '<button type="button" data-z="' + esc(z) + '">'
@@ -152,9 +138,7 @@ const Pop = {
   },
 
   /* ---- everything the phone's bar has no room for ----
-     Which of the ten documents is NOT in here: that is the identity chip and
-     the picker behind it, because "what am I editing" is the one thing a bar
-     has to answer without being opened. */
+     Except the identity chip and picker, which stay on the bar. */
   more(anchor) {
     const levels = Mode.id === 'levels';
     const items = [];
@@ -166,10 +150,7 @@ const Pop = {
     if (levels) items.push({ label: 'Fit the whole level', icon: 'fit', run: () => View.fit() });
     if (levels) items.push({ label: '▶ Try this level', hint: 'the game, on what you are drawing',
       run: () => Play.go() });
-    /* The Rooms tab gets it too, and only the Rooms tab: ZONES is one of the
-       three things that cross over into a trial, so a repainted floor is
-       something you can walk around. Nothing an NPC or an item says does, which
-       is why the other seven documents do not offer this. */
+    /* The Rooms tab gets Play too: ZONES crosses into a trial. */
     if (Mode.id === 'zones') {
       const on = Play.levelFor(Zones.id);
       if (on) {
@@ -198,13 +179,8 @@ const Pop = {
 };
 
 /* ---------------- What everything does ----------------
-   The hint line under the map is the first thing every short viewport drops, and
-   a phone never had it at all — so on a phone the shortcuts were invisible and
-   so was the fact that the second finger moves the map. This is that line, in
-   full, one tap away on every screen.
-
-   Keyed by the same icons the dock draws, because "which one is the eraser" is
-   a question a picture answers and a word does not. */
+   The map's hint line in full, one tap away (phones never had it), keyed by
+   the dock's icons. */
 const Help = {
   TOOLS: [
     ['select', 'Select', 'Pick anything up. Drag an object, an arrival point or a waypoint to another tile. Click again to step down through a stack.', 'V'],
@@ -231,11 +207,7 @@ const Help = {
     ['Take a copy of what is under the pointer', 'alt-click'],
     ['Delete what is under the pointer', 'right-click'],
   ],
-  /* What the tool IS, before what its buttons do. Nine documents in one shell is
-     the first thing to know about this page and the last thing a toolbar can
-     say on its own — and this list is Mode.DEFS rather than a copy of it,
-     because the copy went on saying "three documents" while six more modes
-     were added around it. A tenth describes itself here for free. */
+  /* What the tool is, from Mode.DEFS, so new modes describe themselves. */
   show() {
     Pop.close();
     Ask.tell('How this works',
@@ -249,10 +221,7 @@ const Help = {
       + 'which is always the deliverable — and the whole-game sheet can write it into data/.</div>'
       + '<h4>The map</h4>'
       + '<div class="keys">'
-      /* One flex row per line rather than a three-column grid: on a 320px phone
-         the grid gave the description column about ninety pixels and every
-         sentence came out one word wide. A row wraps its key to the next line
-         instead, which costs a line and reads. */
+      /* One wrapping row per line; a grid was too narrow on a 320px phone. */
       + this.TOOLS.map(t => '<div class="k"><svg class="ic"><use href="#i-' + t[0] + '"/></svg>'
         + '<span><b>' + esc(t[1]) + '</b> — <i>' + esc(t[2]) + '</i></span>'
         + '<kbd>' + esc(t[3]) + '</kbd></div>').join('')

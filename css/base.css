@@ -30,24 +30,15 @@ body{
   /* The page never scrolls, but a phone will still rubber-band it and offer to
      refresh — mid-shift, from a thumb that was steering. */
   overscroll-behavior:none;
-  /* All three of these, prefixed, and none of them optional on iOS.
-     `user-select` unprefixed is not honoured by Safari before 16.4, so a
-     thumb dragged across the screen to steer instead SELECTED TEXT — which
-     draws a highlight box and a caret, sitting over the game, and is what a
-     "vertical box and line" during a joystick drag actually is.
-     `-webkit-touch-callout` stops the long-press magnifier doing the same.
-     Chromium mirrors the unprefixed property into the prefixed one, which is
-     precisely why the whole test suite passed while a phone did not. */
+  /* All three, prefixed: Safari before 16.4 ignores unprefixed user-select, so a
+     thumb steering would select text; -webkit-touch-callout stops the
+     long-press magnifier. */
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
 button{font-family:inherit;color:inherit}
-/* `inset:0` on a fixed element sizes it to the LARGE viewport — the one you get
-   with the address bar retracted — so on a phone with the bar showing, the
-   bottom of the game is underneath it. That is the row of call buttons, the E
-   button and the stick, all of them, and none of it looks clipped so much as
-   simply absent.
-   `dvh` is the standing fix and R.fitViewport() then pins it to what
-   visualViewport actually reports, which is exact and works further back. */
+/* `inset:0` on a fixed element uses the large viewport, putting the bottom of
+   the game under a visible address bar. `dvh` fixes it; R.fitViewport() then
+   pins it to visualViewport exactly. */
 #app{position:fixed;left:0;top:0;width:100%;height:100vh;display:flex;align-items:center;justify-content:center}
 @supports (height:100dvh){ #app{height:100dvh} }
 
@@ -97,11 +88,6 @@ button{font-family:inherit;color:inherit}
 .screen.on{display:flex;animation:fadeIn .45s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-/* The title screen has a stylesheet of its own — css/title.css. What was
-   here was the static version of it: a heading, a tagline, three buttons and
-   a footer. The elements it styled are still called .hero, .title-line1 and
-   .legal, so leaving it in place would have meant two files quietly
-   disagreeing about the same screen. */
 
 #nameScreen .sign{width:min(520px,94vw);padding:0 0 22px}
 #nameInput{width:calc(100% - 44px);margin:18px 22px 6px;background:#0b0f16;border:1px solid var(--line);
@@ -110,15 +96,11 @@ button{font-family:inherit;color:inherit}
 .field-note{color:var(--dim);font-size:12px;padding:0 22px 12px}
 
 /* ---------- the character creator ----------
-   The preview and the pickers sit side by side where there is width and stack
-   where there is not, because the one thing this screen must always show is the
-   character: a phone that pushes the sprite off the top to make room for seven
-   selects is a creator you cannot use. */
+   Preview and pickers side by side where there is width, stacked where not:
+   the character must always show. */
 #lookScreen .sign{width:min(680px,94vw);padding:0 0 18px}
 .look-body{display:flex;gap:18px;align-items:stretch;padding:18px 22px 4px;text-align:left}
-/* 140x200 is not arbitrary: the sprite is 56px tall and pixel art wants a
-   WHOLE-number scale, so the box is sized to clear 3x plus a margin. At 186px
-   it landed on 2x and the character sat in the middle of a large empty card. */
+/* 140x200 fits the 56px sprite at a whole-number 3x scale, plus margin. */
 #lookView{flex:0 0 140px;width:140px;height:200px;border-radius:10px;
   border:1px solid var(--line);background:
     linear-gradient(180deg,#0e131c,#0a0d14);
@@ -136,8 +118,3 @@ button{font-family:inherit;color:inherit}
 #lookNote{display:none}
 #lookNote.on{display:block;color:var(--hold)}
 
-/* The opening has a stylesheet of its own — css/cutscene.css. What was here
-   was the twelve-identical-cards version: a .cut-box that no longer exists, a
-   96px min-height on the caption and 24px of padding on the text rather than on
-   the box around it. Left in place it would have gone on applying to elements
-   that are still called .cut-text, from a file that loads first. */

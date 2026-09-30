@@ -1,33 +1,14 @@
 'use strict';
 /* ---------------- Publishing, from a phone ----------------
-   The other end of Sync. Given a folder to write to, it writes; given a browser
-   with no folder picker, it prepares the finished files and hands them to you.
-   Neither is any use on a phone: there is no folder to be given and nowhere to
-   put a download, and the published editor is the only copy of the tool most
-   people will ever open. Draw a room on the train, and the work goes as far as
-   the browser tab and no further.
-
-   So this is the third end: the finished files go straight into the repository
-   the page was served from, as ONE COMMIT, and the site rebuilds itself. The
-   splice, the staging and the parse check are Sync's and unchanged — the only
-   thing that differs is that the current text is read from the branch rather
-   than from a folder or from the served copy, which is also the safer place to
-   read it: the branch is what the commit will land on, so a Pages deploy that
-   is a minute behind cannot cause the write to clobber anything.
-
-   ONE COMMIT, NOT ONE PER FILE. The Contents API would be four lines shorter
-   and would leave the repository half-written if the second call failed, which
-   is the same outcome Sync.write() stages every file in memory to avoid. So it
-   goes through the git data API — blobs, a tree over the branch's tree, a
-   commit, then the ref moves — and the ref moving is the only moment anything
-   has changed.
-
-   THE TOKEN. A fine-grained personal access token, scoped to the one
-   repository, with Contents: read and write. It is kept in this browser's own
-   storage and sent to api.github.com and nowhere else; a token in storage is
-   readable by anything that can run script on this origin, which is what makes
-   "one repository, and an expiry date" the shape to ask for. Forgetting it is
-   one press, and it is offered next to the button that uses it. */
+   The third end of Sync: the finished files go into the repository the page
+   was served from, as one commit, and the site rebuilds. Sync's splice,
+   staging and parse check are unchanged; the current text is read from the
+   branch (which a lagging Pages deploy cannot make stale).
+   One commit, not one per file: the git data API (blobs, a tree, a commit,
+   then the ref moves), so a failure never leaves half a save.
+   The token is a fine-grained personal access token scoped to one repository
+   with Contents: read and write, kept in this browser's storage and sent only
+   to api.github.com. Forgetting it is one press, beside the button. */
 
 const Repo = {
   /* Where it goes and what it goes with, kept apart on purpose: forgetting the
@@ -36,19 +17,15 @@ const Repo = {
   TOK: GAME.id + '.token',
   API: 'https://api.github.com',
 
-  /* The repository this page was served FROM, where that is knowable — and on
-     GitHub Pages it is: owner.github.io/repo/editor.html names both halves. The
-     phone that opened the published editor is offered its own repository
-     already filled in, and the only thing left to type is the token. */
+  /* The repository this page was served from, when on GitHub Pages
+     (owner.github.io/repo/editor.html). */
   guess() {
     const host = String(location.hostname || '');
     const m = /^([\w-]+)\.github\.io$/i.exec(host);
     if (!m) return { owner: '', repo: '', branch: 'main' };
     const seg = String(location.pathname || '/').split('/').filter(Boolean);
     const first = seg[0] || '';
-    /* A project page is /repo/…; a user page is the whole site, and its
-       repository is named after the host. `editor.html` has a dot in it and a
-       repository name does not, which is the whole of the difference. */
+    /* A project page is /repo/…; a user page's repository is named after the host. */
     return { owner: m[1], repo: first && first.indexOf('.') < 0 ? first : host, branch: 'main' };
   },
 
@@ -70,10 +47,8 @@ const Repo = {
   label() { const w = this.where(); return w.owner + '/' + w.repo + ' · ' + w.branch; },
 
   /* ---- the API ----
-     One place, so the headers cannot drift and the token has exactly one way
-     out of this page. Errors come back as sentences: GitHub answers 404 both
-     for a repository that does not exist and for one this token may not see,
-     and "not found" on its own has sent people looking for the wrong fault. */
+     One place for headers and the token. Errors come back as sentences (a 404
+     can mean missing or not permitted). */
   at(path) {
     const w = this.where();
     return '/repos/' + encodeURIComponent(w.owner) + '/' + encodeURIComponent(w.repo) + path;
@@ -118,20 +93,14 @@ const Repo = {
     return 'GitHub said ' + status + (msg ? ' — ' + msg : '');
   },
 
-  /* One file as the BRANCH has it, which is what the commit will be built on
-     top of. Not as this page was served it: a Pages deploy runs a minute or so
-     behind the branch, and splicing into yesterday's copy would put yesterday
-     back. */
+  /* One file as the branch has it, since the commit builds on the branch. */
   read(path) {
     return this.call('GET', this.at('/contents/' + this.enc(path))
       + '?ref=' + encodeURIComponent(this.where().branch),
     undefined, 'application/vnd.github.raw', true);
   },
 
-  /* Every file, one commit, and nothing has changed until the last line of
-     this. Blobs and a tree cost three more calls than the contents API and buy
-     the one property worth having: there is no state in which half of a save
-     is on the branch. */
+  /* Every file in one commit; nothing changes until the ref moves. */
   commit(files, message) {
     const w = this.where();
     const head = '/git/ref/heads/' + this.enc(w.branch);
@@ -160,10 +129,8 @@ const Repo = {
   },
 
   /* ---- setting it up ----
-     Four fields, three of them already filled in on a published page, and a
-     token you make yourself. The link is the fine-grained one on purpose: a
-     classic token is every repository you have and every scope you ticked, and
-     nothing here needs either. */
+     Four fields, three prefilled on a published page; the link makes a
+     fine-grained token. */
   setup() {
     const w = this.where();
     return Ask.form('Publish to GitHub', [

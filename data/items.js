@@ -92,23 +92,28 @@ const ITEMS = {
   polaroid: { n: 'A Polaroid', e: '📸', d: 'The two of you at the cove, lit by the lantern, laughing at something you have already forgotten.', v: 0, r: 'epic', quest: true },
 };
 
+/* Scripted uses: an ITEMS entry whose `use` is a string names a function here,
+   called with the item after it is taken from the bag (Item.use()). */
+const Uses = {};
+
 /* ---------------- Skills ----------------
-   The ids are the engine's (engine/progress.js reads empathy, product, system,
-   corp, sarcasm, stress, caffeine, deesc and persuade by name); everything a
-   player reads is here. */
+   `eff` is what each rank adds: the stats a move reads (empathy, knowledge,
+   bullshit, chaos), the maxima (patMax, eneMax), the share of a guest's
+   pressure you shrug off (calm) or XP on every win (winXp). Moves may also
+   read a rank directly with Sk.rank(). */
 const SKILLS = {
   people: { name: '💋 Charm', colour: '#ff7eb6', list: {
-    empathy: { n: 'Read the Room', d: 'You know what they want before they do.', max: 3 },
-    deesc: { n: 'Cool Head', d: 'A difficult guest bothers you less.', max: 3 },
-    persuade: { n: 'Big Tipper', d: 'A happy guest pays more.', max: 3 } } },
+    empathy: { n: 'Read the Room', d: 'You know what they want before they do.', max: 3, eff: { empathy: 2 } },
+    deesc: { n: 'Cool Head', d: 'A difficult guest bothers you less.', max: 3, eff: { calm: .13 } },
+    persuade: { n: 'Big Tipper', d: 'A happy guest pays more.', max: 3, eff: { winXp: 8 } } } },
   systems: { name: '🍸 Mixology', colour: '#4dd4ff', list: {
-    product: { n: 'Recipes', d: 'Your drinks hit harder.', max: 3 },
-    system: { n: 'Speed Pour', d: 'Faster, flashier, more ice.', max: 3 },
-    corp: { n: 'Smooth Lines', d: 'You always know what to say.', max: 3 } } },
+    product: { n: 'Recipes', d: 'Your drinks hit harder.', max: 3, eff: { knowledge: 2 } },
+    system: { n: 'Speed Pour', d: 'Faster, flashier, more ice.', max: 3, eff: { knowledge: 1 } },
+    corp: { n: 'Smooth Lines', d: 'You always know what to say.', max: 3, eff: { bullshit: 2 } } } },
   self: { name: '☀️ Island Life', colour: '#ffb347', list: {
-    stress: { n: 'Sun-kissed', d: 'More nerve to spend.', max: 3 },
-    caffeine: { n: 'Espresso Tolerance', d: 'More energy to spend.', max: 3 },
-    sarcasm: { n: 'Cheek', d: 'Your mischief lands.', max: 2 } } },
+    stress: { n: 'Sun-kissed', d: 'More nerve to spend.', max: 3, eff: { patMax: 8 } },
+    caffeine: { n: 'Espresso Tolerance', d: 'More energy to spend.', max: 3, eff: { eneMax: 5 } },
+    sarcasm: { n: 'Cheek', d: 'Your mischief lands.', max: 2, eff: { chaos: 1 } } } },
 };
 
 /* ---------------- Jobs ----------------

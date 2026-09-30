@@ -1,8 +1,7 @@
 'use strict';
 /* ---------------- The day editor's panes ----------------
-   Six things that share one property: none of them is on the map, and all of
-   them are on a clock or at the end of one. The texts are the one whose clock
-   does not stop at five — see the header of editor/office.js. */
+   Six things off the map and on a clock. Texts' clock does not stop at five
+   (see editor/office.js). */
 
 /* Six things now, and the sixth is the one that is not on office hours. */
 const OfficeUI = {
@@ -95,7 +94,7 @@ const OfficeUI = {
       const off = OfficeCheck.offered();
       return off && !off.has(id) ? 'never offered' : 'reachable';
     }
-    return (typeof CUT !== 'undefined' ? CUT.length : 0) + ' beats';
+    return CUT.length + ' beats';
   },
 
   inspect() {
@@ -162,10 +161,7 @@ const OfficeUI = {
     const text = Office.kind === 'text';
     return '<h4>' + (text ? 'Texts' : isChat ? 'Messages' : 'Beats')
       + ' <span class="pill">' + rows.length + '</span></h4>'
-      /* The note is the DIFFERENCE between the two timed lists, said where
-         somebody is typing a time in. Chat stops at five and a text does not,
-         and writing an evening text into a chat channel is the mistake this
-         line exists to prevent. */
+      /* Said where the time is typed: chat stops at five, texts do not. */
       + (text ? '<div class="note">Texts.tick() is outside the shift test in engine/boot.js, so '
         + 'these arrive whatever the clock says and whether you are on the premises or not — a time '
         + 'after ' + esc(clockStr(DAY_END)) + ' is an evening text, not a broken one. What does not '
@@ -192,11 +188,8 @@ const OfficeUI = {
             + Side.row('face', '<input data-rf="f" data-i="' + i + '" value="' + esc(r.f || '') + '" size="3">')
             + Side.row('label', '<input data-rf="l" data-i="' + i + '" value="' + esc(r.l || '') + '">')
             + Side.row('text', '<textarea data-rf="t" data-i="' + i + '" rows="3">' + esc(r.t || '') + '</textarea>')
-            /* The camera, in tiles on the level the shift starts on. Blank is
-               not "0,0" — it is "keep the shot before this one", which is what
-               the first beats do to stay out of a building they are not in
-               yet. So it is one text field with an empty state rather than two
-               number boxes that can only ever be a coordinate. */
+            /* The camera in tiles on the starting level. Blank means "keep the previous
+               shot", so it is one text field. */
             + Side.row('camera', '<span class="pair">'
               + '<input data-rf="cam" data-i="' + i + '" placeholder="keep the shot"'
               + ' value="' + esc(r.cam ? r.cam.join(', ') : '') + '">'

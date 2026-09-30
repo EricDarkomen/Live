@@ -1,26 +1,12 @@
 'use strict';
 /* ---------------- Hold Music Hero ----------------
-   Call 000001 has been on hold since 2009. The terminal in the server room is
-   still playing it down a beige cable, and the headset is still hanging next to
-   it. This is what happens when you put the headset on.
-
-   A four-lane rhythm game: the FIRST of the three shapes this library exists to
-   prove it can hold — a real-time game where the clock is the whole mechanic and
-   a frame late is a miss.
-
-   TWO KINDS OF NOTE, and the second is the one the game is named for. A tap is
-   struck and gone; a HOLD has to be kept down, and let go of early it breaks.
-   That is not decoration: a game with one note type has one thing to be good
-   at, and the hold is what makes the four lanes a hand position rather than
-   four buttons — you are keeping a line open with one finger while the others
-   carry on. It is also the entire joke, which is worth something.
-
-   Everything here is written against the interface in engine/arcade.js and
-   nothing else. It never touches G, P, World or the DOM: the four things it
-   needs from the game — a canvas, a dt, key presses and somewhere to put the
-   score — all arrive on `a`. The four pads it declares are what a thumb gets;
-   they are delivered as the same key codes a keyboard sends, so there is one
-   set of input handling below rather than two. */
+   Call 000001 has been on hold since 2009, and the headset is still hanging
+   by the terminal. A four-lane rhythm game: the real-time shape, where a frame
+   late is a miss. Two kinds of note: a tap, and a hold that breaks if let go
+   early, which turns four lanes into a hand position.
+   Written against engine/arcade.js's interface only: canvas, dt, presses and
+   score arrive on `a`. The four pads send the same key codes a keyboard does,
+   so there is one input path. */
 
 const MG_HOLD = {
   id: 'holdmusic',
@@ -29,12 +15,8 @@ const MG_HOLD = {
   blurb: 'Luca’s decks, a deck full of people, and one steel-drum loop you absolutely must not drop.',
   goal: 'Keep the dance floor going to the end of the track.',
   mins: 12,
-  /* MEASURED, not guessed. `reward()` divides the score by this and clamps the
-     result at 1.4, so a par that is too low pays every round the same and the
-     score stops meaning anything — which is exactly what 9000 did here, when a
-     clean run is nearer sixty thousand. This is what a GOOD run scores: about
-     ninety per cent of the taps and most of the holds kept. An expert run is
-     two and a half times it and caps out, which is the point of the cap. */
+  /* Measured: reward() divides by par and caps at 1.4, so par is a good run
+     (about 90% of taps and most holds). An expert run hits the cap. */
   par: 22000,
   help: {
     keys: ['D F J K or 1–4 to play a lane', 'A long note has to be HELD to the end of it'],
@@ -50,23 +32,16 @@ const MG_HOLD = {
   /* A key code to a lane. Two rows of it, because a keyboard player expects the
      home row and a numeric player expects the numbers, and neither is wrong. */
   LANE: { KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3, Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 },
-  /* A minor scale over two octaves, because the joke is that it is Greensleeves
-     and Greensleeves is in a minor key. Every note on the chart carries an
-     index into this, so hitting the notes PLAYS THE TUNE — which is the whole
-     difference between a rhythm game and four lanes of blocks. Miss one and
-     that note simply does not sound, which is a far better punishment than a
-     buzzer: the tune develops a hole where you were. */
+  /* A minor scale (it is Greensleeves). Each note indexes it, so hitting notes
+     plays the tune and a miss leaves a hole in it. */
   SCALE: [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00,
     493.88, 523.25, 587.33, 659.25, 698.46, 783.99, 880.00],
   COLOUR: ['#4da3ff', '#b48cff', '#ffb347', '#5ad48a'],
   /* Judgement windows in seconds, and what each is worth. Generous at the far
      end on purpose: this is a joke about hold music, not a test. */
   WINDOW: [[0.075, 'PERFECT', 200, 2], [0.135, 'GOOD', 110, 1], [0.215, 'LATE', 45, 0]],
-  /* What the cabinet's skill buys. Stress Resistance is the one it is wired to
-     — the game IS surviving hold music — and every rank widens the windows by
-     a tenth, which is about a frame and a half at sixty. Small enough that it
-     is never the reason you won, big enough that a player who bought the skill
-     can feel that they did. */
+  /* Stress Resistance widens the timing windows a tenth per rank (about a frame
+     and a half): felt, never decisive. */
   windows(a) {
     const k = 1 + (a.skill || 0) * 0.10;
     return this.WINDOW.map(w => [w[0] * k, w[1], w[2], w[3]]);
@@ -88,20 +63,14 @@ const MG_HOLD = {
     this.pulse = 0;
   },
 
-  /* The chart is generated rather than written out, because a fixed one is
-     memorised in three plays and this is a thing you walk up to twice a shift.
-     Two rules keep it playable: the lane WALKS rather than jumping, so the
-     pattern reads as a tune instead of as noise, and the density climbs with
-     the bar index, so the first eight seconds teach you the game. */
+  /* Generated, not written, so it cannot be memorised. The lane walks rather
+     than jumps, and density climbs with the bar. */
   chart() {
     const out = [];
     const beat = 0.6, first = 2.3, bars = 20;
     let lane = ri(0, 3);
-    /* The melody walks too, and it walks WITH the lane rather than beside it:
-       the pitch is the lane's own position in the scale plus a slow drift, so
-       moving your hand to the right moves the tune up. A player learns that in
-       about four bars without ever being told, and it is what makes a chart
-       feel written rather than rolled. */
+    /* The pitch follows the lane, plus a slow drift: moving right moves the tune
+       up. */
     let step = 4;
     /* Which lane is busy holding, and until when. A tap under your own held
        finger is not a phrase, it is a mistake — so a lane carrying a hold is
@@ -139,10 +108,7 @@ const MG_HOLD = {
         lane = want;
         step = clamp(step + (lane - was) + (onBeat ? 0 : pick([-1, 0, 1])), 0, this.SCALE.length - 1);
         out.push({ lane: lane, t: t, len: 0, done: false, p: step });
-        /* Two at once, only on a beat and only once the tune has settled. A
-           chord on an off-beat is unreadable at this scroll speed, and the
-           second note is a third above so the pair is a chord rather than a
-           clash. */
+        /* Chords only on a beat once the tune has settled, a third apart. */
         if (onBeat && heat > 0.5 && chance(0.15)) {
           const other = open.filter(L => L !== lane);
           if (other.length) {
@@ -171,9 +137,8 @@ const MG_HOLD = {
     this.strike(a, lane);
   },
 
-  /* The nearest unjudged note in this lane, if there is one close enough. A
-     press with nothing under it is not punished — mashing costs you the note
-     you were about to hit, which is punishment enough. */
+  /* The nearest unjudged note in the lane within the window. Mashing is not
+     punished beyond losing the note. */
   strike(a, lane) {
     let found = null, gap = 9;
     for (let i = this.next; i < this.notes.length; i++) {
@@ -191,9 +156,7 @@ const MG_HOLD = {
     if (w[1] === 'PERFECT') this.perfect++;
     this.combo++;
     if (this.combo > this.bestCombo) this.bestCombo = this.combo;
-    /* The multiplier is the reason a rhythm game is worth playing twice: every
-       ten in a row is another half of everything. Capped, or the last bar is
-       worth more than the rest of the song put together. */
+    /* Every ten in a row adds half; capped at 4x. */
     const mult = Math.min(4, 1 + Math.floor(this.combo / 10) * 0.5);
     a.add(Math.round(w[2] * mult));
     const grade = win.indexOf(w);
@@ -241,9 +204,7 @@ const MG_HOLD = {
   },
 
   update(a, dt) {
-    /* A bass note under every bar, so the board has a pulse even in the gaps
-       and there is a tempo to find before the first note arrives. It is the
-       only sound in here that plays whether you do anything or not. */
+    /* A bass note every bar, so there is a pulse before the first note. */
     const bar = Math.floor((a.t - 2.3) / 2.4);
     if (bar !== this.bar && a.t > 0.5) {
       this.bar = bar;
@@ -252,10 +213,8 @@ const MG_HOLD = {
         this.pulse = Math.max(this.pulse, .5);
       }
     }
-    /* Anything now past the last window is gone. `next` only ever moves
-       forward, so this is a walk of the chart rather than a sweep of it. A
-       hold whose HEAD has been struck is not missed even though its tail is
-       still to come — `done` is about the head. */
+    /* Notes past the last window are missed; `next` only moves forward. `done` is
+       about a hold's head. */
     while (this.next < this.notes.length && this.notes[this.next].t < a.t - this.windows(a)[2][0]) {
       const n = this.notes[this.next];
       if (!n.done) {
@@ -267,12 +226,9 @@ const MG_HOLD = {
       this.next++;
     }
 
-    /* The live holds. A tick of score every quarter second so the reward is
-       felt while it happens rather than only at the end, a soft note under it
-       so you can HEAR that the line is still open, and the two ways it can
-       finish: kept to the end, or the key coming up early. The release itself
-       is handled in input(); this catches a key that was never released and a
-       pad whose pointer went away. */
+    /* Live holds: score every quarter second, a soft note while held, and the end
+       (kept to the tail, or released early). Releases are in input(); this also
+       catches keys never released and vanished pointers. */
     for (let i = 0; i < 4; i++) {
       const h = this.live[i];
       if (!h) continue;
@@ -331,16 +287,12 @@ const MG_HOLD = {
     return { x: (a.w - w) / 2, w: w, lw: w / 4 };
   },
   laneX(a, i) { const b = this.board(a); return b.x + b.lw * (i + .5); },
-  /* The header band is reserved rather than drawn over: a note falling through
-     the caller's patience meter reads as a rendering fault, and the meter is
-     the thing that says whether you are losing. */
+  /* The header band is reserved; notes falling through the patience meter read
+     as a fault. */
   TOP: 40,
   hitY(a) { return a.h - clamp(a.h * 0.14, 44, 92); },
-  /* How long a note is on screen before its moment. Derived from the height of
-     the field rather than fixed, so the notes travel at a readable speed on a
-     900px desktop AND on a phone on its side, where the whole playfield is
-     about a hundred and seventy pixels. A fixed lead makes the short one crawl
-     and stack; the floor is what stops the tall one becoming a reaction test. */
+  /* A note's lead time scales with the field height, so speed reads the same on
+     a desktop and a landscape phone. */
   lead(a) { return clamp((this.hitY(a) - this.TOP) / 300, 0.85, 1.55); },
 
   draw(a, g) {
@@ -396,10 +348,8 @@ const MG_HOLD = {
     g.restore();
 
     const nh = 18;
-    /* A tail runs UP the lane from its head: later in time is further from the
-       line. `bottom` is clamped to the line, so a hold being played is visibly
-       EATEN — which is the only thing on screen that says the line is still
-       open, and the whole reason a hold reads as a hold. */
+    /* A tail runs up from its head, clamped at the line, so a played hold is
+       visibly eaten. */
     const tail = (n, alpha) => {
       const x = b.x + b.lw * n.lane + 5, w = b.lw - 10;
       const tailTop = hy - (n.t + n.len - a.t) * speed;
@@ -414,9 +364,7 @@ const MG_HOLD = {
       if (n.live) p.glow(g, x + w / 2, hy, 34, this.COLOUR[n.lane], .45);
     };
 
-    /* The four live ones FIRST, and out of `this.live` rather than the chart:
-       once a hold's head has been struck, `next` has walked past it, so a pass
-       that starts at `next` draws every tail except the one you are holding. */
+    /* Live holds first, from `this.live`, since `next` has already passed them. */
     for (let i = 0; i < 4; i++) if (this.live[i]) tail(this.live[i], .95);
 
     /* Then everything still to come, from the back forward so the nearest is
@@ -484,11 +432,9 @@ const MG_HOLD = {
       return { xp: Math.round(18 * share), energy: -6,
         toast: 'The beat got away from you. Luca takes over, graciously.' };
     }
-    /* One achievement, named literally so the editor's reward checker can see
-       it: a grant built out of a variable is invisible to a regex over source,
-       which is exactly the blind spot editor/prog.js documents. */
+    /* Named literally so the editor's reward check can see it. */
     Ach.get('a_holdmusic');
-    if (share >= 1 && typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
+    if (share >= 1 && Arcade.clearedAll()) Ach.get('a_arcade');
     return {
       xp: 40 + Math.round(70 * share),
       money: Math.round(share * 240) / 100,

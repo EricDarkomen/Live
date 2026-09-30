@@ -1,20 +1,10 @@
 'use strict';
 /* ---------------- The dialogue editor's panes ----------------
-   The node list is the workspace and the panel edits the node you picked, which
-   is the level editor's arrangement applied to a tree instead of a map. Two
-   things are specific to a conversation and both earn their place.
-
-   THE BADGES. A node's problems are all invisible from its text: whether
-   anything can reach it, whether its `to` goes anywhere, whether the code on it
-   names something real. So every row carries them, and the list is the only
-   place a tree of forty nodes can be read as a whole.
-
-   THE READ TAB. A conversation is a thing you go THROUGH, and no list of nodes
-   tells you how one reads. It walks the tree the way Dialogue does — pages,
-   then replies — so the writing can be judged as writing. It does not evaluate
-   guards or run `do()`: this page never runs the captured code, so a guarded
-   reply is shown with its condition rather than hidden by it, which is what you
-   want when reading anyway. */
+   The node list is the workspace; the panel edits the pick.
+   - Badges: whether a node is reachable, whether its `to` resolves, whether
+     its code names real things. Invisible from its text.
+   - The Read tab walks the tree as Dialogue does, without running code, so a
+     guarded reply shows with its condition. */
 
 const TalkUI = {
   walk: null,
@@ -37,17 +27,9 @@ const TalkUI = {
   },
 
   /* ---- the workspace ----
-     Two views of the same tree, and they answer two different questions. The
-     LIST answers "what is in here" — forty nodes, which are unreachable, which
-     carry code. The FLOW answers "what shape is it", which is the question you
-     actually have when you are writing a branch, and which no list can answer:
-     Karen's recurring-meeting thread forks four ways at the confession and
-     comes back together at one of six endings, and that is a fact about the
-     writing that is invisible until it is drawn.
-
-     An indented outline rather than a node graph, deliberately. A graph wants a
-     canvas, a pan, a zoom and a layout pass; an outline is text, it reads at
-     320px, every line is a tap target, and the nesting IS the branching. */
+     The list says what is in the tree; the flow shows its shape (forks and
+     where they rejoin). An indented outline rather than a graph: text, readable
+     at 320px, every line a tap target. */
   view: 'list',
   workspace() {
     const el = $('#talkWork');
@@ -93,11 +75,8 @@ const TalkUI = {
   },
 
   /* ---- the flow ----
-     One outline per way in. A node already expanded on this branch is shown as
-     a link rather than expanded again: conversations loop back — `again` is
-     reached from half of everything — and expanding a loop is a page that never
-     ends. That is the same call the reachability walk makes, for the same
-     reason. */
+     One outline per way in. A node already expanded is shown as a link, since
+     conversations loop. */
   MAX_DEPTH: 14,
   flow(roots) {
     if (!roots.length) return '<p class="empty">Nothing can open this conversation.</p>';
@@ -113,12 +92,8 @@ const TalkUI = {
           + orphans.map(k => this.line(k, 0)).join('') + '</div>'
         : '');
   },
-  /* `seen` is shared across the whole outline for one way in, not carried down
-     one branch — so a node several replies converge on is expanded once and
-     shown as a link after that. Two reasons and both matter: convergence is
-     what you are looking for (three of Karen's four replies land on the same
-     node, and that is the fact), and a tree that re-expands every join grows
-     exponentially in a conversation that loops back, which most of them do. */
+  /* `seen` is shared across the whole outline for one way in, so a node several
+     replies reach is expanded once: convergence shows, and loops cannot blow up. */
   branch(id, seen, depth) {
     const n = Talk.nodes[id];
     if (!n) return '<div class="fl-miss" style="--d:' + depth + '">→ ' + esc(id)
@@ -177,17 +152,12 @@ const TalkUI = {
     return this.inspectPerson(p);
   },
 
-  /* Nothing selected shows the PERSON — all of them, not only what they say.
-     A colleague is spread across three files: their desk and their day are in
-     data/npcs.js beside the dialogue, the waypoints their day names are in
-     data/world.js, and whether anybody DRAWS them is a row on a sheet in
-     art/. None of those three is visible from any of the others, and every one
-     of them fails silently: a bad waypoint stands them at their desk all day, a
-     desk inside a counter has them shouldering it, and no sprite row makes them
-     an emoji among twenty people. So this is where they are bound together. */
+  /* With nothing selected, the person: desk and day (data/npcs.js), the
+     waypoints their day names (data/world.js) and their sprite row (art/),
+     each failing silently, bound together here. */
   inspectPerson(p) {
     const sp = Talk.sprite();
-    const wps = Object.keys(typeof WP !== 'undefined' ? WP : {}).sort();
+    const wps = Object.keys(WP).sort();
 
     p.innerHTML = '<h3><span class="h-e">' + esc(Talk.face || '🧑') + '</span>' + esc(Talk.name) + '</h3>'
       + Side.row('id', '<code>' + esc(Talk.id) + '</code>')
@@ -274,9 +244,7 @@ const TalkUI = {
     p.querySelector('[data-a="dup"]').onclick = () => Mode.duplicate();
     p.querySelector('[data-a="drop"]').onclick = () => TalkMake.drop();
   },
-  /* A stop is a time and a destination, and the time is written as a clock
-     because a schedule read in minutes-since-midnight is a schedule nobody
-     checks. `<input type="time">` gets a real picker on a phone for free. */
+  /* A stop as a clock time; `<input type="time">` gives phones a picker. */
   stopRow(st, i, wps) {
     const [at, to] = st;
     return '<div class="stop">'
@@ -436,10 +404,7 @@ const TalkUI = {
   },
 
   /* ---- read ----
-     The conversation as a conversation. Follows `to` and the replies the way
-     Dialogue does, and shows a guarded reply WITH its guard rather than hiding
-     it: nothing here runs the captured code, and for reading you want to see
-     every branch anyway. */
+     The conversation as a conversation, guards shown rather than evaluated. */
   read() {
     const p = $('#paneRead');
     const roots = Talk.roots();

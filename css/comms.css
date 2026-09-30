@@ -1,23 +1,15 @@
 /* ============================================================
-   COMMS — the alert band, the channel rail, and the console
-   ------------------------------------------------------------
-   THE TWO HALVES ARE SIZED BY DIFFERENT RULES, which is the whole reason they
-   are two elements. The band is bounded: MAX_ALERTS rows of one line each, so
-   its tallest possible state is a number the layout can be built around and a
-   busy minute can never push the tracker parked beside it anywhere. The
-   console is a modal and takes the screen, because reading is what it is for.
-
-   Nothing in here is a scrollback. The old notification box was both the alert
-   and the archive, which is why it had to be 196px of a phone and still could
-   not answer "what was that email".
+   COMMS: the alert band, the channel rail and the console
+   Sized by different rules, hence two elements. The band is bounded
+   (MAX_ALERTS rows of one line), so its tallest state is known and cannot push
+   the tracker beside it. The console is a modal that takes the screen for
+   reading. Neither is a scrollback.
    ============================================================ */
 
 :root{
-  /* THE BAND'S WHOLE RESERVATION, IN THREE NUMBERS AND ONE PLACE. A line of
-     alert, the gap between two, and how many stand at once — and `--alert-n`
-     is read back by maxAlerts() in engine/comms.js rather than restated there,
-     so the cap on the DOM and the cap on the space are the same fact. Restated
-     per breakpoint in responsive.css and nowhere else. */
+  /* The band's reservation in three numbers. `--alert-n` is read back by
+     maxAlerts() in engine/comms.js, so the DOM cap and the space agree.
+     Restated per breakpoint in responsive.css only. */
   --alert-h:30px;
   --alert-gap:6px;
   --alert-n:3;
@@ -32,41 +24,20 @@
 }
 
 /* ---------- the band and the rail ---------- */
-/* Bottom-left on a desktop: the one large area the game never uses, lifted
-   clear of #keyhints. Above the canvas and below everything with a claim on
-   your attention — the HUD (5), the controls (6), dialogue (20), the call
-   (25), the panels (26) — because news is not the thing you are doing. */
+/* Bottom-left on a desktop, clear of #keyhints; above the canvas and below
+   HUD (5), controls (6), dialogue (20), the call (25) and panels (26). */
 #comms{position:absolute;bottom:calc(48px + env(safe-area-inset-bottom));
   left:calc(12px + env(safe-area-inset-left));z-index:3;
   width:min(392px,34vw);pointer-events:none;
   display:flex;flex-direction:column;align-items:flex-start;gap:8px;
   transition:top .25s ease,bottom .25s ease,left .25s ease,width .25s ease}
 
-/* column-reverse, so the newest alert is nearest the rail it points at and the
-   band grows AWAY from the thing it is docked to rather than shoving it.
-
-   A RETIRING ALERT LEAVES THE LAYOUT AT ONCE and fades where it stood, which
-   is what makes the band's height exactly the alerts that are STANDING. It has
-   to, and the first attempt at this is worth writing down because the obvious
-   fix is a trap. An alert that is going stays in the document for the length of
-   its fade, so a burst — twelve toasts in one frame, which a bad minute in this
-   building really does produce — put a fading row in the band on top of the two
-   that were standing: a 139px band in a space reserved for 104. The cap held
-   and the HEIGHT did not.
-
-   So a `max-height` off the same three numbers went on, with `overflow:hidden`
-   to enforce it. THAT WAS WORSE, and silently: in a column-reverse box the
-   newest item is at the TOP, so the overflow a clip throws away is the alert
-   that has just arrived. It was still in the DOM, still reporting a rectangle,
-   and painted nowhere — `elementFromPoint` at its own centre came back with the
-   canvas. The one alert that mattered was the one being hidden, and only a
-   hit-test said so.
-
-   Out of flow is the answer, because it makes the invariant true by
-   construction rather than enforced after the fact: what is in the flex line is
-   exactly what is standing, and that is capped. See Comms.retire(), which pins
-   `top` before it hands the element over — an absolute child with no offset
-   would snap to the corner of the band for the length of its own fade. */
+/* column-reverse, so the newest alert is nearest its rail and the band grows
+   away from it. A retiring alert leaves the flow at once and fades where it
+   stood, so the band's height is exactly the standing alerts. (Clipping with
+   max-height instead hides the newest alert, which sits at the top of a
+   column-reverse box.) Comms.retire() pins `top` before taking it out of
+   flow. */
 #alerts{position:relative;
   display:flex;flex-direction:column-reverse;gap:var(--alert-gap);
   width:100%;align-items:stretch;pointer-events:none}
@@ -89,10 +60,7 @@
 .a-t b{color:var(--acc,var(--brand));font-weight:600}
 /* Out of the flex line the moment it starts going, so the band is the height of
    what is standing. `top` is written by Comms.retire() from the row it was in. */
-/* A FOLDED ALERT PULSES RATHER THAN MOVING. It is the same row saying
-   something newer, so there is nothing for the eye to follow — without this a
-   second arrival that lands inside the five seconds is invisible, which is the
-   opposite failure to the one the fold exists to fix. */
+/* A folded alert pulses in place: the same row saying something newer. */
 .alert.folded{animation:alertFold .32s ease}
 @keyframes alertFold{
   0%{transform:none}
@@ -111,9 +79,7 @@
 .alert.ch-chat{--acc:var(--ch-chat)} .alert.ch-log{--acc:var(--ch-log)}
 .alert.ch-calls{--acc:var(--ch-calls)}
 
-/* The rail: what is waiting, per channel, in a row whose size never changes.
-   This is the part that replaced a peek chip standing in for a faded box —
-   the archive is always reachable now, whether anything has happened or not. */
+/* The rail: what is waiting per channel, fixed size, always reachable. */
 #chRail{display:flex;gap:6px;pointer-events:auto;
   padding:4px;border-radius:999px;
   background:rgba(13,17,23,.72);border:1px solid var(--line);
@@ -138,9 +104,8 @@
   background:rgba(255,255,255,.05)}
 .chip.lit .chip-e,#cmOne.lit .chip-e{filter:none}
 .chip:not(.lit) .chip-e,#cmOne:not(.lit) .chip-e{opacity:.62}
-/* The phone's single chip. In the markup on every device — sync() writes both,
-   or the one that is hidden carries a stale number the moment somebody turns
-   their phone on its side — and shown only by the mobile query. */
+/* The phone's single chip. Always in the markup (sync() writes both, so a
+   rotation shows a current number); shown only by the mobile query. */
 #cmOne{display:none;background:rgba(13,17,23,.78);border-color:var(--line);
   box-shadow:0 10px 26px -14px #000}
 #cmOne.lit{border-color:var(--hold)}

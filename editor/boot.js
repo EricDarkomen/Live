@@ -1,22 +1,11 @@
 'use strict';
 /* ---------------- Starting the editor ----------------
-   Deliberately NOT Boot.init(). That one starts a shift: it spawns twenty
-   colleagues, binds the game's input, loads a save and starts the clock. The
-   editor wants the same renderer and the same builder with none of that, so it
-   takes the four lines it does need and leaves the rest of the engine sitting
-   there unused — which is why engine/boot.js is the one script editor.html does
-   not load at all.
-
-   The office is still fully present as DATA (NPCS, ACTS, the lot); it is only
-   the simulation that is not running. That is what makes the preview honest and
-   the page cheap. */
+   Not Boot.init(), which starts a shift (NPCs, input, save, clock). The
+   editor needs only the renderer and builder, so editor.html does not load
+   engine/boot.js. All the data is present; the simulation does not run. */
 
 const Ed = {
-  /* A tool that fails to start is a black rectangle, and a black rectangle is
-     indistinguishable from a page that never loaded — which is exactly the
-     report you cannot act on. Anything thrown on the way up is put ON the page,
-     with the message, because the one place somebody debugging this will look is
-     the screen in front of them. */
+  /* Anything thrown during start-up is put on the page. */
   init() {
     document.title = GAME.title + ' · Editor';
     { const b = $('#edBrandName'); if (b) b.textContent = GAME.title; }
@@ -44,7 +33,7 @@ const Ed = {
        renderer falls back to emoji until they do, and so does the game. */
     Sprites.load(); Tiles.load();
     /* Nobody is baked: the preview composes the cast from the same components the game does. */
-    if (typeof Look !== 'undefined') Look.dressCast();
+    Look.dressCast();
 
     Ask.init();
     View.init();
@@ -55,26 +44,18 @@ const Ed = {
 
     Tools.init();
 
-    /* The other two documents. Both are loaded on the way up rather than when
-       you first switch to them: a mode switch is not a document change and must
-       not be able to fail, and the checks that read across all three — a job
-       whose tracker points at an object, a line of dialogue that starts a job —
-       want everything present from the start. */
+    /* The other documents load up front: a mode switch must not fail, and
+       cross-document checks need everything present. */
     Jobs.load(Jobs.ids()[0]);
     Talk.load(Talk.ids()[0]);
     Zones.load(Zones.ids()[0]);
     Office.load(Office.ids()[0]);
     Prog.load(Prog.ids()[0]);
     Calls.load(Calls.ids()[0]);
-    /* The arcade is registered by engine/arcade.js the same way the game does
-       it — from catalogue(), behind typeof guards — so a copy of the editor
-       opened without minigames/ gets a mode with nothing in it rather than a
-       page that will not start. */
-    if (typeof Arcade !== 'undefined') Arcade.init();
+    /* The arcade registers its games from catalogue(), as the game does. */
+    Arcade.init();
     if (Games.ids().length) Games.load(Games.ids()[0]);
-    /* The kinds index and the object palette are one walk of every level, and
-       Doc.rebuild() has already done it on the way through open() above — so
-       there is a catalogue of kinds here to pick the first one out of. */
+    /* Doc.rebuild() in open() has already indexed the kinds. */
     Things.load(Things.ids()[0]);
 
     Side.init();
@@ -94,10 +75,8 @@ const Ed = {
     /* Now everything is loaded, take the list of what the files have. Anything
        that appears after this was made here and has never been exported. */
     Mode.noteWhatIsOnFile();
-    /* Fit again now the panel and the dock are on the page. The first fit ran
-       from load(), before the context chip existed — and what the chrome covers
-       is measured off the real elements, so it was fitting to a map with a
-       different amount of it visible. */
+    /* Fit again now the panel and dock exist, since the chrome they cover is
+       measured off the real elements. */
     View.fit();
     requestAnimationFrame(View.loop);
     /* Last, and asked rather than applied: a bench kept from an earlier session
@@ -105,11 +84,8 @@ const Ed = {
     Bank.offer();
   },
 
-  /* Load a level into the doc and point the camera at it. `first` says this is
-     the one the page opened on, which is the only difference left: it used to
-     suppress an unsaved-changes question, and there is no longer one to ask —
-     a level you have edited goes on the bench when you leave it and comes back
-     off when you return. */
+  /* Load a level and point the camera at it. `first` marks the page's first
+     level. */
   open(id, first) { this.load(id, first); },
   load(id, first) {
     Doc.stash();                         /* keep the level you are walking away from */
@@ -117,10 +93,8 @@ const Ed = {
     Doc.resume();                        /* and take back anything kept for this one */
     Doc.rebuild();
 
-    /* Stand the player on the level's first arrival point. Two reasons, and
-       neither is decoration: the wall fade is computed from P.y, so a player
-       parked at the origin fades every wall on the map, and seeing where a
-       shift actually begins is half of judging whether a level works. */
+    /* Stand the player on the first arrival point: the wall fade reads P.y, and
+       seeing where a shift begins matters. */
     const e = Doc.entries.start || Object.values(Doc.entries)[0] || [1.5, 1.5];
     P.x = e[0] * TILE; P.y = e[1] * TILE;
     /* Nobody is at work in the editor. NPCM.list is presence, and an empty list
@@ -130,10 +104,7 @@ const Ed = {
     Sel.kind = null; Sel.i = -1; Sel.name = null;
     View.fit();
 
-    /* A bookmark is a level. Wrapped because this is the one line that depends
-       on where the page is being served from: a sandboxed frame refuses
-       replaceState outright, and the editor works perfectly well without a
-       shareable URL. */
+    /* A bookmark is a level. A sandboxed frame refuses replaceState; that is fine. */
     try {
       const url = new URL(location.href);
       url.searchParams.set('level', id);
@@ -144,12 +115,8 @@ const Ed = {
     if (!first) Side.refresh();
   },
 
-  /* A blank level, added to the catalogue in memory only. Nothing here writes
-     to data/levels.js — the export is the deliverable, exactly as it is for the
-     levels that already exist, and the tab is the only place this exists until
-     you paste it. The Level tab says so.
-     One room inset by a tile, because a room that reaches the edge of the map
-     has no wall to draw on that side and the whole thing reads as unenclosed. */
+  /* A blank level, in memory only until exported: one room inset a tile so it
+     has walls. */
   newLevel() {
     Ask.form('A new level', [
       { k: 'id', label: 'id', value: '', hint: 'how the catalogue keys it, e.g. carPark' },
@@ -180,11 +147,8 @@ const Ed = {
     });
   },
 
-  /* A copy of what is on screen, added to the catalogue in memory. Taken from
-     the DOC rather than from the catalogue entry, so what is copied is the level
-     as you have it now — flattened, which is the only form the editor can
-     round-trip anyway, and which frees the copy from sharing ROOM_DEFS with the
-     original. */
+  /* A copy of the level as it is now, from the doc (flattened, with its own
+     floor plan). */
   duplicateLevel() {
     Ask.form('Duplicate ' + Doc.name, [
       { k: 'id', label: 'new id', value: Doc.id + 'Copy', hint: 'how the catalogue keys it' },
@@ -196,21 +160,9 @@ const Ed = {
       if (LEVELS[id]) { Side.say('There is already a level called ' + id + '.'); return; }
       const objects = clone(Doc.objects).map(o => { delete o._k; return o; });
       const desks = clone(Doc.desks);
-      /* The mass the level's own furnish() put back — the buildings, which are
-         not rooms and cannot be. Without it the copy is the town with every
-         house missing, and the shopfronts that were leaning on those walls fall
-         back to the floor. See Doc.load(). */
+      /* The mass the furnish put back (Doc.load()). */
       const mass = clone(Doc.mass || []), carved = clone(Doc.carved || []);
-      /* THE FIELDS COME FROM Doc.def(), not from a second list written out
-         here. This had its own list and it was four fields short: a duplicated
-         outdoor level lost its road markings, its roofs, its parked cars, its
-         pedestrians and its traffic lights, silently, because every one of them
-         was added to the document after this was written and nothing brought
-         the two lists back together. One list, in the one place that says what
-         a document IS as a level.
-
-         Cloned on the way through, because a copy that shares its rooms array
-         with the original is a copy that edits it. */
+      /* Fields from Doc.def(), the one definition of a level document. */
       const src = Doc.def();
       const copy = {};
       Object.keys(src).forEach(k => { if (k !== 'furnish') copy[k] = clone(src[k]); });
@@ -275,9 +227,7 @@ const Ed = {
     });
   },
 
-  /* Every `kind` the game uses, for the inspector's autocomplete. FURN is the
-     authority on which ones are furnished specially; the rest are kinds that
-     exist only as a label on an object, and both are legitimate. */
+  /* Every `kind` in use, for autocomplete: FURN's and label-only ones. */
   kindList() {
     const kinds = new Set(Object.keys(FURN));
     Palette.items.forEach(it => kinds.add(it.kind));
@@ -297,9 +247,6 @@ window.addEventListener('beforeunload', e => {
   e.returnValue = '';
 });
 
-/* Not just the listener. These scripts are inline in the body, so ordinarily the
-   event is still to come — but a host that injects this page rather than serving
-   it can have finished parsing before any of it runs, and then the listener is
-   registered for an event that has already happened and nothing ever starts. */
+/* A host that injects this page may finish parsing before the scripts run. */
 if (document.readyState === 'loading') addEventListener('DOMContentLoaded', () => Ed.init());
 else Ed.init();

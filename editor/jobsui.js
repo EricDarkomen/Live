@@ -1,14 +1,7 @@
 'use strict';
 /* ---------------- The job editor's panes ----------------
-   The list of jobs is the workspace — the thing you browse, where the map is in
-   Levels mode — and the panel edits the one you picked. Same arrangement, same
-   bottom sheet on a phone, same Check and Export tabs.
-
-   The one thing this pane is opinionated about is that a STEP and its TRACKER
-   TARGET are one thing shown as one thing. They are two parallel arrays in
-   data/items.js and that is fine in a file; on screen it is the fault the check
-   exists to catch, so here a step is a card with its target inside it and the
-   two can only be added, deleted and reordered together. */
+   The job list is the workspace; the panel edits the pick. A step and its
+   tracker target are one card, added, deleted and reordered together. */
 
 const JobsUI = {
   refresh() {
@@ -46,9 +39,9 @@ const JobsUI = {
 
   /* ---- the panel: one job, all of it ---- */
   OPTS: {
-    npc: () => (typeof NPCS !== 'undefined' ? NPCS : []).map(p => [p.id, p.name || p.id]),
+    npc: () => NPCS.map(p => [p.id, p.name || p.id]),
     obj: () => Palette.uses.map(u => [u, u + '  (' + (Palette.useLevel.get(u) || '?') + ')']),
-    wp: () => Object.keys(typeof WP !== 'undefined' ? WP : {}).map(k => [k, k]),
+    wp: () => Object.keys(WP).map(k => [k, k]),
   },
   sel(name, value, pairs, blank) {
     return '<select ' + name + '>'
@@ -79,7 +72,7 @@ const JobsUI = {
       + Side.row('xp', '<input type="number" data-r="xp" value="' + (Jobs.rw.xp || 0) + '" min="0">')
       + Side.row('money', '<input type="number" data-r="money" value="' + (Jobs.rw.money || 0) + '" min="0">')
       + Side.row('item', this.sel('data-r="item"', Jobs.rw.item || '',
-        Object.keys(typeof ITEMS !== 'undefined' ? ITEMS : {}).map(k => [k, (ITEMS[k].e || '') + ' ' + ITEMS[k].n]),
+        Object.keys(ITEMS).map(k => [k, (ITEMS[k].e || '') + ' ' + ITEMS[k].n]),
         'nothing'))
       + '<h4>Where the writing touches it</h4>'
       + this.wiring(w)
@@ -145,13 +138,8 @@ const JobsUI = {
   /* The cross-reference. Nothing in data/items.js says which line of dialogue
      starts a job, so this is the only place the answer is written down. */
   wiring(w) {
-    /* An empty hook used to be a dead end: it said "nothing starts it" and left
-       you to work out what that meant and where to type it. It is one line of
-       code, this tool knows exactly what that line is, and it cannot write it —
-       a do() is captured source and regenerating it is the one thing the editor
-       must not do. So it shows the line instead. `.pane code` is one of the few
-       things on this page you are allowed to select, which is what makes that
-       an offer rather than a description. */
+    /* An unwired hook shows the exact line to add (a do() is code the editor
+       will not write), in selectable `.pane code`. */
     const call = fn => '<code>Q.' + fn + '(' + Emit.str(Jobs.id) + ')</code>';
     const group = (label, list, fn, empty) => '<div class="wire">'
       + '<span class="wire-k">' + esc(label) + '</span>'

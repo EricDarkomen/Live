@@ -1,14 +1,8 @@
 'use strict';
 /* ---------------- What is wrong with this level ----------------
-   The faults worth a tool are the ones you cannot see. A sealed room looks
-   exactly like a room; a waypoint inside a sink looks like a sink. Both shipped,
-   and both were found by walking World.isSolid outward from the spawn and asking
-   what could not be reached — so that fill is the first thing here, and it runs
-   on every edit rather than at the end.
-
-   These are the same invariants the `levels` and `systems` suites assert. The
-   suites are the backstop; this is the version that tells you while your hand is
-   still on the mouse. */
+   The faults you cannot see: a sealed room looks like a room, a waypoint in a
+   sink looks like a sink. The flood fill runs on every edit. The `levels` and
+   `systems` suites assert the same invariants as a backstop. */
 
 const Check = {
   /* Last result, for the overlay and the panel. */
@@ -43,16 +37,10 @@ const Check = {
   },
 
   /* ---- connectivity ----
-     Not "which tiles can be reached from an arrival point", which is the
-     question this asked first and the wrong one: the fourth floor has an entry
-     INSIDE the archive (you climb out of the hatch there), so sealing the
-     archive door — the exact bug the Christmas decorations caused — left every
-     tile still reachable from one entry or the other and the check said nothing.
-
-     The right question is how many separate pieces the walkable floor is in. A
-     level is one piece. A piece with no arrival point in it is floor nobody can
-     ever stand on; two pieces that both have one are two places you cannot walk
-     between, which is a building with a sealed room in it however you arrived. */
+     How many separate pieces the walkable floor is in; a level is one. A piece
+     with no arrival point is floor nobody can reach; two pieces with arrival
+     points are a sealed room. (Reachability from any entry misses a sealed
+     room that has its own entry.) */
   connectivity() {
     const walk = (x, y) => x >= 0 && y >= 0 && x < MAPW && y < MAPH && !World.isSolid(x, y);
     const owner = new Map();
@@ -118,9 +106,7 @@ const Check = {
   },
 
   /* ---- arrival points ----
-     A level that will not load leaves the previous one on screen, and nothing
-     about that reads as an error — which is how a shift saved in the basement
-     came back on the fourth floor. */
+     A level that will not load leaves the previous one on screen, silently. */
   entries() {
     const names = Object.keys(Doc.entries);
     if (!names.length) {
@@ -139,20 +125,11 @@ const Check = {
   },
 
   /* ---- waypoints ----
-     The other fault the flood fill found, and the one that is hardest to see:
-     WP.looSink pointed AT the sink rather than in front of it, so everyone who
-     walked there shuffled into the basin until the stuck timer gave up and
-     stood them in it. NPC movement is greedy rather than pathfound — nobody
-     routes around anything — so a waypoint has to be floor, and it has to be
-     floor on the same piece of floor as everybody else. */
+     A waypoint must be floor, on the same piece as everybody else, not on the
+     object itself. */
   waypoints() {
-    /* WHICH FLOOR IT IS ON. A waypoint is [x, y] on the hub and [x, y, level]
-       anywhere else — see WP in data/world.js, and the three on the fifth floor
-       and the ground floor that two people's days name. Asking whether the
-       fifth floor's `mgmt` is standing on floor of the FOURTH is asking the
-       wrong map, and it answers no every time: [15,7] is a desk up here and a
-       stairwell down there. Anything that names another level is that level's
-       to check, and it is checked when that level is the one open. */
+    /* A waypoint is [x, y] on the hub and [x, y, level] elsewhere (WP in
+       data/world.js); only this level's are checked here. */
     const here = Doc.id || (Levels.ids && Levels.ids().find(id => (Levels.def(id) || {}).hub)) || 'office';
     for (const k in Doc.waypoints) {
       const w = Doc.waypoints[k];
@@ -172,10 +149,7 @@ const Check = {
   },
 
   /* ---- can you get to the things ----
-     An object you cannot stand beside is an act nobody will ever read. Checked
-     against the fill rather than against the map, because "there is floor next
-     to it" and "there is floor next to it that you can reach" are different
-     questions and only the second one matters. */
+     An object with no reachable floor beside it is an act nobody reads. */
   reach() {
     const standable = o => {
       const sides = [[o.x, o.y - 1], [o.x, o.y + 1], [o.x - 1, o.y], [o.x + 1, o.y]];
@@ -183,12 +157,8 @@ const Check = {
       if (!o.solid) sides.push([o.x, o.y]);
       return sides.some(([x, y]) => this.walkableAndReached(x, y));
     };
-    /* Every `use` somebody can actually get to. TWO objects may be one thing:
-       the parade's doors sit IN the wall with the shop's sign on the tile
-       below, both carrying the same `use`, because pressing E on the door and
-       pressing E on the sign over it are the same act. Asking each object on
-       its own called sixteen shipped shopfronts unreachable — the act is read
-       every time. What matters is whether the HANDLER can be reached. */
+    /* By handler: a shop's door and its sign share a `use`, so one reachable is
+       enough. */
     const reachable = new Set();
     Doc.objects.forEach(o => { if (o.use && standable(o)) reachable.add(o.use); });
     Doc.objects.forEach((o, i) => {
@@ -200,21 +170,10 @@ const Check = {
   },
 
   /* ---- things on walls ----
-     World.build() resolves which face a wall-mounted object hangs on and quietly
-     drops it to the floor when there is no wall on any of the four sides. Quiet
-     is the problem: it looks like a poster lying in the middle of the carpet.
-
-     Two kinds are exempt, and both for a reason rather than because they
-     happened to fire: R.wallArt() draws a little stand under a `sign` with no
-     wall, which is what the HOT DESKING sign in the middle of the main floor
-     is; and a `pigeon` on a wall is a pigeon on a ledge while a pigeon on the
-     road is a pigeon. Anything else lying on the carpet is an accident. */
+     World.build() drops a wall-mounted object with no wall to the floor,
+     silently. Exempt: `sign` (R.wallArt() gives it a stand) and `pigeon`. */
   FREESTANDING: ['sign', 'pigeon'],
-  /* Asked of the BUILT object, not of FURN[kind]. `furn:` on an object
-     overrules its kind, and the fire extinguisher propping the fire door is
-     `mount: null` on purpose — a version reading the kind alone calls that a
-     fault, which is a validator crying wolf on the shipped game. The object
-     editor asks this same question of the same objects, so it asks it here. */
+  /* Asked of the built object: an object's `furn:` overrides its kind. */
   stranded(built) {
     if (!built || this.FREESTANDING.indexOf(built.kind) >= 0) return false;
     return (built.fdef || {}).mount === 'wall' && !built.wallSide;
@@ -228,9 +187,7 @@ const Check = {
   },
 
   /* ---- a window has to have somewhere to look ----
-     The corridor window hung on the corridor's south wall with the toilets on
-     the other side. Step two tiles through the wall it is on: if there is a room
-     back there, it is an interior window into the loos. */
+     Two tiles through its wall: a room there makes it an interior window. */
   windows() {
     const step = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] };
     Doc.objects.forEach((o, i) => {
@@ -261,39 +218,23 @@ const Check = {
         this.fault('error', 'Link “' + l.via + '” arrives at “' + l.entry
           + '”, which ' + l.to + ' does not declare.', []);
       }
-      /* THREE ways a link gets taken, and only the first is an object whose
-         handler IS the link. A door on the parade declares which link it is
-         with `via:` and keeps the shop's own handler, so one shop that moves
-         moves in one place; and a frontage with no door object at all — the
-         Greggs across the road — calls Levels.take() from inside its act.
-         Asking only the first called fourteen shipped doors unusable. */
+      /* Three ways a link is taken: an object whose handler is the link, an object
+         naming it with `via:`, or an act calling Levels.take() (the Greggs). */
       if (Doc.objects.some(o => o.use === l.via || o.via === l.via)) return;
-      if (typeof Writing !== 'undefined'
-        && Writing.calls('Levels', 'take').some(c => c.id === l.via)) return;
-      /* AND THE LIFT, which takes a link nothing names. Its act reads FLOORS
-         in data/world.js and calls Levels.take(f.via) with whatever it finds
-         there, so a scan for the literal finds nothing and this warned about
-         all six of the shipped lift links — a validator crying wolf on the
-         game it ships with, which is the one thing that teaches people to
-         stop reading it. A floor in the panel, and a lift on this level to
-         press it in, is a way to take it. */
-      if (typeof FLOORS !== 'undefined' && FLOORS.some(f => f.via === l.via)
+      if (Writing.calls('Levels', 'take').some(c => c.id === l.via)) return;
+      /* And the lift, whose act takes links listed in FLOORS (data/world.js). */
+      if (FLOORS.some(f => f.via === l.via)
         && Doc.objects.some(o => o.use === 'lift')) return;
       this.fault('warn', 'Link “' + l.via + '” has no object on this level with that `use` or '
         + '`via`, and nothing in the writing calls Levels.take(' + Emit.str(l.via) + '), '
         + 'so there is no way to take it.', []);
     });
-    /* There is deliberately no check the other way round — "this looks like a
-       way out and has no link". The lift is exactly that and it is the joke:
-       it asks for a link, finds none, and says so. The day somebody adds a
-       floor it starts working with no code change, and a warning here would
-       have to be suppressed on the one object it would ever fire on. */
+    /* No check the other way ("looks like an exit, has no link"): the lift is
+       exactly that on purpose. */
   },
 
   /* ---- a table you can still read ----
-     Burying every tile of a table hides its own act: you walk up to the
-     birthday cake and are offered the formica. The last tile of a `use` has to
-     stay clear, and it is per `use` rather than per table. */
+     The last tile of each `use` on a table stays clear, or its act is hidden. */
   tables() {
     const byUse = new Map();
     Doc.objects.forEach(o => {
@@ -322,12 +263,8 @@ const Check = {
 
     Doc.rooms.forEach(rm => {
       const [x1, y1, x2, y2] = rm.r;
-      /* A room touching the edge has no wall to draw on that side, and the
-         renderer's boundary is what makes a level read as enclosed. INDOORS
-         only: out of doors there is no ceiling and no boundary to breach — a
-         street that stops short of the edge of the map is a street that stops,
-         and every road in the town runs off it on purpose. Seven roads, seven
-         warnings, on the one level this cannot be true of. */
+      /* A room touching the map edge has no wall there. Indoors only: streets run
+         off the map on purpose. */
       if (Doc.indoors && (x1 < 1 || y1 < 1 || x2 > Doc.w - 2 || y2 > Doc.h - 2))
         this.fault('warn', ((ZONES[rm.z] || {}).name || rm.z)
           + ' reaches the edge of the map, so it has no boundary wall.', []);

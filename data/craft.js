@@ -253,7 +253,7 @@ const Craft = {
      Cheap: one pass over the island's objects a second, and it only changes an
      object when what it should look like has changed. */
   refresh() {
-    if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
+    if (World.level !== 'island' || !World.objects) return;
     for (const o of World.objects) {
       if (o.use === 'palm' || o.use === 'tree') {
         const down = this.felled(o);
@@ -285,7 +285,7 @@ const Craft = {
 
   /* ---- the clock: rent, and Mari's nudge on the second morning ---- */
   update() {
-    if (typeof G === 'undefined' || !G.flags || G.state === 'title' || G.state === 'name') return;
+    if (!G.flags || G.state === 'title' || G.state === 'name') return;
     if (G.day >= 2 && !G.flags.workshop && G.minutes % 1440 >= DAY_START) {
       this.intro();
       UI.toast('💃', 'Mari: “Rafa’s yard is behind the garden — his workbench, his kiln, and a board of plans he never finished. The shore is covered in driftwood. Just saying.”');
@@ -434,16 +434,16 @@ const MATERIALS = ['sticks', 'frond', 'fibre', 'stone', 'shells', 'clay', 'log',
 /* ---------------- Building ---------------- */
 const Build = {
   built() { return (G.flags.built = G.flags.built || {}); },
-  has(site) { return typeof G !== 'undefined' && !!(G.flags && G.flags.built && G.flags.built[site] !== undefined); },
+  has(site) { return !!(G.flags && G.flags.built && G.flags.built[site] !== undefined); },
   /* Every site of a project, from the objects the island was built with — so
      the plans know about a site you have not walked past yet. */
   sites(proj) {
-    const def = typeof LEVELS !== 'undefined' && LEVELS.island;
+    const def = LEVELS.island;
     if (!this._sites && def && def.sites) this._sites = def.sites;
     return (this._sites || []).filter(s => s.proj === proj).map(s => s.site);
   },
   refresh() {
-    if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
+    if (World.level !== 'island' || !World.objects) return;
     for (const o of World.objects) {
       if (!o.site || o.builtAs) continue;
       /* Unbuilt, a site says what it is going to be. */
@@ -455,7 +455,7 @@ const Build = {
       o.mount = null;
       delete o._foot;
     }
-    if (typeof Garden !== 'undefined') Garden.refresh();
+    Garden.refresh();
   },
   act(o) {
     Craft.intro();
@@ -544,11 +544,3 @@ Craft.stump = function (o) {
     'It will be a proper tree again in about ' + clockDur(this.back(o, type)) + '. The island is not in a hurry.']);
 };
 
-/* How much more a guest tips under a roof that does not leak — wrapping the
-   farm's stocked-bar bonus in data/farm.js. */
-{
-  const base = Farm.tipMult;
-  Farm.tipMult = () => base() * (Build.has('roof') ? ROOF_TIPS : 1);
-}
-
-setInterval(() => { try { Craft.update(); Craft.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1000);

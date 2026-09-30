@@ -1,44 +1,25 @@
 'use strict';
 /* ---------------- The conversation being edited ----------------
-   A person in data/npcs.js is a definition plus a tree of nodes, and the tree
-   is two things at once. Most of it is prose and structure — pages of text,
-   labelled choices, and a `to` naming the next node — and that part is plain
-   data that round-trips exactly, the same way a level's geometry does.
-
-   The rest is CODE. `do()` sets flags, gives items, starts jobs and moves the
-   plot on; `if:` decides whether a choice is offered; a `text` that is a
-   function is `pick([...])` over a dozen one-liners. Those are captured as
-   SOURCE and carried through verbatim — never regenerated, and never run here.
-   That is the same call `Emit` already makes about a procedural `furnish()`,
-   for the same reason: this tool cannot write that code, and an editor that
-   quietly replaced it with something it could write would be destroying the
-   half of the file that is worth the most.
-
-   Two consequences worth knowing before you use it. Editing a `do()` here edits
-   the text that will be exported and nothing else — the checks read it, the
-   preview does not run it. And nothing is written back into NPCS: the doc is a
-   capture, the export is the deliverable, and Revert is a reload. */
+   A person in data/npcs.js is a definition plus a tree of nodes. Prose,
+   choices and `to` links are data and round-trip exactly. `do()`, `if:` and
+   function `text` are code, captured as source and carried through verbatim,
+   never run or regenerated here. Editing a `do()` edits exported text only.
+   Nothing is written into NPCS: the export is the deliverable, Revert reloads. */
 
 const Talk = {
   id: null,
   name: '', role: '', face: '', lines: [],
-  /* A person is not only what they say. Where they sit, what colour their dot
-     is on the minimap and where they walk during the day are all in the same
-     entry in data/npcs.js, and all three are invisible from the dialogue —
-     which is exactly why they belong here: a colleague whose schedule names a
-     waypoint that no longer exists simply stands at their desk all day, and
-     nothing about that reads as a fault. */
+  /* Desk, minimap colour and schedule live in the same entry and fail silently
+     (a schedule naming a missing waypoint leaves them at their desk all day). */
   desk: [1, 1], colour: '#8d9bb5', schedule: [],
   entrySrc: null,
-  /* Node ids in the order the file declares them. An object's key order is
-     stable in practice, but the export has to be a diff against the original
-     block and that means the order is part of the document, not a detail. */
+  /* Node ids in file order, so the export diffs cleanly. */
   order: [],
   nodes: {},
   base: null, undoStack: [], redoStack: [],
 
-  ids() { return (typeof NPCS !== 'undefined' ? NPCS : []).map(p => p.id); },
-  person(id) { return (typeof NPCS !== 'undefined' ? NPCS : []).find(p => p.id === (id || this.id)); },
+  ids() { return NPCS.map(p => p.id); },
+  person(id) { return NPCS.find(p => p.id === (id || this.id)); },
 
   /* ---- capture ---- */
   load(id) {
@@ -54,35 +35,19 @@ const Talk = {
     /* [minutes, where] pairs. `desk` is the one destination that is not a
        waypoint: it means their own, wherever that has been moved to. */
     this.schedule = clone(p.schedule || []);
-    /* WHETHER THE FILE HAD THEM AT ALL, which is not the same question as
-       whether they are empty. Six of the people in this game are shopkeepers
-       with no day and nothing to say unprompted, and their definitions simply
-       have no `schedule` and no `lines` — so an export that writes `schedule:
-       []` for them is an export that does not reproduce the file it read. It
-       is harmless at runtime and it is still wrong: the round-trip check
-       compares the two and six people failed it, which is the check doing
-       exactly its job. An emitter must not invent a field any more than it may
-       drop one. */
+    /* Whether the file had `schedule` and `lines` at all: shopkeepers have
+       neither, and the export must not invent empty ones. */
     this.hadSchedule = Array.isArray(p.schedule);
     this.hadLines = Array.isArray(p.lines);
     this.entrySrc = typeof p.entry === 'function' ? String(p.entry) : null;
-    /* EVERYTHING THIS EDITOR DOES NOT MODEL, KEPT VERBATIM.
-       emit.talkPerson() writes a fixed list of fields, so any field added to a
-       def that this file has not been taught about is silently dropped the
-       first time somebody saves the roster — which is how a person's `look:`
-       or `out:` would quietly disappear and nobody would find out until the
-       game booted without them. The fix is a passthrough rather than five more
-       named fields, so the NEXT one added never has to touch the editor at
-       all. `entry` and `nodes` are excluded because they are functions and
-       trees this file does model, a piece at a time. */
+    /* Every field this editor does not model, kept verbatim and written back, so
+       new fields never need editor changes. `entry` and `nodes` are modelled. */
     const MODELLED = ['id', 'name', 'role', 'face', 'lines', 'desk', 'colour', 'schedule', 'entry', 'nodes'];
     this.extra = {};
     Object.keys(p).forEach(k => { if (MODELLED.indexOf(k) < 0) this.extra[k] = capture(p[k]); });
-    /* A person built by islander() in data/npcs.js has nodes the FILE does not
-       — flirt, gift, practise, date, and `again` when they do not write their
-       own. They are loaded like any other so every link into them checks, and
-       listed here so the export writes the person back as islander(…) without
-       them: see Talk.inherited() and Emit.talkPerson(). */
+    /* islander() people get inherited nodes (flirt, gift, practise, date,
+       `again`): loaded so links check, and omitted on export (Talk.inherited(),
+       Emit.talkPerson()). */
     this.wrap = p.islander ? { who: p.islander.who } : null;
     this.made = p.islander ? p.islander.made.slice() : [];
     this.order = Object.keys(p.nodes || {});
@@ -136,9 +101,7 @@ const Talk = {
     const t = (n.text || [])[0] || '';
     return t.length > 90 ? t.slice(0, 88) + '…' : t;
   },
-  /* Where a node can be entered from: every `to` that names it, on a node or on
-     a choice. The answer to "how does anybody get here", which is the question
-     a tree of two hundred and fifty nodes cannot answer by looking. */
+  /* Where a node is entered from: every `to` naming it. */
   incoming(id) {
     const out = [];
     this.order.forEach(k => {
@@ -156,10 +119,8 @@ const Talk = {
     (n.choices || []).forEach((c, i) => { if (c.to) out.push({ to: c.to, via: i }); });
     return out;
   },
-  /* Which nodes a conversation can START at. Dialogue.openNPC() calls entry()
-     and falls back to `again`, so the roots are every node id entry() could
-     return — read out of its source as quoted literals, since it is code and
-     this does not run code — plus `again` itself. */
+  /* Nodes a conversation can start at: the quoted literals entry() can return,
+     plus `again` (Dialogue.openNPC()'s fallback). */
   roots() {
     const found = new Set();
     if (this.entrySrc) {
@@ -199,9 +160,7 @@ const Talk = {
     this.desk = [x, y];
     this.rebuild();
   },
-  /* The schedule is an ordered list of [minute, destination]. Ordered matters:
-     NPCM.update walks it forwards and takes the last entry whose time has
-     passed, so one out of order is a stop that never happens. */
+  /* The schedule is ordered [minute, destination]; NPCM takes the last passed. */
   setStop(i, k, v) {
     if (!this.schedule[i]) return false;
     this.mark('edit the schedule');
@@ -224,11 +183,9 @@ const Talk = {
     this.rebuild();
     return true;
   },
-  /* Which sheet draws them, if any. Read from the game's own tables rather than
-     from a list here, so importing a sheet in the Art tab shows up immediately
-     and a person with no row reads as what they are: an emoji among sprites. */
+  /* Which sheet draws them, from the game's tables. */
   sprite() {
-    const r = typeof Sprites !== 'undefined' && Sprites.rows.get(this.id);
+    const r = Sprites.rows.get(this.id);
     return r ? { sheet: r.sheet.id, row: r.row, ok: r.sheet.ok } : null;
   },
   setLines(list) {
@@ -311,12 +268,8 @@ const Talk = {
     this.rebuild();
     return true;
   },
-  /* Renaming a node rewrites every `to` that named it. It also rewrites the
-     quoted literal inside entry(), which is the one place this tool touches
-     code — a mechanical substitution on a string literal, not generated logic,
-     and the check would otherwise report the conversation as having no way in.
-     Anything else naming the node (a `do()` that sets a flag read by entry) is
-     out of reach, so the panel says the rename happened and where to look. */
+  /* Renaming a node rewrites every `to` and the quoted literal in entry(): a
+     mechanical substitution. Other code naming it is reported, not changed. */
   renameNode(from, to) {
     if (!this.nodes[from] || this.nodes[to] || !/^[A-Za-z_$][\w$]*$/.test(to)) return false;
     this.mark('rename ' + from);
@@ -340,14 +293,9 @@ const Talk = {
 Object.assign(Talk, HIST);
 
 /* ---------------- What is wrong with a conversation ----------------
-   The same shape of fault as everywhere else in this tool: the ones you cannot
-   see. A dangling `to` closes the box instead of going anywhere, which reads as
-   the end of a conversation rather than as a mistake. A node nobody can reach
-   is a page of writing that will never be read, and there is no way to notice
-   by playing. And a `do()` naming an achievement that does not exist THROWS,
-   mid-sentence, in front of the player — Dialogue.setNode catches it and warns
-   to the console, so what the player sees is a line of dialogue that quietly
-   does nothing at all. */
+   A dangling `to` closes the box; an unreachable node is never read; a `do()`
+   naming a missing achievement throws mid-sentence (Dialogue.setNode catches
+   it, so the line silently does nothing). */
 
 const TalkCheck = {
   faults: [], perNode: new Map(),
@@ -369,9 +317,7 @@ const TalkCheck = {
     if (!ids.length) return this;
 
     /* ---- the person, not the tree ----
-       All three are invisible in play until they are wrong, and then they are
-       invisible in a different way: a colleague simply stands still all day, or
-       stands inside a sink, or is an emoji among twenty sprites. */
+       Desk, schedule and sprite: invisible in play until wrong. */
     this.person();
 
     /* ---- the way in ---- */
@@ -445,10 +391,8 @@ const TalkCheck = {
       + 'entry() cannot return it. It is writing nobody will ever see.', { node: k }));
 
     /* ---- what the code names ----
-       Read out of the captured source rather than run, so this is exactly as
-       good as the convention the codebase writes those calls in — a literal
-       first argument, on one line — and no better. Which is why it only ever
-       reports what it FOUND. */
+       Read from captured source by convention (a literal first argument on one
+       line), so it reports only what it finds. */
     ids.forEach(id => {
       const n = Talk.nodes[id];
       const bits = [n.doSrc, n.doneSrc, n.textSrc]
@@ -473,10 +417,8 @@ const TalkCheck = {
 
   /* The half of a person that is not what they say. Checked against the level
      the schedules are for — WP is one table and it is the hub's. */
-  /* WHICH FLOOR THIS PERSON'S DESK IS ON. `level` is one of the fields the
-     dialogue editor carries through without modelling, so it is read off the
-     bag rather than from a property of its own — and its absence means the hub,
-     which is the same default NPCM applies. */
+  /* Which floor their desk is on: `level` from the unmodelled fields, default
+     the hub (as NPCM does). */
   deskLevel() {
     return (Talk.extra && Talk.extra.level) || Levels.hub();
   },
@@ -493,24 +435,8 @@ const TalkCheck = {
       fault('warn', 'Their desk at (' + dx + ',' + dy + ') is off the level that is open. '
         + 'A desk is on the level that person works on, so this is only a fault if that is '
         + 'what you are looking at.');
-    /* Only when THEIR OWN level is the one that is built. `World` is whichever
-       one the level document has open, so on any other level there is nothing
-       to ask and a check that answered anyway would be answering about the
-       wrong floor plan — which is exactly what it did. `Doc.hub` was the first
-       version of this and it is not the question: most people are on the hub
-       and their desk is written in its grid, but Ron is on the door downstairs
-       and two of them work on a different floor entirely. Measured against the
-       fourth floor, their desks landed inside walls that are nowhere near them,
-       and the whole-game sweep reported the shipped game as having two broken
-       people. A validator that cries wolf is worse than none.
-
-       Read off the person rather than from a list here: `level` is one of the
-       fields this editor carries through without modelling, and it is the same
-       field NPCM reads to decide which floor they are on.
-
-       Still not `Levels.current`: the editor never calls Levels.go(), it builds
-       World from the doc, so `current` is null the whole time this page is
-       open. `Doc.id` is the level that is actually built. */
+    /* Only when their own level is the one built (`Doc.id`; Levels.current is
+       null in the editor). Otherwise the check would test the wrong floor plan. */
     } else if (this.deskLevel() === Doc.id && World.isSolid(dx, dy)) {
       fault('error', 'Their desk at (' + dx + ',' + dy + ') is inside something solid. They spawn '
         + 'there and spend the morning shouldering it.');
@@ -524,10 +450,8 @@ const TalkCheck = {
       if (typeof at !== 'number' || at < 0 || at > 1440) {
         fault('error', 'Stop ' + (i + 1) + ' is at ' + at + ', which is not a time of day.', { stop: i });
       } else {
-        /* No bound by the bar's hours: the island's clock runs round the day
-           (engine/boot.js wraps it at midnight) and NPCM.scheduled() takes the
-           last stop that has passed, so Teo at the boat at 08:00 is exactly
-           where he is when you wake. */
+        /* No bound by the bar's hours: the clock wraps at midnight and NPCM takes the
+           last stop passed. */
         if (at <= last) {
           fault('error', 'Stop ' + (i + 1) + ' is at ' + clockStr(at) + ', not after the one before '
             + 'it. NPCM takes the last stop whose time has passed, so one out of order never '
@@ -535,7 +459,7 @@ const TalkCheck = {
         }
         last = at;
       }
-      if (where !== 'desk' && !(typeof WP !== 'undefined' && WP[where])) {
+      if (where !== 'desk' && !(WP[where])) {
         fault('error', 'Stop ' + (i + 1) + ' sends them to “' + where + '”, which is not in WP — '
           + 'so they go to their desk instead, silently, for that whole part of the day.', { stop: i });
       }
@@ -555,27 +479,24 @@ const TalkCheck = {
     }
   },
 
-  /* Every call whose first argument has to name something that exists. Kept as
-     a table because the answer to "what else should be on it" is always another
-     row rather than another block of code. */
+  /* Every call whose first argument must name something that exists. */
   NAMES: [
-    { call: 'Q.start', what: 'there is no such job', has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
+    { call: 'Q.start', what: 'there is no such job', has: id => !!QUESTS[id] },
     { call: 'Q.step', what: 'there is no such job — Q.step returns early, so the line does nothing at all',
-      has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
-    { call: 'Q.complete', what: 'there is no such job', has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
+      has: id => !!QUESTS[id] },
+    { call: 'Q.complete', what: 'there is no such job', has: id => !!QUESTS[id] },
     { call: 'Ach.get', what: 'there is no such achievement — this throws mid-sentence',
-      has: id => typeof ACHS !== 'undefined' && !!ACHS[id] },
+      has: id => !!ACHS[id] },
     { call: 'Item.give', what: 'there is no such item, so it hands over nothing',
-      has: id => typeof ITEMS !== 'undefined' && !!ITEMS[id] },
+      has: id => !!ITEMS[id] },
     { call: 'Rel.add', what: 'there is nobody by that id',
-      has: id => typeof NPCS !== 'undefined' && NPCS.some(p => p.id === id) },
+      has: id => NPCS.some(p => p.id === id) },
     { call: 'Shop.open', what: 'there is no such shop',
-      has: id => typeof SHOP !== 'undefined' && !!SHOP[id] },
+      has: id => !!SHOP[id] },
   ],
 
   levelFor(id) { return this.perNode.get(id) || ''; }
 };
-/* `perNode` is a node id to its worst level rather than to a list of faults —
-   a different shape from the per-subject maps the other checkers badge — so it
-   keeps levelFor() and takes only errors() from FAULTS. */
+/* `perNode` maps a node to its worst level, so it keeps levelFor() and takes
+   only errors() from FAULTS. */
 Object.assign(TalkCheck, FAULTS);

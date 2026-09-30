@@ -1,30 +1,12 @@
 'use strict';
 /* ---------------- Patch Panel ----------------
-   The knot the size of a dog, behind the servers. Somewhere in it one cable is
-   not connected to anything and has not been for a long time.
-
-   The THIRD shape, and the one that matters most to the claim: a TURN-BASED
-   puzzle. No clock, no reflexes, no update loop worth the name — it advances
-   only when you press something. It is written against exactly the same
-   interface as a rhythm game, which is the whole reason that interface has a
-   separate update() and input() rather than one "tick with the keys in it".
-
-   The board is a spanning tree, so it is always solvable and there is always
-   exactly one rotation per cell that is right. That is the classic arrangement
-   and it is chosen for one reason: a scrambled tree cannot be generated into an
-   unsolvable state, so there is no "give up" button to write and no puzzle a
-   player can be trapped in.
-
-   TWO THINGS MAKE IT A PUZZLE RATHER THAN A CHORE, and both were added after
-   playing it. A scrambled tree with every cell loose is solvable greedily,
-   cell by cell, without a thought in your head — three racks came to about a
-   hundred and thirty taps of pure grind. So a quarter of the cells arrive
-   BOLTED: already right, and not turnable. They cut the tapping, and more to
-   the point they are what you reason outward FROM — a bolted elbow tells you
-   what its neighbours have to be, which is the difference between deduction
-   and a rake. And because the board only turns one way, overshooting a cell by
-   one used to cost three more taps; there is an UNDO on the board now, which
-   is the single most irritating thing in this genre fixed for one line. */
+   The knot behind the servers. The turn-based shape: it advances only on a
+   press, through the same interface as a rhythm game (hence separate update()
+   and input()).
+   The board is a spanning tree, so it is always solvable with exactly one
+   right rotation per cell. A quarter of the cells arrive bolted (already
+   right, fixed), which gives you something to reason outward from. Cells only
+   turn clockwise, so there is an undo on the board. */
 
 const MG_PATCH = {
   id: 'patch',
@@ -57,18 +39,14 @@ const MG_PATCH = {
     this.last = null; this.shakeCell = null; this.bolts = 0;
     this.rackAt = 0; this.turns = 0; this.rackScores = [];
     this.surge = 0;                 /* the light running down the patched path */
-    /* A flag AND a time, not a time alone. `solvedAt = a.t` is falsy on the
-       frame the round starts on, so a rack patched before the clock had moved
-       read as unpatched and the game never advanced off it. */
+    /* A flag and a time: `a.t` can be 0 on the first frame. */
     this.solved = false; this.solvedT = 0;
     this.cursor = { x: 0, y: 0 };
     this.spin = [];              /* cells mid-turn, purely for the animation */
     this.build(a);
   },
 
-  /* A randomised depth-first spanning tree over the grid. Every cell ends up on
-     it, so every cell is part of the answer and there is no dead furniture on
-     the board to waste the player's time. */
+  /* A randomised depth-first spanning tree: every cell is part of the answer. */
   build(a) {
     const n = this.SIZES[this.rack];
     this.n = n;
@@ -93,17 +71,12 @@ const MG_PATCH = {
       seen[idx(o.x, o.y)] = 1;
       stack.push({ x: o.x, y: o.y });
     }
-    /* The rack feeds in at the left of the top row and the panel is at the
-       right of the bottom one — the two ends are always the two corners, so a
-       player never has to hunt for what they are joining up. */
+    /* The feed is the top-left corner and the panel the bottom-right. */
     this.src = { x: 0, y: 0 };
     this.sink = { x: n - 1, y: n - 1 };
 
-    /* Scramble. The par comes out of it for nothing: a cell turned clockwise k
-       times is (4 - k) more turns from being right again, and the board only
-       turns one way, so the sum of those IS the shortest way back. It is
-       accumulated per cell rather than per pass, because a second pass turns an
-       already-turned cell and the two do not add up to either one of them. */
+    /* Scramble. Par falls out of it: a cell turned k times is (4 - k) turns from
+       right. Accumulated per cell, since passes do not add up. */
     this.cells = cells;
     let tries = 0;
     do {
@@ -123,15 +96,9 @@ const MG_PATCH = {
         if (!this.power()) break;
       }
     }
-    /* BOLTED. A quarter of the cells, chosen after the scramble and put back to
-       right, so they are anchors rather than obstacles: every one of them is a
-       fact about its neighbours that you get for free. Never the two ends —
-       those are already fixed points and bolting them says nothing — and never
-       a cell with one link, because a bolted leaf tells you nothing either. */
-    /* A quarter of the rack, plus one per rank of the cabinet's skill. It is
-       wired to Troubleshooting, which is exactly the fiction: the better you
-       are at this, the more of it you can see is already right without having
-       to touch it. */
+    /* Bolted cells: a quarter of the rack plus one per rank of Troubleshooting,
+       chosen after the scramble and put back right. Never the two ends, never a
+       leaf. */
     const want = Math.round(n * n * 0.24) + (a && a.skill ? a.skill : 0);
     const eligible = [];
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
@@ -194,9 +161,7 @@ const MG_PATCH = {
   input(a, ev) {
     if (this.solved) return;                /* the rack is celebrating; let it */
     if (ev.kind === 'point' && ev.down) {
-      /* The undo is ON THE BOARD rather than a declared pad, because this is
-         the pointer-first game: its controls belong on the thing you are
-         pointing at, exactly as the inbox draws its three verbs. */
+      /* Undo is on the board, not a pad: this is the pointer-first game. */
       const u = this.undoBox(a);
       if (ev.x >= u.x && ev.x <= u.x + u.w && ev.y >= u.y && ev.y <= u.y + u.h) {
         this.undo(a);
@@ -219,10 +184,8 @@ const MG_PATCH = {
     if (ev.code === 'Space' || ev.code === 'Enter') this.turn(a, this.cursor.x, this.cursor.y);
   },
 
-  /* One turn back the way it came. Not a general undo stack: the board only
-     turns clockwise, so the fault this fixes is the specific one of going one
-     past — and the fix for that is the cell you just touched, turned back. It
-     costs a move like any other turn, because it IS one. */
+  /* One turn back on the last cell touched (the fix for going one past); it
+     costs a move. */
   undo(a) {
     const at = this.last;
     if (!at) { a.sfx.bad(); return; }
@@ -269,16 +232,8 @@ const MG_PATCH = {
     }
     if (this.surge > 0) this.surge = Math.max(0, this.surge - dt * 1.4);
     if (!this.solved || a.t - this.solvedT < .9) return;
-    /* Score the rack, then either move up a size or finish. Over par costs a
-       little per extra turn and never goes negative — a puzzle that can be
-       finished with a negative score is a puzzle nobody finishes twice.
-
-       There is no clock on this game and there should not be: it is the
-       turn-based one, and a timer would make it the other two. But a rack
-       patched briskly IS worth more than the same rack patched over five
-       minutes, so there is a bonus for it rather than a penalty against it —
-       the difference between a game that rewards you for being quick and one
-       that punishes you for thinking. */
+    /* Score the rack, then size up or finish. Over par costs a little per turn,
+       never below zero. No clock, but a quick solve earns a bonus. */
     const spent = a.t - this.rackAt;
     const over = Math.max(0, this.moves - this.parMoves);
     const brisk = Math.round(clamp(1 - spent / (this.parMoves * 2.6), 0, 1) * 180);
@@ -347,9 +302,7 @@ const MG_PATCH = {
 
     /* the cabinet the whole thing sits in */
     p.box(g, G.x - 8, G.y - 8, G.w + 16, G.w + 16, 8, 'rgba(0,0,0,.35)', p.line);
-    /* A scrambled cable can point at the wall — that IS the mistake you are
-       there to fix — but drawn past the cabinet it reads as the renderer being
-       broken rather than the cable. Clipped to the rack. */
+    /* Cables are clipped to the rack. */
     g.save();
     g.beginPath(); g.rect(G.x, G.y, G.w, G.w); g.clip();
 
@@ -377,10 +330,7 @@ const MG_PATCH = {
       const lit = c.lit;
       g.lineCap = 'round';
       g.lineWidth = Math.max(3, G.s * .17);
-      /* The whole rack flares green for a moment when it comes good. Without
-         it the only thing that changes on the frame you solve it is one small
-         box in the corner going from red to green, which on a phone in a lit
-         room is not a thing anybody sees. */
+      /* The rack flares green when solved, visibly. */
       g.strokeStyle = lit ? (this.surge > 0 ? p.good : p.hold) : '#3d4a63';
       if (lit) {
         g.shadowColor = this.surge > 0 ? p.good : p.hold;
@@ -398,9 +348,7 @@ const MG_PATCH = {
          corner are told apart at a glance on a 320px screen. */
       g.fillStyle = lit ? (this.surge > 0 ? p.good : p.hold) : '#4b5a77';
       g.beginPath(); g.arc(0, 0, Math.max(2.5, G.s * .11), 0, 6.284); g.fill();
-      /* A bolt through the hub. It has to read at 40px on a phone and it has to
-         read as FIXED rather than as decoration, so it is a ring and a cross —
-         the head of a screw, which is what it is. */
+      /* A bolt: a ring and a cross, legible at 40px. */
       if (c.bolt) {
         const r = Math.max(3.5, G.s * .17);
         g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.5;
@@ -427,9 +375,7 @@ const MG_PATCH = {
     endBox(G.x + G.s * (this.sink.x + .5), G.y + G.s * (this.sink.y + .5), 'OUT',
       done ? p.good : p.bad, done);
 
-    /* The undo, on the board. Disabled until there is something to take back,
-       and it says which — "turn back" is a different promise from "undo", and
-       this one only ever unwinds the cell you last touched. */
+    /* The undo button, disabled until there is something to turn back. */
     const u = this.undoBox(a);
     const can = !!this.last;
     p.box(g, u.x, u.y, u.w, u.h, 7, can ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.02)',
@@ -462,7 +408,7 @@ const MG_PATCH = {
         toast: 'You put the knot back roughly as you found it. Mari sighs.' };
     }
     Ach.get('a_patched');
-    if (typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
+    if (Arcade.clearedAll()) Ach.get('a_arcade');
     return {
       xp: 45 + Math.round(60 * share),
       money: Math.round(share * 150) / 100,
