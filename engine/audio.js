@@ -1,11 +1,10 @@
 'use strict';
-/* ---------------- AudioSystem ---------------- */
+/* ---------------- Sound: synthesised, no files ---------------- */
 const Sfx = {
   ctx: null, on: true, music: true, holdTimer: null, master: null, volume: 0.32,
   init() {
     if (this.ctx) {
-      /* Browsers suspend the context when the tab is backgrounded, and start it
-         suspended if it was ever created outside a gesture. Always try to wake it. */
+      /* Suspended in a background tab, or if made outside a gesture: wake it. */
       if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
       return;
     }
@@ -45,17 +44,13 @@ const Sfx = {
   step() { this.noise(0.05, 0.045); },
   blip() { this.tone(520, 0.06, 'square', 0.28); },
   talk() { this.tone(ri(300, 460), 0.035, 'square', 0.12); },
-  /* The opening types its captions like the dialogue box does, but a whole
-     minute of them at dialogue volume is a chattering machine rather than a
-     film. Lower and a good deal quieter — under the room, not on top of it. */
+  /* The opening's typing: lower and quieter than dialogue, under the room. */
   type() { this.tone(ri(196, 240), 0.03, 'square', 0.05); },
-  /* A beat landing. One low note with a fifth under it, short enough that
-     twelve of them in ninety seconds do not become a rhythm. */
+  /* A beat landing: one low note with a fifth under it. */
   cut() { this.tone(174, 0.34, 'sine', 0.11); this.tone(116, 0.4, 'sine', 0.07, 0.02); },
   select() { this.tone(680, 0.07, 'triangle', 0.3); this.tone(920, 0.06, 'triangle', 0.22, 0.05); },
   deny() { this.tone(180, 0.16, 'sawtooth', 0.25, 0, -60); },
-  /* A guest at the bar: the brass service bell, struck once, bright and
-     ringing on — not a telephone. */
+  /* A guest at the bar: the brass service bell, struck once. */
   ring() {
     this.tone(1568, 0.7, 'sine', 0.22); this.tone(2349, 0.45, 'sine', 0.08); this.tone(3136, 0.25, 'sine', 0.04);
   },
@@ -68,18 +63,20 @@ const Sfx = {
   notify() { this.tone(988, 0.08, 'sine', 0.28); this.tone(1319, 0.12, 'sine', 0.24, 0.07); },
   bad() { this.tone(200, 0.2, 'sawtooth', 0.28); this.tone(150, 0.3, 'sawtooth', 0.24, 0.12); },
   cash() { this.tone(1200, 0.05, 'square', 0.2); this.tone(1600, 0.08, 'square', 0.18, 0.05); },
-  /* ---- the car ----
-     An engine is the one sound in this game that is HELD rather than struck,
-     so it is the one that owns a node instead of making one and letting it
-     stop. Two oscillators a fifth apart through a lowpass, quiet enough to sit
-     under everything: the point of it is that you notice when it stops. */
+  /* The car engine: the one held sound, so it owns its nodes. Two oscillators
+     a fifth apart through a lowpass, quiet enough that you notice it stop. */
   engine(on, rev) {
     if (!this.ctx) return;
-    /* Turning the sound off mid-drive has to stop a note that is already
-       playing, which is the one thing a held sound needs that a struck one
-       does not — hence the test here rather than at the top. */
+    /* Tested here, not at the top: muting mid-drive must stop a playing note. */
     if (!on || !this.on) {
-      if (this.eng) { try { this.eng.g.gain.cancelScheduledValues(this.ctx.currentTime); this.eng.g.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.08); this.eng.o.stop(this.ctx.currentTime + 0.4); this.eng.o2.stop(this.ctx.currentTime + 0.4); } catch (e) { /* already gone */ } this.eng = null; }
+      if (this.eng) {
+        const t = this.ctx.currentTime;
+        try {
+          this.eng.g.gain.cancelScheduledValues(t); this.eng.g.gain.setTargetAtTime(0.0001, t, 0.08);
+          this.eng.o.stop(t + 0.4); this.eng.o2.stop(t + 0.4);
+        } catch (e) { /* already gone */ }
+        this.eng = null;
+      }
       return;
     }
     if (!this.eng) {
@@ -93,19 +90,14 @@ const Sfx = {
       this.eng = { o, o2, g, f };
       g.gain.setTargetAtTime(0.05, this.ctx.currentTime, 0.15);
     }
-    /* Idle at the bottom, and never quite in tune with itself — a flat drone
-       reads as a fridge rather than as an engine. */
+    /* Slightly out of tune with itself: a pure drone reads as a fridge. */
     const t = this.ctx.currentTime, r = clamp(rev || 0, 0, 1);
     this.eng.o.frequency.setTargetAtTime(52 + r * 104, t, 0.09);
     this.eng.o2.frequency.setTargetAtTime(78 + r * 157, t, 0.09);
     this.eng.f.frequency.setTargetAtTime(420 + r * 900, t, 0.12);
     this.eng.g.gain.setTargetAtTime(0.035 + r * 0.045, t, 0.12);
   },
-  /* ---- the away-day box ----
-     Three guns, three noises, none of them a gunshot: a dart blaster is a
-     spring and a thump of air, a band is a snap, and a water pistol is a hiss
-     with nothing behind it. The whole joke is in the sound, so it is written
-     out here beside everything else rather than hidden in engine/guns.js. */
+  /* The guns: a spring and a thump of air, a snap, a hiss. None is a gunshot. */
   gun(id) {
     if (id === 'band') { this.tone(900, 0.04, 'square', 0.16, 0, -500); this.noise(0.04, 0.08); return; }
     if (id === 'water') { this.noise(0.09, 0.055); this.tone(320, 0.05, 'sine', 0.05, 0, 180); return; }
@@ -114,25 +106,17 @@ const Sfx = {
   /* Something soft arriving on something that is not. */
   plink() { this.tone(ri(420, 620), 0.04, 'triangle', 0.12); this.noise(0.04, 0.05); },
   splat() { this.noise(0.12, 0.09); },
-  /* The fumbling. Two clicks and a clunk, which is six darts going back in. */
   reload() { this.tone(170, 0.05, 'square', 0.12); this.tone(140, 0.06, 'square', 0.1, 0.14); this.noise(0.06, 0.06, 0.28); },
-  /* Taking it out of a drawer it should not be in. */
   draw() { this.tone(300, 0.05, 'triangle', 0.14); this.tone(460, 0.06, 'triangle', 0.12, 0.05); },
-  /* A swing is air and nothing else — foam through an office, or five hundred
-     and one pages of policy through the same air, which is heavier and slower
-     and should sound like it. */
+  /* A swing is air; the heavy one is slower. */
   swing(id) {
     if (id === 'pack') { this.noise(0.22, 0.1); this.tone(120, 0.16, 'sine', 0.07, 0, -40); return; }
     this.noise(0.14, 0.06); this.tone(260, 0.1, 'sine', 0.05, 0, -90);
   },
-  /* And a swing that finds somebody. Soft, because everything in that box is
-     soft, and low enough to be felt rather than heard. */
+  /* A swing that finds somebody: soft, and felt more than heard. */
   bonk() { this.tone(150, 0.09, 'sine', 0.2); this.noise(0.07, 0.09); },
   horn() { this.tone(392, 0.3, 'sawtooth', 0.16); this.tone(330, 0.3, 'sawtooth', 0.14, 0.01); },
-  /* THE BLEEPER on a pelican crossing. Deliberately the ugliest noise in this
-     file: a hard square wave at 2.5kHz, which is where the ear is sharpest and
-     which is exactly why the real ones are pitched there. It is the only sound
-     in this game made for people who cannot see the thing making it. */
+  /* The crossing bleeper: a hard 2.5kHz square, where the ear is sharpest. */
   bleep() { this.tone(2500, 0.09, 'square', 0.09); },
   thud(force) {
     const v = clamp(force || 0.5, 0.1, 1);
@@ -140,8 +124,7 @@ const Sfx = {
     this.tone(70 + v * 40, 0.16, 'square', 0.1 + v * 0.16, 0, -30);
   },
   scrape() { this.noise(0.1, 0.07); },
-  /* Bar music: a little calypso on a steel drum, looping under a
-     conversation at the bar. */
+  /* Bar music: a little calypso on a steel drum, under a conversation. */
   holdMusic(start) {
     clearTimeout(this.holdTimer); this.holdTimer = null;
     if (!start || !this.music || !this.on || !this.ctx) return;
