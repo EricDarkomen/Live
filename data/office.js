@@ -27,7 +27,7 @@ const CHAT_SCRIPT = [
   { t: 830, c: '#isla-solana', who: 'Old Pepe', f: '👴', m: 'Who has taken my chair.' },
   { t: 831, c: '#isla-solana', who: 'Mari', f: '💃', m: 'Nobody, Pepe. You’re sitting in it.' },
   { t: 1000, c: '#isla-solana', who: 'Captain Teo', f: '⚓', m: 'Boat leaves at dawn. Orders on the board. Cash only.' },
-  { t: 1150, c: '#isla-solana', who: 'Mama Coco', f: '👵', m: 'Somebody was seen walking towards Lovers’ Cove holding TWO drinks. I will find out who.' },
+  { t: 1138, c: '#isla-solana', who: 'Mama Coco', f: '👵', m: 'Somebody was seen walking towards Lovers’ Cove holding TWO drinks. I will find out who.' },
 ];
 
 const MAIL_SCRIPT = [

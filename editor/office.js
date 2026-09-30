@@ -122,7 +122,8 @@ const Office = {
       this.it = clone(m);
     } else if (kind === 'ending') {
       if (!(ENDINGS || {})[id]) return false;
-      this.it = clone(ENDINGS[id]);
+      /* capture(), not clone(): `when` is code, and clone() drops it. */
+      this.it = capture(ENDINGS[id]);
     } else {
       this.it = { beats: clone(typeof CUT !== 'undefined' ? CUT : []) };
     }
@@ -414,7 +415,7 @@ const OfficeCheck = {
       (e.b || []).forEach((t, i) => {
         if (/\w'\w/.test(t)) fault('warn', 'Paragraph ' + (i + 1) + ' uses a straight apostrophe.', { field: 'b' });
       });
-      if (e.when !== undefined && typeof e.when !== 'function') {
+      if (e.when !== undefined && typeof e.when !== 'function' && !isSrc(e.when)) {
         fault('warn', '`when` is not a function, so it is ignored and this ending is always '
           + 'offered.', { field: 't' });
       }

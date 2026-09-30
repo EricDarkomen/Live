@@ -148,8 +148,10 @@ const costWords = inp => Object.keys(inp).map(k => inp[k] + ' ' + ITEMS[k].e).jo
 const canPay = inp => Object.keys(inp).every(k => bag(k) >= inp[k]);
 const pay = inp => { for (const k in inp) bagTake(k, inp[k]); };
 
-/* ---------------- Tools you carry ---------------- */
-const Tools = {
+/* ---------------- Tools you carry ----------------
+   Gear rather than Tools: editor/tools.js is `Tools`, and the editor loads
+   this file into the same page — two consts of one name and it will not boot. */
+const Gear = {
   wear() { return (G.flags.wear = G.flags.wear || {}); },
   /* The best one of a kind in your bag, or null. */
   best(kind) {
@@ -214,8 +216,8 @@ const Craft = {
     const N = NODES[type];
     this.intro();
     if (this.left(o, type) <= 0) { UI.toast('🤷', 'Nothing more to get here for now. Come back in ' + clockDur(this.back(o, type)) + '.'); return; }
-    const tool = N.tool ? Tools.best(N.tool) : null;
-    if (N.tool && !tool) { Sfx.deny && Sfx.deny(); UI.toast('🛠️', 'You need ' + Tools.words(N.tool) + ' for that. Make one at Rafa’s workbench, behind the garden.'); return; }
+    const tool = N.tool ? Gear.best(N.tool) : null;
+    if (N.tool && !tool) { Sfx.deny && Sfx.deny(); UI.toast('🛠️', 'You need ' + Gear.words(N.tool) + ' for that. Make one at Rafa’s workbench, behind the garden.'); return; }
     const lvl = this.level(N.trade), tier = tool ? TOOLS[tool].tier : 0;
     const energy = Math.max(1, Math.round(N.energy * (1 - lvl * .04) * (tier === 2 ? .8 : 1)));
     if (P.energy < energy) { Sfx.deny && Sfx.deny(); UI.toast('😮‍💨', 'You are too worn out for that. Eat something, have a coffee, or sleep on it.', 'bad'); return; }
@@ -229,7 +231,7 @@ const Craft = {
     N.extra.forEach(([id, p]) => { if (chance(p * (1 + lvl * .08) * (tier === 2 ? 1.3 : 1))) add(id, 1); });
     for (const id in got) for (let i = 0; i < got[id]; i++) Item.give(id, true);
     this.spend(o, type);
-    if (tool) Tools.use(tool);
+    if (tool) Gear.use(tool);
     this.train(N.trade, N.xp);
     Player.xp(Math.ceil(N.xp / 2));
     const first = Object.keys(got)[0];
@@ -328,7 +330,7 @@ const Craft = {
   make(r, cat) {
     pay(r.in);
     for (let i = 0; i < r.n; i++) Item.give(r.out, true);
-    if (TOOLS[r.out]) Tools.wear()[r.out] = TOOLS[r.out].uses;
+    if (TOOLS[r.out]) Gear.wear()[r.out] = TOOLS[r.out].uses;
     G.minutes += Math.max(2, Math.round(r.mins * (1 - this.level('craft') * .05)));
     this.train('craft', r.xp);
     Player.xp(3);
@@ -398,7 +400,7 @@ const Craft = {
     /* Tools. */
     const tools = Object.keys(TOOLS).filter(id => Item.has(id));
     h += '<div class="h2">Tools</div><div class="farm-prod">' + (tools.length ? tools.map(id => {
-      const l = Tools.left(id);
+      const l = Gear.left(id);
       return '<div class="fst"><b>' + ITEMS[id].e + ' ' + esc(ITEMS[id].n) + '</b><span>' + l + '/' + TOOLS[id].uses + ' jobs left</span>' + bar(l / TOOLS[id].uses * 100, l <= 5 ? 'bad' : '') + '</div>';
     }).join('') : '<div class="fst"><b>🤲 Just your hands</b><span>Make an axe and a pickaxe at Rafa’s workbench, in the yard behind the garden: 2 🥢 + 2–3 🪨 + 1 🪢.</span></div>') + '</div>';
     /* Materials. */

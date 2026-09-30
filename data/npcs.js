@@ -63,6 +63,13 @@ function islander(id, who, o) {
     do() { Dates.ask(id, who); if (mind()) mind().event(id, 'date'); },
     choices: [{ t: 'It’s a date.', to: null }]
   };
+  /* What this function wrote rather than the file, for the editor: it keeps
+     these nodes on screen so the links into them check, and writes the person
+     back as islander(…) without them, because they close over `id`, `o` and
+     `common` and would not parse anywhere else. Not enumerable, so nothing in
+     the game ever sees it. */
+  const made = ['flirt', 'gift', 'practise', 'date'].concat(o.nodes.again ? [] : ['again']);
+  Object.defineProperty(o, 'islander', { value: { who: who, made: made } });
   o.nodes.again = o.nodes.again || {
     text: () => Dates.today(id) ? pick(['Tonight. The cove. Don’t be late.', 'I’m still thinking about tonight. In a good way.'])
       : G.flags.partner === id ? pick(o.partner || o.again) : pick(o.again),

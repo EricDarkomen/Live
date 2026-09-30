@@ -51,9 +51,26 @@ const Emit = {
     if (typeof v === 'string') return this.str(v);
     if (typeof v === 'number' || typeof v === 'boolean') return String(v);
     if (Array.isArray(v)) return '[' + v.map(x => this.lit(x)).join(', ') + ']';
+    if (isSrc(v)) return v.__src;
     const ks = Object.keys(v);
     if (!ks.length) return '{}';
-    return '{ ' + ks.map(k => this.key(k) + ': ' + this.lit(v[k])).join(', ') + ' }';
+    return '{ ' + ks.map(k => this.prop(k, v[k])).join(', ') + ' }';
+  },
+  /* One property. A captured function (see capture() in hist.js) goes back as
+     the code it was — codeProp() tells method shorthand from an arrow. */
+  prop(k, v) {
+    return isSrc(v) ? this.codeProp(k, this.dedent(v.__src)) : this.key(k) + ': ' + this.lit(v);
+  },
+  /* Captured source keeps the indentation it had in the file on every line but
+     the first, so indenting it again for where it is going adds to what is
+     already there — and entry() used to walk two spaces right on every save.
+     Measured off the last line, which is the closing brace and sits where the
+     property started. */
+  dedent(src) {
+    const L = String(src).split('\n');
+    if (L.length < 2) return L[0];
+    const base = L[L.length - 1].match(/^[ \t]*/)[0];
+    return L.map((l, j) => j && l.indexOf(base) === 0 ? l.slice(base.length) : l).join('\n');
   },
 
   /* ---- objects ----
@@ -373,7 +390,9 @@ const Emit = {
   talkNodes(ind) {
     const i = ind === undefined ? '  ' : ind;
     return i + 'nodes: {\n'
-      + Talk.order.map(k => this.nodeLit(k, Talk.nodes[k], i + '  ')).join(',\n')
+      /* Not the ones islander() writes: they are its code, not the file's. */
+      + Talk.order.filter(k => !Talk.inherited(k))
+        .map(k => this.nodeLit(k, Talk.nodes[k], i + '  ')).join(',\n')
       + '\n' + i + '}\n';
   },
   talkPerson() {
@@ -388,7 +407,7 @@ const Emit = {
        and six people stop existing. One line each, because each of them is one
        fact about a person. */
     Object.keys(Talk.extra || {}).forEach(k => {
-      L.push(i + this.key(k) + ': ' + this.lit(Talk.extra[k]) + ',');
+      L.push(i + this.prop(k, Talk.extra[k]).replace(/\n/g, '\n' + i) + ',');
     });
     /* One line, however long. The file writes a schedule as one line because it
        is one fact — a day — and eight lines of two-element arrays reads as
@@ -403,9 +422,12 @@ const Emit = {
     if (Talk.hadLines || Talk.lines.length) {
       L.push(i + 'lines: [' + Talk.lines.map(t => this.str(t)).join(', ') + '],');
     }
-    if (Talk.entrySrc) L.push(i + Talk.entrySrc.replace(/\n/g, '\n' + i) + ',');
+    if (Talk.entrySrc) L.push(i + this.dedent(Talk.entrySrc).replace(/\n/g, '\n' + i) + ',');
     L.push(this.talkNodes(i).replace(/\n$/, ''));
-    L.push('},');
+    L.push(Talk.wrap ? '}),' : '},');
+    /* Somebody islander() dresses in the shared moves goes back in through it —
+       see data/npcs.js — so the file keeps saying so and they keep them. */
+    if (Talk.wrap) L[0] = 'islander(' + this.str(Talk.id) + ', ' + this.str(Talk.wrap.who) + ', {';
     return L.join('\n') + '\n';
   },
   /* The whole roster, for a save that writes data/npcs.js rather than asking
@@ -857,7 +879,11 @@ const Emit = {
     const NAME = { caller: 'CALLERS', move: 'MOVES', boss: 'BOSSES', tell: 'TELLS' }[kind];
     const open = d.arr ? 'const ' + NAME + ' = [\n' : 'const ' + NAME + ' = {\n';
     const close = d.arr ? '];\n' : '};\n';
-    const ids = d.arr ? t.map(e => e.id) : Object.keys(t);
+    /* Not the engine's own moves: engine/acts.js puts `land` into MOVES at load
+       wherever the game has not written one, and writing it here would copy
+       the engine into data/callers.js with its words frozen. */
+    const engine = e => kind === 'move' && typeof BaseMoves !== 'undefined' && BaseMoves.indexOf(e) >= 0;
+    const ids = d.arr ? t.filter(e => !engine(e)).map(e => e.id) : Object.keys(t);
     return open + ids.map(id => {
       const h = this.held(Calls, kind + ':' + id);
       return h ? this.callEntry(kind, id, h.it, h.code) : this.callEntry(kind, id);
@@ -954,10 +980,12 @@ const Emit = {
     }
     if (kind === 'shop') {
       const head = ['title', 'note'].filter(k => e[k] !== undefined).map(k => k + ': ' + this.lit(e[k]));
-      Object.keys(e).filter(k => order.indexOf(k) < 0)
+      Object.keys(e).filter(k => order.indexOf(k) < 0 && k !== 'stockSrc')
         .forEach(k => head.push(this.key(k) + ': ' + this.lit(e[k])));
+      /* A getter goes back as the getter — see Prog.stockSrc(). */
+      const src = Prog.stockSrc(e);
       return '  ' + this.key(id) + ': { ' + head.join(', ') + ',\n'
-        + '    stock: ' + this.lit(e.stock || []) + ' },\n';
+        + '    ' + (src ? this.dedent(src) : 'stock: ' + this.lit(e.stock || [])) + ' },\n';
     }
     const parts = order.filter(k => e[k] !== undefined).map(k => k + ': ' + this.lit(e[k]));
     Object.keys(e).filter(k => order.indexOf(k) < 0)
@@ -1006,7 +1034,11 @@ const Emit = {
     if (kind === 'ending') {
       const e = it !== undefined ? it : (ENDINGS || {})[id];
       if (!e) return '';
-      return '  ' + this.key(id) + ': { t: ' + this.lit(e.t) + ', b: [\n'
+      /* Anything besides the title and the text — `when`, which is code — goes
+         between them, where the file writes it, rather than being dropped. */
+      const mid = Object.keys(e).filter(k => k !== 't' && k !== 'b')
+        .map(k => ', ' + this.prop(k, typeof e[k] === 'function' ? capture(e[k]) : e[k])).join('');
+      return '  ' + this.key(id) + ': { t: ' + this.lit(e.t) + mid + ', b: [\n'
         + (e.b || []).map(t => '    ' + this.str(t)).join(',\n') + '] },\n';
     }
     if (kind === 'mail') {

@@ -77,7 +77,14 @@ const Talk = {
        trees this file does model, a piece at a time. */
     const MODELLED = ['id', 'name', 'role', 'face', 'lines', 'desk', 'colour', 'schedule', 'entry', 'nodes'];
     this.extra = {};
-    Object.keys(p).forEach(k => { if (MODELLED.indexOf(k) < 0) this.extra[k] = clone(p[k]); });
+    Object.keys(p).forEach(k => { if (MODELLED.indexOf(k) < 0) this.extra[k] = capture(p[k]); });
+    /* A person built by islander() in data/npcs.js has nodes the FILE does not
+       — flirt, gift, practise, date, and `again` when they do not write their
+       own. They are loaded like any other so every link into them checks, and
+       listed here so the export writes the person back as islander(…) without
+       them: see Talk.inherited() and Emit.talkPerson(). */
+    this.wrap = p.islander ? { who: p.islander.who } : null;
+    this.made = p.islander ? p.islander.made.slice() : [];
     this.order = Object.keys(p.nodes || {});
     this.nodes = {};
     this.order.forEach(k => { this.nodes[k] = this.grab(p.nodes[k]); });
@@ -106,8 +113,11 @@ const Talk = {
   state() {
     return clone({ name: this.name, role: this.role, face: this.face, lines: this.lines,
       desk: this.desk, colour: this.colour, schedule: this.schedule, extra: this.extra,
-      entrySrc: this.entrySrc, order: this.order, nodes: this.nodes });
+      entrySrc: this.entrySrc, order: this.order, nodes: this.nodes,
+      wrap: this.wrap || null, made: this.made || [] });
   },
+  /* A node islander() writes rather than the file. */
+  inherited(id) { return (this.made || []).indexOf(id) >= 0; },
   restore(s) { Object.keys(s).forEach(k => this[k] = clone(s[k])); },
   rebuild() {
     TalkCheck.run();
@@ -417,6 +427,17 @@ const TalkCheck = {
       }
     });
 
+    /* ---- the shared moves ----
+       islander() writes these, for everybody at once, so an edit here has
+       nowhere to go: the export leaves them out and the game rebuilds them. */
+    (Talk.made || []).forEach(id => {
+      const was = Talk.base && Talk.base.nodes ? Talk.base.nodes[id] : null;
+      if (was && JSON.stringify(was) !== JSON.stringify(Talk.nodes[id])) {
+        fault('warn', '“' + id + '” is one of the shared moves islander() gives everybody, so this '
+          + 'edit will not be saved. Change it in islander() at the top of data/npcs.js.', { node: id });
+      }
+    });
+
     /* ---- writing nobody will read ---- */
     const seen = Talk.reachable();
     const marooned = ids.filter(k => !seen.has(k));
@@ -503,10 +524,10 @@ const TalkCheck = {
       if (typeof at !== 'number' || at < 0 || at > 1440) {
         fault('error', 'Stop ' + (i + 1) + ' is at ' + at + ', which is not a time of day.', { stop: i });
       } else {
-        if (at < DAY_START || at > DAY_END) {
-          fault('warn', 'Stop ' + (i + 1) + ' is at ' + clockStr(at) + ', outside the shift ('
-            + clockStr(DAY_START) + '–' + clockStr(DAY_END) + '), so it never happens.', { stop: i });
-        }
+        /* No bound by the bar's hours: the island's clock runs round the day
+           (engine/boot.js wraps it at midnight) and NPCM.scheduled() takes the
+           last stop that has passed, so Teo at the boat at 08:00 is exactly
+           where he is when you wake. */
         if (at <= last) {
           fault('error', 'Stop ' + (i + 1) + ' is at ' + clockStr(at) + ', not after the one before '
             + 'it. NPCM takes the last stop whose time has passed, so one out of order never '

@@ -63,7 +63,25 @@ const Writing = {
         engine's default acts — each as much writing as an act. */
      ['HOOKS', typeof HOOKS !== 'undefined' && HOOKS],
      ['Uses', typeof Uses !== 'undefined' && Uses],
-     ['BaseActs', typeof BaseActs !== 'undefined' && BaseActs]].forEach(([label, obj]) => {
+     ['BaseActs', typeof BaseActs !== 'undefined' && BaseActs],
+     /* The island's own systems, each written after this list was and each
+        where its achievements, jobs and items actually happen: the garden, the
+        blender, the boat and the dates in data/garden.js; the farm in
+        data/farm.js; the workshop in data/craft.js; minds in engine/mind.js.
+        Leaving them out made every achievement they hand out look unearnable. */
+     ['Garden', typeof Garden !== 'undefined' && Garden],
+     ['Blender', typeof Blender !== 'undefined' && Blender],
+     ['Orders', typeof Orders !== 'undefined' && Orders],
+     ['Dates', typeof Dates !== 'undefined' && Dates],
+     ['Farm', typeof Farm !== 'undefined' && Farm],
+     ['Larder', typeof Larder !== 'undefined' && Larder],
+     ['Stations', typeof Stations !== 'undefined' && Stations],
+     ['Hunger', typeof Hunger !== 'undefined' && Hunger],
+     ['NPC_ACTS', typeof NPC_ACTS !== 'undefined' && NPC_ACTS],
+     ['Gear', typeof Gear !== 'undefined' && Gear],
+     ['Craft', typeof Craft !== 'undefined' && Craft],
+     ['Build', typeof Build !== 'undefined' && Build],
+     ['Mind', typeof Mind !== 'undefined' && Mind]].forEach(([label, obj]) => {
       if (!obj) return;
       Object.keys(obj).forEach(k => add(label + '.' + k, obj[k]));
     });
@@ -98,6 +116,10 @@ const Writing = {
        can carry code, named so the answer to "where" is somewhere you can go. */
     if (typeof NPCS !== 'undefined') NPCS.forEach(p => {
       add(p.id + ' · entry()', p.entry);
+      /* And the code a person carries outside their tree — `onGift()`, the
+         `if:` on a reply in `more` — which islander() calls on their behalf. */
+      Object.keys(p).filter(k => k !== 'entry' && k !== 'nodes')
+        .forEach(k => this.deep(p.id + ' · ' + k, p[k], add));
       Object.keys(p.nodes || {}).forEach(id => {
         const n = p.nodes[id];
         add(p.id + ' · ' + id + '.text()', n.text);
@@ -117,9 +139,26 @@ const Writing = {
       });
     }
 
+    /* What the islanders run on their own — a routine's onUnlock() and onDone()
+       are where Tito's job moves, several levels down in data/minds.js. */
+    if (typeof MINDS !== 'undefined') {
+      Object.keys(MINDS).forEach(id => this.deep('mind ' + id, MINDS[id], add));
+    }
+
     this._index = out;
     return out;
   },
+  /* Every function anywhere inside a value, a few levels down. */
+  deep(where, v, add, depth) {
+    if (typeof v === 'function') { add(where, v); return; }
+    if (!v || typeof v !== 'object' || (depth || 0) > 5) return;
+    Object.keys(v).forEach(k => this.deep(where + '.' + k, v[k], add, (depth || 0) + 1));
+  },
+
+  /* The writing's own shorthand for the same calls: data/garden.js defines
+     qTo(id, n), which is Q.step until step n, and qAt(id, n), which reads
+     Q.active. A job only ever moved by qTo() was reported as never advanced. */
+  ALIASES: { 'Q.step': ['qTo'], 'Q.active': ['qAt'] },
 
   /* Every string literal handed to `Callee.method(` anywhere in the writing,
      with where it was. Deliberately a regular expression over source and not a
@@ -129,7 +168,8 @@ const Writing = {
      A call built out of a variable is invisible here, which is the honest limit
      and why every count below is reported as "found", never as "all". */
   calls(callee, method) {
-    const re = new RegExp('\\b' + callee + '\\.' + method + '\\(\\s*[\'"]([^\'"]+)[\'"]', 'g');
+    const names = [callee + '\\.' + method].concat(this.ALIASES[callee + '.' + method] || []);
+    const re = new RegExp('\\b(?:' + names.join('|') + ')\\(\\s*[\'"]([^\'"]+)[\'"]', 'g');
     const out = [];
     this.index().forEach(e => {
       let m;

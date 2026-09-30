@@ -73,7 +73,7 @@ const ProgUI = {
     if (!e) return '';
     if (kind === 'item') return [e.slot ? 'worn: ' + e.slot : null, e.use ? 'used' : null,
       e.quest ? 'quest' : null, e.v ? '£' + e.v : null].filter(Boolean).join(' · ') || 'carried';
-    if (kind === 'shop') return ((e.stock || []).length) + ' on the shelf';
+    if (kind === 'shop') return Prog.shelf(e).length + (Prog.stockSrc(e) ? ' it can offer' : ' on the shelf');
     if (kind === 'skill') return Object.keys(e.list || {}).length + ' skills';
     return e.d || '';
   },
@@ -133,6 +133,18 @@ const ProgUI = {
   },
 
   shop() {
+    /* A shelf that is code is shown as code: every item it can offer, and the
+       getter that picks between them, which is edited in data/items.js. */
+    if (Prog.it.stockSrc) {
+      const can = Prog.shelf(Prog.it);
+      return this.f('title', 'title')
+        + Side.row('note', '<textarea data-f="note" rows="3">' + esc(Prog.it.note || '') + '</textarea>')
+        + '<h4>On the shelf <span class="pill">' + can.length + '</span></h4>'
+        + '<div class="note">Written in code, so what is on it depends on the day. It can offer: '
+        + esc(can.map(i => (ITEMS[i].e || '') + ' ' + ITEMS[i].n).join(', ') || 'nothing')
+        + '. Change it in <code>data/items.js</code>.</div>'
+        + '<textarea class="code" rows="3" readonly>' + esc(Prog.it.stockSrc) + '</textarea>';
+    }
     const stock = Prog.stock();
     const all = Object.keys(ITEMS).filter(i => stock.indexOf(i) < 0).sort();
     return this.f('title', 'title')
