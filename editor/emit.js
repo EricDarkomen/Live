@@ -1,41 +1,24 @@
 'use strict';
 /* ---------------- Writing it back out ----------------
-   A browser cannot save over data/levels.js, and it should not want to: that
-   file is where most of the writing lives, and its loops and its comments are
-   the point of it. So the editor emits source and you paste it, deliberately.
-
-   Two very different exports, because two very different things came in:
-
-     GEOMETRY  — w, h, rooms, doors, counters, entries, links. Literal data in
-                 the file and literal data here, so it round-trips exactly and
-                 can be pasted over the old block without losing anything.
-
-     FURNITURE — a flat furnish(). Correct for a level whose furnish() already
-                 IS a flat list (the basement, outside, anything made here) and
-                 destructive for one that is not: office builds thirty-two desks
-                 in two loops and explains itself in twenty comments, and this
-                 would replace all of it with ninety-six identical lines.
-
-   For that second case there is the CHANGE LIST, which is what you actually
-   want: it names what moved and by how much, so you edit the loop rather than
-   flattening it. */
+   The editor emits source (Sync writes it, or you paste it). Two kinds:
+   - Geometry: w, h, rooms, doors, counters, entries, links. Literal data,
+     round-tripping exactly.
+   - Furniture: a flat furnish(). Faithful for a level whose furnish() is
+     already flat, destructive for a procedural one (loops and comments). For
+     those there is the change list: what moved and by how much, so you edit
+     the loop instead. */
 
 const Emit = {
 
   /* ---- literals ---- */
 
-  /* Single quotes, because the codebase does. Only the two characters that can
-     end the literal or start an escape need escaping — the prose is full of
-     curly apostrophes and they are fine as they are. */
+  /* Single quotes, as the codebase uses; only the quote and backslash need
+     escaping. */
   str(s) {
     return "'" + String(s)
       .replace(/\\/g, '\\\\')
       .replace(/'/g, "\\'")
-      /* A real newline inside a single-quoted string is a syntax error, not a
-         line break — the emitted file simply does not parse. Nothing had one
-         until the inbox, whose bodies are several paragraphs each, and it took
-         a round-trip test to notice because the output looks perfectly fine
-         until something tries to evaluate it. */
+      /* A raw newline in a single-quoted string does not parse. */
       .replace(/\r/g, '\\r')
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t')
@@ -61,11 +44,8 @@ const Emit = {
   prop(k, v) {
     return isSrc(v) ? this.codeProp(k, this.dedent(v.__src)) : this.key(k) + ': ' + this.lit(v);
   },
-  /* Captured source keeps the indentation it had in the file on every line but
-     the first, so indenting it again for where it is going adds to what is
-     already there — and entry() used to walk two spaces right on every save.
-     Measured off the last line, which is the closing brace and sits where the
-     property started. */
+  /* Captured source keeps its file indentation after the first line, so strip
+     it (measured off the closing brace) before re-indenting. */
   dedent(src) {
     const L = String(src).split('\n');
     if (L.length < 2) return L[0];
@@ -118,10 +98,8 @@ const Emit = {
     if (!Doc.indoors) L.push(i + 'indoors: false,');
 
     if (shared) {
-      /* The fourth floor's floor plan lives in data/world.js and is named from
-         here, so this stays a reference and the arrays go in the other export.
-         Flattening them into the catalogue would give the building two floor
-         plans that are free to disagree. */
+      /* The shared floor plan in data/world.js stays a reference; flattening it
+         would create two plans free to disagree. */
       L.push(i + 'rooms: ROOM_DEFS,');
       L.push(i + 'doors: DOOR_DEFS,');
     } else {
@@ -129,10 +107,8 @@ const Emit = {
       L.push(this.listBlock('doors', Doc.doors, i));
     }
     if (Doc.counters.length) L.push(this.listBlock('counters', Doc.counters, i));
-    /* Written back exactly as they came in. This editor cannot draw a road
-       marking or park a car, and a table it cannot edit is still a table it
-       must not lose — see the note on Doc.surfaces. Emitted here, in the
-       geometry block, because that is the half of a level that round-trips. */
+    /* Kept exactly as read: the editor cannot draw road markings or park cars,
+       but must not lose them (see Doc.surfaces). */
     if (Doc.surfaces && Doc.surfaces.length) L.push(this.listBlock('surfaces', Doc.surfaces, i));
     if (Doc.roofs && Doc.roofs.length) L.push(this.listBlock('roofs', Doc.roofs, i));
     if (Doc.paint && Doc.paint.length) L.push(this.listBlock('paint', Doc.paint, i));
@@ -159,18 +135,15 @@ const Emit = {
       + list.map(v => i + '  ' + this.lit(v) + ',').join('\n') + '\n'
       + i + '],';
   },
-  /* Is this level's floor plan the shared one in data/world.js? Asked of the
-     catalogue rather than assumed of `office`, so a second level that names the
-     same consts is handled without this knowing about it. */
+  /* Whether this level's floor plan is the shared one, asked of the catalogue. */
   usesSharedDefs() {
     const def = LEVELS[Doc.id];
     return !!def && def.rooms === ROOM_DEFS && def.doors === DOOR_DEFS;
   },
 
   /* ---- a whole catalogue entry ----
-     What a NEW level needs: the id, the data and the furnish, indented to drop
-     straight into `const LEVELS = { … }`. Only offered where a flat furnish() is
-     faithful, which a level made here always is. */
+     A new level: id, data and flat furnish, ready for `const LEVELS = { … }`.
+     Only offered where a flat furnish() is faithful. */
   levelEntry() {
     return '  ' + this.key(Doc.id) + ': {\n'
       + this.geometry()
@@ -203,17 +176,13 @@ const Emit = {
   },
 
   /* ---- waypoints, for data/world.js ----
-     Wrapped at a sensible width rather than one per line: WP is thirty short
-     pairs and a column of thirty lines reads as thirty facts when it is really
-     one table. */
+     Wrapped to a sensible width: WP is one table of short pairs. */
   waypointDefs() {
     const t = this.waypointTable();
     return t ? '/* named spots used by NPC schedules */\n' + t
       : '/* This level has no waypoints. */\n';
   },
-  /* The declaration on its own. The writer replaces `const WP = …` in place and
-     the comment above it is the file's, already there — emitting the comment
-     too would leave data/world.js with two of them. */
+  /* The declaration only; the file keeps its own comment above it. */
   waypointTable() {
     const keys = Object.keys(Doc.waypoints);
     if (!keys.length) return '';
@@ -243,34 +212,22 @@ const Emit = {
     L.push('    }');
     return L.join('\n') + '\n';
   },
-  /* Whether a flat furnish() would lose anything. A level built here has
-     nothing to lose; one loaded from a hand-written procedural furnish() has
-     its loops and its comments to lose, and no export can carry those. */
+  /* Whether a flat furnish() would lose anything. */
   flatIsSafe() {
-    /* A flat furnish() writes the objects and nothing else, so a level whose
-       map was WRITTEN by its own furnish — the buildings on the outskirts, the
-       island that stamps them in — loses all of it. Doc captures that mass so
-       the preview is honest; this is the other half, and it is asked of the
-       document rather than of the source because a composed level's furnish
-       runs its parts' through closures and says nothing about it itself. */
+    /* A level whose map is written by its own furnish (stamped buildings, a
+       composed level) loses its mass; Doc captures it for the preview, and this
+       refuses the flat export. */
     if ((Doc.mass || []).length || (Doc.carved || []).length) return false;
     const def = LEVELS[Doc.id];
     if (!def) return true;
-    /* A furnish() that is a plain run of A({…}) calls and nothing else. Read off
-       the source rather than guessed at: a `for`, a `forEach` or a `const` in
-       there means the file says something this export cannot. */
+    /* A furnish() that is only A({…}) calls, read off the source. */
     const src = String(def.furnish);
     return !/\b(for|while|forEach|map|if)\b/.test(src);
   },
 
   /* ================= jobs =================
-     A quest is pure data, so there is nothing to lose and no procedural half to
-     warn about: this is the whole entry, and it round-trips exactly.
-
-     `track` is emitted even where every entry is null, and null is written out
-     rather than left as a hole. A missing entry and an explicit null read the
-     same way to Guide.aim() and mean opposite things to a person: one is "no
-     pin here, on purpose" and the other is a list somebody stopped writing. */
+     Pure data, round-tripping exactly. `track` is written in full with explicit
+     nulls: a null is "no pin on purpose", a missing entry is unfinished. */
   questEntry(id, q) {
     const i = '  ';
     const L = [];
@@ -282,14 +239,9 @@ const Emit = {
       + ', item: ' + this.lit(q.rw.item || null) + ' } },');
     return L.join('\n') + '\n';
   },
-  /* ---- what the EDITOR has of a subject ----
-     Not always the one in front of you. Leaving a subject keeps it on the
-     document's bench, and a table export that only ever asked about the open
-     one quietly undid every edit you had walked away from — which is the worst
-     kind of export, because the output looks perfectly plausible. Returns the
-     document itself for the open subject, the kept working copy for one on the
-     bench, and null for one nobody has touched, which is the caller's signal
-     to read the file's own table. */
+  /* ---- what the editor has of a subject ----
+     The document for the open subject, its bench copy for one set aside, or
+     null for one untouched (read the file's table). */
   held(doc, key) {
     return key === doc.subjectKey() ? doc : doc.kept(key);
   },
@@ -330,14 +282,11 @@ const Emit = {
   },
 
   /* ================= a conversation =================
-     Half of this is prose and round-trips; half of it is code and is carried
-     through as the source it came in as. Nothing here writes a do(), an if: or
-     a text() — the editor captured them as text and hands them back unchanged,
-     for the same reason a procedural furnish() is never regenerated. */
+     Prose round-trips; code (do(), if:, text()) is carried through as captured
+     source, never regenerated. */
 
-  /* A captured function, put back as the property it was. Method shorthand
-     already carries its own name (`do() { … }`), an arrow does not (`() => …`),
-     and telling them apart is a matter of looking at what String() gave us. */
+  /* A captured function back as a property: method shorthand carries its name,
+     an arrow does not. */
   codeProp(name, src) {
     const t = String(src).trim();
     return new RegExp('^' + name + '\\s*\\(').test(t) ? t : name + ': ' + t;
@@ -366,11 +315,8 @@ const Emit = {
     const L = [ind + this.key(id) + ': {'];
     L.push(this.textProp(n, inner));
     if (n.doSrc) L.push(inner + this.codeProp('do', n.doSrc) + ',');
-    /* `to` is written where the file writes it: named when there is one, and
-       explicitly null on a node with no replies, which is how the file says
-       "this is the end of it". A node WITH replies and no `to` gets neither —
-       Dialogue.advance() never reads it there, and inventing a `to: null` on
-       two hundred nodes would be two hundred lines of diff saying nothing. */
+    /* `to` as the file writes it: named when set, explicit null on a node with no
+       replies (the end). Nodes with replies and no `to` get neither. */
     if (n.to) L.push(inner + 'to: ' + this.str(n.to) + ',');
     if ((n.choices || []).length) {
       L.push(inner + 'choices: [');
@@ -401,21 +347,15 @@ const Emit = {
     L.push(i + 'id: ' + this.str(Talk.id) + ', name: ' + this.str(Talk.name)
       + ', face: ' + this.str(Talk.face) + ', role: ' + this.str(Talk.role) + ',');
     L.push(i + 'desk: ' + this.lit(Talk.desk) + ', colour: ' + this.str(Talk.colour) + ',');
-    /* Fields this editor does not model, written back exactly as they were
-       read — `level`, `dir`, `hours`, `look`, `out` and whatever comes next.
-       See Talk.load(): without this, saving the roster silently deletes them
-       and six people stop existing. One line each, because each of them is one
-       fact about a person. */
+    /* Fields the editor does not model (`level`, `dir`, `hours`, `look`, `out`, …)
+       written back as read (Talk.load()), one line each. */
     Object.keys(Talk.extra || {}).forEach(k => {
       L.push(i + this.prop(k, Talk.extra[k]).replace(/\n/g, '\n' + i) + ',');
     });
     /* One line, however long. The file writes a schedule as one line because it
        is one fact — a day — and eight lines of two-element arrays reads as
        eight facts. */
-    /* Written only where the person has one, or had one to begin with — see
-       Talk.load(). A shopkeeper with no day and nothing to say unprompted has
-       neither field in the file, and writing an empty one for them is an export
-       that does not reproduce what it read. */
+    /* Only where the person has one, or had one (Talk.load()). */
     if (Talk.hadSchedule || Talk.schedule.length) {
       L.push(i + 'schedule: [' + Talk.schedule.map(s => this.lit(s)).join(',') + '],');
     }
@@ -430,22 +370,13 @@ const Emit = {
     if (Talk.wrap) L[0] = 'islander(' + this.str(Talk.id) + ', ' + this.str(Talk.wrap.who) + ', {';
     return L.join('\n') + '\n';
   },
-  /* The whole roster, for a save that writes data/npcs.js rather than asking
-     you to paste one person into it. Unlike every other table here a person
-     cannot be emitted without being LOADED — `talkPerson()` reads the open
-     subject's fields, because a conversation is a tree that has to be walked
-     rather than a row that can be read — so this borrows the document a person
-     at a time and hands it back exactly as it found it. That is the same call
-     Project.sweep() already makes for the checks, which is why it is that
-     function doing it rather than a second copy of the same care. */
+  /* The whole roster, for data/npcs.js. A person must be loaded to be emitted
+     (their conversation is a tree to walk), so this borrows the document a
+     person at a time, as Project.sweep() does, and restores it. */
   talkTable() {
     const out = [];
-    /* THE OPEN PERSON IS NOT ON THE BENCH — that is what a bench is for, and
-       `sweep()` resumes each subject from it. So without this the one person
-       you are actually looking at is emitted as the FILE has them and every
-       edit in front of you is dropped, which is the worst possible shape for
-       this bug: every other person saves correctly. `stash()` is what leaving
-       a subject already does, and sweep hands the document back afterwards. */
+    /* Stash the open person first, or sweep() emits them as the file has them
+       and drops the edits in front of you. */
     Talk.stash();
     Project.sweep(Talk, Talk.ids(), () => {}, () => out.push(this.talkPerson()));
     return 'const NPCS = [\n' + out.join('') + '];\n';
@@ -470,25 +401,14 @@ const Emit = {
   },
 
   /* ================= how a kind is furnished =================
-     FURN is a flat table of plain data, so it round-trips exactly. Written one
-     entry to a line because that is how data/world.js writes it: the table is
-     read down the column of kinds, and a five-line object per kind would make
-     forty facts out of one. */
+     FURN is flat data and round-trips; one entry per line, as data/world.js
+     writes it. */
   /* ---- a minigame ----
-     The only export here that is a whole FILE rather than a line to paste into
-     a table, because a minigame IS a file: minigames/<id>.js, one const, and
-     nothing else in it. So this writes the lot — every declaration as the
-     editor has it, and every hook as the source it was captured from.
-
-     The hooks are verbatim and are never regenerated, exactly as a procedural
-     furnish(), a dialogue do() and a move's run() are. That is not a limitation
-     to apologise for: it is the only arrangement in which editing what a game
-     SAYS about itself cannot destroy what it IS. */
+     A whole file: minigames/<id>.js, one const. Declarations as edited; hooks
+     verbatim as captured, never regenerated. */
   gameHead(id, it) {
     const L = [];
-    /* Identity first, then the prose, then the numbers, then the two
-       declarations that decide how it is played. The file's own order, which
-       is also the order engine/arcade.js documents them in. */
+    /* The file's order, as engine/arcade.js documents it. */
     L.push('  id: ' + this.str(id) + ',');
     L.push('  name: ' + this.str(it.name || id) + ',');
     if (it.icon) L.push('  icon: ' + this.str(it.icon) + ',');
@@ -497,9 +417,8 @@ const Emit = {
     if (it.mins !== undefined) L.push('  mins: ' + this.lit(it.mins) + ',');
     if (it.par !== undefined) L.push('  par: ' + this.lit(it.par) + ',');
     const help = it.help || {};
-    /* Written even when empty. A missing `help` and an empty one read the same
-       to the host and mean opposite things to a person — the same call the job
-       editor makes about an explicit `null` in a track list. */
+    /* Written even when empty: a missing `help` and an empty one mean different
+       things to a person. */
     L.push('  help: {');
     L.push('    keys: [' + (help.keys || []).map(x => this.str(x)).join(', ') + '],');
     L.push('    taps: [' + (help.taps || []).map(x => this.str(x)).join(', ') + ']');
@@ -517,9 +436,7 @@ const Emit = {
     } else {
       L.push('  pads: [],');
     }
-    /* Anything else the game declared and this editor has never heard of. An
-       allow-list version of this dropped `mystery: true` from the unknown
-       caller once; the rule since is that every emitter writes every field. */
+    /* Unknown fields too: every emitter writes every field. */
     const known = ['id', 'name', 'icon', 'blurb', 'goal', 'mins', 'par', 'help', 'pads'];
     this.callRest(it, known).forEach(k => L.push('  ' + this.key(k) + ': ' + this.lit(it[k]) + ','));
     return L;
@@ -542,11 +459,8 @@ const Emit = {
     return L.join('\n') + '\n';
   },
   /* ---- the cabinets ----
-     Where every game is installed, as the whole CABINETS table. A table rather
-     than a line because it is short, because the rows for one game are not
-     contiguous in it, and because the working copy of a game that is NOT open
-     is on the bench — Emit.held is what makes an export the whole bench rather
-     than just the thing in front of you. */
+     The whole CABINETS table: rows for one game are scattered, and games not
+     open are on the bench (Emit.held). */
   cabinetLit(c) {
     const bits = ['game: ' + this.str(c.game), 'use: ' + this.str(c.use || '')];
     ['skill', 'job', 'item', 'need'].forEach(k => bits.push(k + ': ' + (c[k] ? this.str(c[k]) : 'null')));
@@ -566,9 +480,7 @@ const Emit = {
       const list = h ? h.cabs : Games.table().filter(c => c.game === id);
       (list || []).forEach(c => rows.push(Object.assign({}, c, { game: id })));
     });
-    /* Anything installed for a game nobody registers is kept rather than
-       silently dropped: the export is what the table IS, and losing a row
-       because its game is missing would hide the very fault the check reports. */
+    /* Rows for unregistered games are kept, so the check can still report them. */
     Games.table().forEach(c => {
       if (Games.ids().indexOf(c.game) < 0) rows.push(c);
     });
@@ -586,9 +498,7 @@ const Emit = {
       + '   arrives on `a`. */\n\n'
       + this.gameEntry(id, Games.it, Games.code);
   },
-  /* A file in minigames/ that nothing loads and nothing names is a game that
-     does not exist. Three places, and none of them is in the file itself —
-     which is exactly the sort of thing a person does not remember at 6pm. */
+  /* The three places a new minigame must be wired, none of them in its file. */
   gameWiring() {
     const id = Games.id || 'x';
     const CONST = 'MG_' + String(id).toUpperCase().replace(/[^A-Z0-9_$]/g, '');
@@ -634,9 +544,8 @@ const Emit = {
           + ' → ' + (y ? y.code + ' “' + y.label + '”' : '—'));
       }
     }
-    /* The code is captured, so a change to it here is a change somebody made in
-       the file since this tab was opened rather than one made in this tab. Said
-       plainly, because a diff of it would read as this tool having written it. */
+    /* Captured code differs only if somebody edited the file since this tab
+       opened; said plainly. */
     Object.keys(Object.assign({}, was.code, now.code)).forEach(k => {
       if ((was.code || {})[k] !== (now.code || {})[k]) L.push(k + '(): the source differs');
     });
@@ -674,11 +583,8 @@ const Emit = {
   },
 
   /* ================= imported art =================
-     The same shape build-sprites.mjs writes, so what the engine adopted and
-     what you paste are the same object — except for two fields it deliberately
-     does not carry. `src` is the path the PNG has to end up at rather than the
-     data: URI it is being previewed from, and there is no `v`: that is a hash
-     of a file's bytes, and there is no file yet. */
+     The shape build-sprites.mjs writes, minus the data: `src` is the PNG's
+     destination path, and there is no `v` until the file exists. */
   artSheet(s) {
     const def = Art.def(s);
     def.src = Art.path(s);
@@ -701,9 +607,7 @@ const Emit = {
       + (names.length ? '\n' : '')
       + i + '  } },\n';
   },
-  /* The attribution, in the shape art/CREDITS.md already uses. OGA-BY requires
-     this and the licence text to travel with the art, which is the whole reason
-     both are named in LICENSE part 2. */
+  /* The attribution for art/CREDITS.md; OGA-BY requires it (LICENSE part 2). */
   artCredit(s) {
     const c = s.credit;
     return '### ' + (c.name || s.id) + '\n\n'
@@ -719,9 +623,8 @@ const Emit = {
   },
 
   /* ---- the change list ----
-     What to do to a furnish() you do not want to regenerate. Matched on the
-     identity the doc carries rather than on position, so a move is reported as
-     a move instead of as a delete and an add. */
+     Edits to make to a furnish() you keep, matched by identity so a move reads
+     as a move. */
   changes() {
     const was = new Map((Doc.base.objects || []).map(o => [o._k, o]));
     const now = new Map(Doc.objects.map(o => [o._k, o]));
@@ -785,11 +688,8 @@ const Emit = {
   },
 
   /* ================= the phones =================
-     Four tables, two shapes. CALLERS and MOVES are arrays whose entries carry
-     their own id; BOSSES and TELLS are objects keyed by it. And half of a move
-     is CODE — run() and show: are carried through as the source they came in
-     as, never regenerated, for the same reason a procedural furnish() and a
-     dialogue do() are. */
+     CALLERS and MOVES are arrays of entries with ids; BOSSES and TELLS are
+     keyed objects. A move's run() and show: are captured code, carried through. */
 
   /* One string per line, the way data/callers.js writes them: these are the
      lines a player reads, and a diff of them should be a diff of the writing
@@ -799,12 +699,8 @@ const Emit = {
     if (!list || !list.length) return '[]';
     return '[\n' + list.map(t => pad + '  ' + this.str(t)).join(',\n') + '\n' + pad + ']';
   },
-  /* Known keys in the order data/callers.js writes them, then ANYTHING ELSE.
-     That second half is not decoration: `mystery: true` on the unknown caller
-     and `need: 'corp'` on the corporate-speak move are both real fields that an
-     allow-list emitter dropped silently, which is an export that quietly
-     destroys the thing it is supposed to preserve. Same rule objectLit and
-     furnEntry already follow. */
+  /* Known keys in data/callers.js order, then anything else, so fields like
+     `mystery` and `need` survive. */
   CALL_ORDER: {
     caller: ['id', 'name', 'face', 'w', 'frus', 'agg', 'pat'],
     move: ['id', 'e', 'n', 'd', 'serves', 'cost'],
@@ -818,10 +714,7 @@ const Emit = {
   callEntry(kind, id, it, code) {
     const live = Calls.entry(kind, id);
     const body = it !== undefined ? it : (kind === 'tell' ? { lines: live } : live);
-    /* For the OPEN subject the code comes from the document, where it may have
-       been edited. For every other move it has to be read back off the table —
-       an earlier version defaulted to {} here, which emitted every move in the
-       game with its run() silently missing. */
+    /* The open subject's code comes from the document; others from the table. */
     const src = code || (kind === 'move' && live
       ? { run: live.run && String(live.run), show: live.show && String(live.show) }
       : {});
@@ -877,9 +770,8 @@ const Emit = {
     const NAME = { caller: 'CALLERS', move: 'MOVES', boss: 'BOSSES', tell: 'TELLS' }[kind];
     const open = d.arr ? 'const ' + NAME + ' = [\n' : 'const ' + NAME + ' = {\n';
     const close = d.arr ? '];\n' : '};\n';
-    /* Not the engine's own moves: engine/acts.js puts `land` into MOVES at load
-       wherever the game has not written one, and writing it here would copy
-       the engine into data/callers.js with its words frozen. */
+    /* Not the engine's base moves (engine/acts.js adds `land` where the game has
+       none). */
     const engine = e => kind === 'move' && typeof BaseMoves !== 'undefined' && BaseMoves.indexOf(e) >= 0;
     const ids = d.arr ? t.filter(e => !engine(e)).map(e => e.id) : Object.keys(t);
     return open + ids.map(id => {
@@ -917,9 +809,7 @@ const Emit = {
   },
 
   /* ================= rooms =================
-     Nine fields, all data, so the table round-trips exactly. Known keys in the
-     order data/world.js writes them, then anything else — the same rule the
-     object and caller emitters follow, and for the same reason. */
+     All data; known keys in data/world.js order, then anything else. */
   ZONE_ORDER: ['name', 'floor', 'alt', 'wall', 'tint', 'surf', 'wsurf', 'tile', 'wtile'],
   zoneEntry(id, z) {
     const e = z || ZONES[id];
@@ -947,10 +837,7 @@ const Emit = {
   },
 
   /* ================= what you get for it =================
-     All four tables are pure data, so all four round-trip exactly. Known keys
-     in the order data/items.js writes them, then anything else — the same rule
-     everything else here follows, because an allow-list emitter is an export
-     that quietly destroys what it does not recognise. */
+     Four data tables; known keys in data/items.js order, then anything else. */
   PROG_ORDER: {
     item: ['n', 'e', 'd', 'v', 'r', 'slot', 'quest', 'use', 'eff'],
     shop: ['title', 'note', 'stock'],
@@ -1010,11 +897,9 @@ const Emit = {
   },
 
   /* ================= the day =================
-     EVENTS carries code (go()), which is captured and carried through like
-     every other captured function here. The rest is data. CHAT_SCRIPT,
-     MAIL_SCRIPT and TEXT_SCRIPT are flat arrays in time order, so a channel or
-     a thread is emitted as the lines belonging to it and the table as all of
-     them. */
+     EVENTS' go() is captured code. CHAT_SCRIPT, MAIL_SCRIPT and TEXT_SCRIPT are
+     flat arrays in time order; a channel or thread emits its own lines, the
+     table all of them. */
   officeEntry(kind, id, it, code) {
     if (kind === 'event') {
       const live = (typeof EVENTS !== 'undefined' ? EVENTS : []).find(e => e.id === id);
@@ -1057,10 +942,7 @@ const Emit = {
       return rows.map(c => '  { t: ' + this.lit(c.t) + ', who: ' + this.lit(c.who)
         + ', f: ' + this.lit(c.f) + ', m: ' + this.lit(c.m) + ' },\n').join('');
     }
-    /* EVERY field, known ones first — the allow-list version of this dropped
-       `mystery: true` off the unknown caller and `need: 'corp'` off a move, and
-       it would have dropped a beat's camera the day one was added. Same rule
-       objectLit and furnEntry already follow. */
+    /* Every field, known ones first. */
     const beats = it !== undefined ? (it.beats || []) : (typeof CUT !== 'undefined' ? CUT : []);
     const HEAD = ['k', 'f', 'l', 'cam', 'len', 't'];
     return beats.map(b => {
@@ -1101,17 +983,8 @@ const Emit = {
           : CHAT_SCRIPT.filter(c => c.c === ch);
         list.forEach(c => rows.push(c));
       });
-      /* By time, and then BY WHERE THE FILE ALREADY HAD THEM. Grouping by
-         channel and stable-sorting on `t` alone is not a re-ordering of
-         nothing: several lines share a minute, and within a minute the array
-         order IS the order they appear in the feed — so exporting put every
-         #general line of 09:38 ahead of the #wins line Dave posted in the same
-         minute, and Sarah's reply to him landed before the thing she was
-         replying to. Identical content, different reading, and the round-trip
-         check is what said so.
-
-         A line that came off the bench is not in the file yet and has no place
-         in it, so it goes to the end of its own minute. */
+      /* By time, then by the file's own order: within a minute the array order is
+         the feed order. New lines go to the end of their minute. */
       const filed = new Map(CHAT_SCRIPT.map((c, i) => [c, i]));
       const at = c => (filed.has(c) ? filed.get(c) : Number.MAX_SAFE_INTEGER);
       rows.sort((a, b) => ((a.t || 0) - (b.t || 0)) || (at(a) - at(b)));
@@ -1120,12 +993,7 @@ const Emit = {
         + ', m: ' + this.lit(c.m) + ' },\n').join('') + '];\n';
     }
     if (kind === 'text') {
-      /* The same arrangement CHAT_SCRIPT has, for the same two reasons: one
-         flat array in time order because that is how Texts.tick() reads it,
-         and a tie broken by where the file already had them because several
-         texts share a minute and within a minute the array order IS the order
-         they arrive in. A line off the bench has no place in the file yet and
-         goes to the end of its own minute. */
+      /* The same for texts (Texts.tick() reads one flat array). */
       const rows = [];
       Office.people().forEach(who => {
         const h = this.held(Office, 'text:' + who);

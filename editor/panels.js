@@ -1,12 +1,8 @@
 'use strict';
 /* ---------------- The side panel ----------------
-   Five tabs, and each is a plain rebuild of its own pane: the doc is the truth
-   and the panel is a view of it, so every edit ends in refresh() and no part of
-   the UI holds state that could disagree with the level.
-
-   Fields commit on `change`, not on `input`. Every commit marks an undo entry
-   and rebuilds the map, and doing that per keystroke would put "The Fridg",
-   "The Frid", "The Fri" on the undo stack. */
+   Five tabs, each a plain rebuild of its pane from the doc, so every edit ends
+   in refresh(). Fields commit on `change`, not `input`, so undo does not get
+   an entry per keystroke. */
 
 const Side = {
   tab: 'inspect',
@@ -32,10 +28,8 @@ const Side = {
        subject of it. One control because it is one question. */
     $('#edPick').onclick = () => Mode.pick();
 
-    /* There is no Zone select any more. Which zone the room tool paints is a
-       property of the tool, so it lives on the tool: the chip under the rail
-       shows it and opens a list with the tints on it, which is the only thing
-       that tells thirteen dark navy-greys apart. */
+    /* The room tool's zone lives on the tool: the chip under the rail shows it and
+       opens a tinted list. */
 
     document.querySelectorAll('#edTools button').forEach(b => {
       b.onclick = () => Tools.set(b.dataset.tool);
@@ -75,9 +69,7 @@ const Side = {
 
     this.live = true;
     this.toolButtons();
-    /* On a phone the sheet starts closed, so what you arrive at is the map. It
-       is one tap from open and the tab strip is still there saying what is in
-       it — whereas an editor that opens on a form reads as a form. */
+    /* On a phone the sheet starts closed, showing the map. */
     if (matchMedia('(pointer: coarse)').matches) this.sheet(false);
     this.refresh();
   },
@@ -86,10 +78,8 @@ const Side = {
      Kept as a name here because the level code calls it after making one. */
   levelOptions() { Mode.subjectOptions(); },
 
-  /* `keepFolded` is for the one caller that is not a request to read anything:
-     a mode switch whose new document has no tab of the name the old one was on
-     has to put the strip somewhere, and that is not the same as asking for the
-     panel. Everything else that calls show() is somebody pressing something. */
+  /* `keepFolded`: a mode switch relocating the tab strip is not a request to
+     open the panel. */
   show(tab, keepFolded) {
     this.tab = tab;
     let picked = null;
@@ -100,24 +90,17 @@ const Side = {
     });
     document.querySelectorAll('.pane').forEach(p =>
       p.classList.toggle('on', p.id === 'pane' + tab[0].toUpperCase() + tab.slice(1)));
-    /* The tab strip scrolls on a phone, so the tab you just chose has to be put
-       back into view — otherwise picking the one at the far end scrolls it off
-       and nothing looks selected. Same reason the game's panel does it. */
+    /* Scroll the chosen tab into view on a phone. */
     if (picked && picked.scrollIntoView) {
       picked.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-    /* Choosing a tab is asking to read it. `sheet(true)` — the argument is
-       whether it ends up OPEN, and this read `sheet(false)`, which is a no-op
-       on an already-folded sheet. The panel opens folded on a phone, so that
-       made the first tab anybody pressed do nothing at all: the pane switched
-       underneath a fold with nothing on screen to say it had. */
+    /* Choosing a tab opens the sheet. */
     if (this.shut && !keepFolded) this.sheet(true);
     this.refresh();
   },
 
-  /* The bottom sheet. Closed, the panel is its tab strip and the map has the
-     screen; open, it takes a fixed share. Phone only — the desktop's side panel
-     is a column and there is nothing to get out of the way of. */
+  /* The bottom sheet (phone only): closed shows the tab strip, open takes a
+     fixed share. */
   shut: false,
   sheet(open) {
     this.shut = open === undefined ? !this.shut : !open;
@@ -138,10 +121,7 @@ const Side = {
   },
 
   /* ---- what the tool is holding ----
-     The object tool used to announce its brush in a toast that had gone by the
-     time you looked at the map, and the room tool's zone was a <select> at the
-     far end of a strip that scrolled off a phone. Both are this chip now: it
-     says what the next tap will do, and pressing it is how you change it. */
+     The chip shows what the next tap will do; pressing it changes it. */
   context() {
     const el = $('#edCtx');
     if (!el) return;
@@ -162,9 +142,7 @@ const Side = {
       el.title = 'The room tool paints ' + (z.name || Tools.zone) + ' — press to change it';
     } else {
       el.hidden = true;
-      /* Only the chip's OWN menu goes with it. refresh() runs from inside the
-         layers popover's own handler, and closing every popover here would shut
-         it the instant you switched a layer. */
+      /* Close only the chip's own menu; refresh() runs inside the layers popover. */
       if (Pop.anchor === el) Pop.close();
     }
     /* The dock is a different size now, so the visible map is too. */
@@ -175,10 +153,7 @@ const Side = {
     const el = $('#edZoomV');
     if (el) el.textContent = Math.round(View.zoom * 100) + '%';
   },
-  /* Something the editor wants to tell you: what was copied, what was
-     reverted, why nothing happened. It goes in the readout, and it goes away
-     again — a status line that never clears stops being read, and by the time
-     you have made three more edits it is describing something else entirely. */
+  /* A transient message in the readout, which clears. */
   say(m) {
     this.msg = m;
     this.readout();
@@ -210,10 +185,7 @@ const Side = {
     r.title = fwd ? 'Redo ' + fwd.label + '  (Ctrl+Shift+Z)' : 'Nothing to redo';
   },
 
-  /* How much is on the bench, in the bar. Counted rather than swept: this runs
-     on every refresh, and `editedKeys()` is a JSON compare per document where
-     the whole-game sweep is thirty milliseconds. What is BROKEN is not in this
-     number for the same reason — that is what pressing it tells you. */
+  /* Unexported count in the bar: counted, not swept (this runs every refresh). */
   benchPill(bench) {
     const el = $('#edProjectN'), btn = $('#edProject');
     if (!el || !btn) return;
@@ -223,12 +195,7 @@ const Side = {
     btn.title = n
       ? n + ' subject' + (n === 1 ? '' : 's') + ' the files do not have yet — press for the whole game'
       : 'What is on the bench, and what the checks found';
-    /* A phone's bar has no room for the count and no room for the button that
-       carries it: the whole game is behind the overflow menu there. So the
-       menu button gets the dot. It costs no width, and without it the only
-       always-visible sign that you have work the files do not have is the
-       chip's own dot, which is about the subject in front of you rather than
-       about the other four. */
+    /* On a phone the overflow button carries the dot. */
     const more = $('#edMore');
     if (more) {
       more.classList.toggle('dot', n > 0);
@@ -343,13 +310,8 @@ const Side = {
     p.querySelector('[data-a="del"]').onclick = () => { Doc.removeWaypoint(name); Tools.select(null); };
   },
 
-  /* Nothing selected is not nothing to show. Three hundred objects on the hub
-     is more than anybody can find by looking, so the empty inspector is the
-     level's contents page: what is on it, what has an act behind it, what the
-     check is unhappy about, and a way to walk to any of them. It was a search
-     box that did nothing at all until you typed in it — which on a phone, where
-     the panel is folded away by default, meant the answer to "what is on this
-     level" was to know already. */
+  /* The empty inspector is the level's contents page: what is on it, what has
+     an act, what the check flags, and a way to walk to each. */
   FILTERS: [
     { k: 'all', label: 'Everything' },
     { k: 'use', label: 'With an act' },
@@ -459,10 +421,8 @@ const Side = {
         this.refresh();
       };
     });
-    /* Load this exact object into the object tool. The palette holds one of
-       each KIND, so it cannot offer the one that has been edited since — a
-       `furn:` override, a custom `use`. This can, and alt-click on the map is
-       the same thing for a mouse. */
+    /* Load this exact object into the object tool, overrides and all (alt-click
+       on the map does the same). */
     p.querySelectorAll('[data-turn]').forEach(b => {
       b.onclick = () => { Doc.setObject(i, 'turn', +b.dataset.turn || ''); this.refresh(); };
     });
@@ -475,17 +435,10 @@ const Side = {
     p.querySelector('[data-a="dup"]').onclick = () => Tools.duplicate();
     p.querySelector('[data-a="del"]').onclick = () => { Doc.removeObject(i); Tools.select(null); };
   },
-  /* Which named rectangle in the atlas this object draws, including any brought
-     in through the Art tab. It is stored as `furn: { sprite }` on the object —
-     an override merged over FURN[kind], which is the same mechanism that gives
-     The Printer the whole copier while the other three get the desk crop. */
-  /* Which way round it is. Four quarter turns, because the art is pixel art on
-     a square grid and anything between them is a smear — and as buttons rather
-     than a number, because "2" is not a direction anybody can picture.
-
-     ART ONLY, and the note says so: turning a desk does not turn what it is
-     solid on or where you press E. `T` on the map does the same thing, so the
-     one you reach for is whichever is nearer. */
+  /* The atlas rectangle this object draws, stored as `furn: { sprite }` merged
+     over FURN[kind]. */
+  /* Four quarter turns, as buttons. Art only: collision and interaction are
+     unchanged. `T` on the map does the same. */
   TURNS: [[0, '↑', 'as drawn'], [1, '→', 'a quarter turn clockwise'],
     [2, '↓', 'upside down'], [3, '←', 'a quarter turn anticlockwise']],
   turnOptions(o) {
@@ -544,11 +497,7 @@ const Side = {
       + this.row('to', '<input type="number" data-f="x2" value="' + x2 + '"> '
         + '<input type="number" data-f="y2" value="' + y2 + '">')
       + '<div class="note">' + (x2 - x1 + 1) + ' × ' + (y2 - y1 + 1) + ' tiles</div>'
-      /* What this room is MADE of, where you are drawing it. A zone is one row
-         of data/world.js shared by every room painted with it, so the floor and
-         the wall are edited on the Rooms tab and not here — but "what is this
-         floor" was a question the level editor could not answer at all, and the
-         answer to it is a picture rather than a word. */
+      /* What this room is made of, shown as a picture; edited on the Rooms tab. */
       + '<h4>Made of</h4>'
       + (ZONES[rm.z]
         ? '<div class="mats read">'
@@ -667,11 +616,7 @@ const Side = {
   },
 
   /* ---- check ----
-     The faults worth a tool are the ones you cannot see, so this pane is the
-     one that has to be readable at a glance: three numbers, then what is wrong,
-     errors before warnings. Grouped rather than listed flat — a level with one
-     sealed room and six posters on the carpet used to read as seven equally
-     alarming lines. */
+     Three numbers, then faults grouped, errors before warnings. */
   check() {
     const p = $('#paneCheck');
     const marooned = Check.marooned.length;
@@ -709,9 +654,8 @@ const Side = {
       this.gotoFault(this.faultAt);
     };
   },
-  /* Walk the map to a fault and pick up whatever it is about. Faults that name
-     no tile (a bad link, a level with no entries) have nowhere to walk to, and
-     say so rather than moving the map somewhere arbitrary. */
+  /* Walk the map to a fault and select what it is about; faults with no tile
+     say so. */
   gotoFault(i) {
     const f = Check.faults[i];
     if (!f) return;
@@ -810,11 +754,8 @@ const Side = {
     p.querySelector('[data-a="try"]').onclick = () => Play.go();
   },
 
-  /* Both markers used to be placeable only by a gesture with a shift key in it,
-     which is a gesture a phone does not have — so on a phone a new level could
-     never be given the arrival point without which it will not load, and a
-     waypoint could be moved but never made. Asked for by name and dropped in
-     the middle of what you are looking at, which is somewhere you can see. */
+  /* Place a marker by name, in the middle of the view (no shift-drag needed on
+     a phone). */
   addMarker(what) {
     const e = View.eye();
     const t = View.toTile(e.x, e.y);
@@ -835,15 +776,11 @@ const Side = {
     });
   },
 
-  /* One form for both, because adding and editing a way out ask exactly the
-     same three questions. `to` is a select: the destinations are a known set and
-     a typo there is a door that silently does nothing. */
+  /* One form to add or edit a way out; `to` is a select. */
   editLink(i) {
     const l = i >= 0 ? Doc.links[i] : { via: '', to: Levels.ids().filter(x => x !== Doc.id)[0] || 'office', entry: 'start' };
     if (!l) return;
-    /* The handlers on this level that could plausibly be a way out — anything
-       with a `use`. Offered rather than demanded: a link may be written before
-       the object that takes it exists, and the check will say so. */
+    /* Handlers on this level that could be a way out; offered, not required. */
     const uses = Array.from(new Set(Doc.objects.map(o => o.use).filter(Boolean))).sort();
     Ask.form(i >= 0 ? 'Edit a way out' : 'Add a way out', [
       { k: 'via', label: 'you take', value: l.via, hint: 'the `use` handler, e.g. hatch',
@@ -864,16 +801,13 @@ const Side = {
   exportPane() {
     const shared = Emit.usesSharedDefs();
     const flat = Emit.flatIsSafe();
-    /* The whole entry is only honest where a flat furnish() is faithful and the
-       floor plan is the level's own — which is exactly the case for a level
-       invented here, and for the flat ones that already exist. */
+    /* The whole entry only where a flat furnish() is faithful and the floor plan
+       is the level's own. */
     const whole = flat && !shared;
     Side.exportChoices({
       rows: 18,
       name: v => Doc.id + '.' + v + '.txt',
-      /* Four of the six are conditional, which is what a filtered list of
-         choices is for: an option that cannot say anything true about this
-         level is not offered rather than offered and hedged. */
+      /* Choices that cannot be true of this level are not offered. */
       choices: [
         whole && { v: 'entry', label: 'Whole entry &rarr; data/levels.js',
           src: () => Emit.levelEntry(),
@@ -908,28 +842,14 @@ const Side = {
     });
   },
 
-  /* Copy and Download, under every export pane. Copy is the affordance that
-     matters — it works everywhere — and Download is the one thing that differs
-     by where this page is being served from. */
-  /* THE EXPORT PANE, which is the same pane nine times.
-     Every document ends at the same place — a `what` select, a note under it,
-     a read-only textarea and Copy/Download — and the only thing that differs
-     between them is WHICH sources the select is choosing between. That was
-     nine copies of the same markup and the same render/onchange wiring, which
-     is nine places for the textarea to grow a row or the buttons to change
-     and eight of them to be missed.
-
-     A document now declares its choices and nothing else:
-
-       choices  [{ v, label, src(), note }]  — `label` is HTML, so a caller
-                that interpolates anything escapes it, exactly as before
-       name     (value) => the download's filename
-       rows     the textarea's height, where 16 is not what it wanted
-       buttons  extra buttons inside the row, wired by the caller afterwards
-       after    anything below the buttons
-
-     Returns the pane, so a caller with an extra button has something to hang
-     it on. */
+  /* The export pane, shared by every document: a `what` select, a note, a
+     read-only textarea, Copy and Download. A document declares:
+       choices   [{ v, label, src(), note }]; `label` is HTML, escape it
+       name      (value) => the download filename
+       rows      textarea height
+       buttons   extra buttons in the row, wired by the caller
+       after     anything below the buttons
+     Returns the pane. */
   exportChoices(opts) {
     const p = $('#paneExport');
     const choices = opts.choices;
@@ -963,13 +883,9 @@ const Side = {
     p.querySelector('[data-a="dl"]').onclick = () => this.download(name(), out.value);
   },
 
-  /* Saving a file is the one thing that is not the same everywhere the editor
-     runs. Served off disk or a local server it is an <a download>; inside the
-     claude.ai artifact viewer that is inert by design and the host mediates the
-     save instead. Asked for in that order, because the host is the special case
-     and its absence is the normal one — and `use()` resolving null is how a
-     viewer that cannot save says so, which is a message rather than a dead
-     button. Copy is always there either way. */
+  /* Download differs by host: <a download> off disk or a server; inside the
+     claude.ai artifact viewer the host mediates the save. `use()` resolving null
+     means the viewer cannot save. Copy always works. */
   MIME: { png: 'image/png', txt: 'text/plain', md: 'text/markdown', json: 'application/json' },
   download(name, text) {
     const type = this.MIME[String(name).split('.').pop().toLowerCase()] || 'text/plain';
@@ -995,27 +911,16 @@ const Side = {
 };
 
 /* ---------------- The palette ----------------
-   Built from the game rather than written out here: every distinct object in
-   the whole catalogue, so placing a water cooler places THE water cooler —
-   right kind, right emoji, right `use` — instead of something that looks like
-   one and has no act behind it. */
+   Every distinct object in the catalogue, so placing a water cooler places the
+   real one, `use` and all. */
 const Palette = {
   items: [],
-  /* Every `use:` handler in the building, and which level it is on. Gathered on
-     the same pass, because it is the same walk and a second one would mean
-     building all three levels again — and it is what the job editor points a
-     tracker target at: `{ obj: 'hatch' }` names a handler, not a tile, so that
-     the step survives the floor plan moving. */
+  /* Every `use:` handler and its level, for the job editor's tracker targets. */
   uses: [], useLevel: new Map(),
   filter: '',
 
-  /* Derived from Things.index rather than from a second walk of the building.
-     The two walks disagreed: this one read the catalogue for every level while
-     Things read the DOCUMENT for the one that is open, and it ran once at boot
-     and never again — so a `use:` you placed here was one the job editor would
-     not offer and its check called imaginary. Things.build() calls this, so
-     there is one walk, one rule about where the open level comes from, and one
-     moment at which both go stale. */
+  /* Derived from Things.index, so one walk decides where the open level comes
+     from and both go stale together. */
   collect(index, uses) {
     const idx = index || Things.index, use = uses || Things.uses;
     const seen = new Map();
@@ -1032,18 +937,13 @@ const Palette = {
       a.kind.localeCompare(b.kind) || String(a.name).localeCompare(String(b.name)));
   },
 
-  /* What the object tool most recently held. Placing forty chairs and then one
-     bin and then another chair should not be two hundred objects of scrolling —
-     and on a phone, where the palette is a folded-away sheet, it is the
-     difference between reaching for a thing and going looking for it. */
+  /* Recently held objects, for quick reuse. */
   recent: [],
   remember(it) {
     const k = i => i.kind + '|' + i.e + '|' + i.use + '|' + i.name;
     this.recent = [clone(it)].concat(this.recent.filter(r => k(r) !== k(it))).slice(0, 8);
   },
-  /* The brush is an object rather than a palette entry — it may have been
-     sampled off the map and carry an override the palette knows nothing about —
-     so "which one is selected" is a question about what it looks like. */
+  /* The brush may carry overrides, so selection is judged by appearance. */
   isBrush(it) {
     const b = Tools.brush || {};
     return b.kind === it.kind && b.e === it.e && b.use === it.use && b.name === it.name;
