@@ -66,11 +66,8 @@ const Ed = {
     Office.load(Office.ids()[0]);
     Prog.load(Prog.ids()[0]);
     Calls.load(Calls.ids()[0]);
-    /* The arcade is registered by engine/arcade.js the same way the game does
-       it — from catalogue(), behind typeof guards — so a copy of the editor
-       opened without minigames/ gets a mode with nothing in it rather than a
-       page that will not start. */
-    if (typeof Arcade !== 'undefined') Arcade.init();
+    /* The arcade registers its games from catalogue(), as the game does. */
+    Arcade.init();
     if (Games.ids().length) Games.load(Games.ids()[0]);
     /* The kinds index and the object palette are one walk of every level, and
        Doc.rebuild() has already done it on the way through open() above — so

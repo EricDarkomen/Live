@@ -60,8 +60,7 @@ const GamesUI = {
       + ' · what each declares, which buttons a thumb gets, and where it is installed</span></div>'
       + (rows ? '<ul class="list rows">' + rows + '</ul>'
         : '<p class="empty">No minigame is registered. engine/arcade.js names them in '
-          + 'catalogue(), behind typeof guards — a page loaded without minigames/ has an '
-          + 'arcade with nothing in it.</p>')
+          + 'catalogue().</p>')
       + (dangling.length
         ? '<h4>Opened and not registered <span class="pill">' + dangling.length + '</span></h4>'
           + '<ul class="list tight">' + dangling.map(d =>

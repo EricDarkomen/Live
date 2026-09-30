@@ -131,7 +131,7 @@ const Sync = {
 
   /* A minigame is a whole FILE, which is the one case where writing is easier
      than pasting rather than harder. What it cannot do is wire one up: the
-     script tag in two pages, the typeof guard in catalogue() and the act that
+     script tag in two pages, its entry in catalogue() and the act that
      opens it are four places outside the file, and three of them are code. */
   games(rows, add, manual, done) {
     const ids = {};
@@ -159,7 +159,7 @@ const Sync = {
       wrote.push(id);
       if (ids[id] === 'new') {
         manual.push({ label: Games.label ? Games.label(id) : id, file: 'index.html · editor.html',
-          why: 'a new game needs its script tag on both pages and a typeof guard in '
+          why: 'a new game needs its script tag on both pages and an entry in '
             + 'Arcade.catalogue(), or it is a file nothing loads. The Export tab has the wiring.' });
       }
     });

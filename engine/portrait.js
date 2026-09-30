@@ -1,34 +1,19 @@
 'use strict';
 /* ---------------- Portraits: faces that are alive ----------------
-   The dialogue box used to show a person's head as a CSS window onto their
-   sprite sheet — the right face, standing perfectly still, with an
-   expression patch laid over it now and then. A photograph of somebody you
-   are talking to.
-
-   This draws them instead: the same sprite, the same Faces patches, into a
-   small canvas of its own, a dozen times a second. So they breathe (the kit's
-   idle frames), they blink (engine/faces.js), they bob while they are
-   talking to you, they glance about when they are not, their face follows
-   their mood (Mind.face) and whatever you have just said to them (Rel.add),
-   and hearts come off them when something lands.
-
-   Three places wear one: the dialogue box, your own face in the corner of
-   the HUD — which follows how YOU are doing, tired, hungry or pleased with
-   yourself — and every card on the Islanders tab.
-
-   Everything falls back to the emoji it replaced: no sprite, no canvas, no
-   change. And it all stands still with Reduced motion, apart from the one
-   frame it needs to show who you are talking to. */
+   A person's sprite and Faces patches drawn into a small canvas a dozen
+   times a second: they breathe, blink, nod while talking, glance about, and
+   wear their mood (Mind.face) and your last words (Rel.add), with hearts when
+   something lands. Used in the dialogue box, your HUD corner (your own mood)
+   and the Islanders cards. No sprite means the emoji; Reduced motion holds
+   one still frame. */
 const Portrait = {
   live: [], last: 0, FPS: 12,
-  /* Two crops of the standing, front-facing frame, in sprite pixels: the head
-     alone for the small places, head and shoulders for the dialogue box, and
-     your own for the HUD corner: the head crop started a few rows lower, so
-     you sit up in the circle rather than sinking to the bottom of it. */
+  /* Crops of the front-facing stand frame, in sprite pixels: head, head and
+     shoulders, and your HUD head set a little lower. */
   CROPS: { head: { w: 28, h: 28, top: 2 }, bust: { w: 34, h: 40, top: 0 }, hud: { w: 28, h: 28, top: 5 } },
 
-  can(id) { return typeof Sprites !== 'undefined' && !!id && Sprites.has(id); },
-  still() { return typeof Juice !== 'undefined' ? Juice.still() : false; },
+  can(id) { return !!id && Sprites.has(id); },
+  still() { return Juice.still(); },
 
   /* Put a live portrait of `id` into `el`, replacing whatever was in it. */
   mount(el, id, opts) {
@@ -46,7 +31,7 @@ const Portrait = {
     el.classList.add('live');
     el.dataset.who = id;
     const p = { el, cv, c: cv.getContext('2d'), id, crop, k: s * dpr, speaker: !!opts.speaker,
-      glance: (typeof R !== 'undefined' ? R.t : 0) + 2 + Math.random() * 4 };
+      glance: R.t + 2 + Math.random() * 4 };
     this.live = this.live.filter(q => q.el !== el);
     this.live.push(p);
     this.draw(p, 0);
@@ -68,9 +53,8 @@ const Portrait = {
 
   /* ---- the loop ---- */
   tick(dt) {
-    /* The world's clock stops when a panel covers it (Game.frozen), and the
-       blink and the breath both run on it. Keep it moving for the faces. */
-    if (typeof Game !== 'undefined' && Game.frozen && typeof R !== 'undefined') R.t += dt;
+    /* A panel stops the world's clock (Game.frozen); faces keep theirs. */
+    if (Game.frozen) R.t += dt;
     this.last += dt;
     if (this.last < 1 / this.FPS) return;
     const step = this.last; this.last = 0;
@@ -82,20 +66,16 @@ const Portrait = {
     const r = Sprites.at(p.id);
     if (!r) return;
     const m = r.sheet, c = p.c, cr = p.crop;
-    const t = typeof R !== 'undefined' ? R.t : 0;
+    const t = R.t;
     const still = this.still();
-    /* Talking: the person in the dialogue box, while their words are typing
-       out, nods along a pixel at a time. */
-    const talking = p.speaker && typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.typing;
-    /* Their mouth moves while the words come out (Faces.MOUTHS), and the
-       head gives the odd nod on the stressed beats rather than bouncing on
-       every one. */
-    if (talking && !still && typeof Faces !== 'undefined') Faces.talk[p.id] = t + .15;
+    /* The speaker nods a pixel at a time while their words type out. */
+    const talking = p.speaker && Dialogue.on && Dialogue.typing;
+    /* Their mouth moves (Faces.MOUTHS), with the odd nod on a stressed beat. */
+    if (talking && !still) Faces.talk[p.id] = t + .15;
     const bob = still ? 0 : talking ? (Math.floor(t * 4.5) % 3 === 0 ? 1 : 0) : 0;
-    /* Glancing: now and then somebody who is not mid-sentence looks off to
-       one side for a moment, which is most of what makes a face read as
-       somebody thinking rather than a picture of somebody. */
-    if (!still && !talking && t > p.glance && typeof Faces !== 'undefined' && p.id !== 'player') {
+    /* Now and then someone not speaking glances aside: the difference between a
+       face thinking and a picture of one. */
+    if (!still && !talking && t > p.glance && p.id !== 'player') {
       p.glance = t + 3 + Math.random() * 5;
       if (!Faces.timed[p.id]) Faces.flash(p.id, Math.random() < .5 ? 'look-l' : 'look-r', .5 + Math.random() * .4);
     }
@@ -103,28 +83,23 @@ const Portrait = {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, p.cv.width, p.cv.height);
     c.setTransform(p.k, 0, 0, p.k, 0, 0);
-    /* Sprites.draw() puts the frame's top-left at (x - fw/2, y + FOOT - fh);
-       this solves for the crop's top-left landing at the canvas origin. */
+    /* Solve for the crop's top-left landing at the origin, as Sprites.draw() places frames. */
     const x = cr.w / 2, y = m.fh - Sprites.FOOT - cr.top + bob;
     Sprites.draw(c, p.id, 2, frame, x, y);
   },
 
   /* ---- your face ----
-     How you are doing, on your own face: sleepy when your energy is going,
-     glum when you are hungry or your nerve is, and — for a moment — pleased
-     with yourself when a tip lands (see Juice's bump). */
+     Sleepy when your energy goes, glum when hungry or out of nerve, and briefly
+     pleased when a tip lands (Juice). */
   mood() {
-    if (typeof Faces === 'undefined' || typeof P === 'undefined' || !P.eneMax) return;
+    if (!P.eneMax) return;
     const food = P.food;
     const expr = P.energy < P.eneMax * .18 ? 'closing'
       : (food < 20 || P.patience < P.patMax * .3) ? 'sad' : null;
     if (Faces.held.player !== expr) Faces.hold('player', expr);
   },
 
-  /* ---- hearts ----
-     Little emoji that rise off a portrait and fade: 💕 when something you
-     said landed, 💢 when it did not. Wherever that person's face is on
-     screen right now. */
+  /* ---- hearts: 💕 or 💢 rising off that person's portrait, wherever it is ---- */
   burst(id, e, n) {
     if (this.still()) return;
     for (const p of this.live) {
