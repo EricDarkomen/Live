@@ -262,12 +262,17 @@ const Acts = {
   stones(o) { Craft.work(o, 'stones'); },
   clayBank(o) {
     const left = Craft.left(o, 'claybank');
+    /* Straight in, once you know what it is: the dialogue is for the first
+       look and for when it is dug out. */
+    if (left > 0 && G.flags.dugClay) return Craft.work(o, 'claybank');
     insp('🟤', 'The clay bank', left ? 'Red and sticky' : 'Dug out', ['A bank of red lagoon clay, cool and slick. Rafa dug his bricks out of here; you can still see the scoop marks.',
       left ? 'You could dig some out with your hands. It will get everywhere.' : 'You have had what is easy to reach. The lagoon will slump some more down in ' + clockDur(Craft.back(o, 'claybank')) + '.'],
-      [{ t: 'Dig out some clay.', to: null, if: () => left > 0, do() { Craft.work(o, 'claybank'); } }, { t: 'Leave it.', to: null }]);
+      [{ t: 'Dig out some clay.', to: null, if: () => left > 0, do() { G.flags.dugClay = true; Craft.work(o, 'claybank'); } }, { t: 'Leave it.', to: null }]);
   },
   outcrop(o) {
     const left = Craft.left(o, 'outcrop'), pick = Tools.best('pick');
+    /* A pickaxe in your hand and rock left to break: just swing it. */
+    if (left > 0 && pick) return Craft.work(o, 'outcrop');
     insp('🪨', 'A rock outcrop', left ? 'Grey, streaked with rust' : 'Picked clean', [left ? 'Grey rock pushing up through the ground, streaked rust-red where there is iron in it.' : 'You have broken off everything worth having. Give the weather ' + clockDur(Craft.back(o, 'outcrop')) + ' to loosen some more.',
       pick ? 'Your ' + ITEMS[pick].n.toLowerCase() + ' has ' + Tools.left(pick) + ' jobs left in it.' : 'You would need a pickaxe. Rafa’s workbench, behind the garden.'],
       [{ t: 'Break it up with the pickaxe.', to: null, if: () => left > 0 && !!pick, do() { Craft.work(o, 'outcrop'); } }, { t: 'Leave it.', to: null }]);
@@ -312,7 +317,9 @@ const Acts = {
   /* ---- The jetty ---- */
   supplyBoat() {
     insp('⛵', 'The supply boat', 'The “Marisol II”', ['Captain Teo’s boat, named after somebody he will not talk about. It brought you here, and it takes the island’s orders to the others.'],
-      [{ t: 'Check the orders.', to: null, do() { Orders.open(); } }, { t: 'Leave it.', to: null }]);
+      [{ t: 'Check the orders.', to: null, do() { Orders.open(); } },
+       { t: 'Sell Teo your crafted goods (' + cash(Craft.goodsValue()) + ').', to: null, if: () => Craft.goodsValue() > 0, do() { Craft.sellGoods(); } },
+       { t: 'Leave it.', to: null }]);
   },
   orderBoard() { Orders.open(); },
   suitcase() {

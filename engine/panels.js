@@ -113,6 +113,8 @@ const Interact = {
          DOES something, so it says so. "Inspect the crossing" is what you do
          to a bollard. */
       : best.use === 'crossingButton' ? 'Press the button'
+      /* Driftwood, shells and stones are for picking up, not for looking at. */
+      : best.kind === 'pickup' ? 'Pick up ' + best.name
       : 'Inspect ' + best.name;
     if (label === this._label) return;      /* only touch the DOM when it changes */
     this._label = label;

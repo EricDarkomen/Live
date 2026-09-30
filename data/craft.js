@@ -259,8 +259,9 @@ const Craft = {
           o.was = { kind: o.kind, e: o.e, name: o.name, fdef: o.fdef };
           o.kind = 'stump'; o.e = '🪵'; o.name = 'A stump';
           o.fdef = Object.assign({}, FURN.stump);
+          delete o._foot;           /* Collide caches the footprint on the object */
         } else if (!down && o.was) {
-          Object.assign(o, o.was); delete o.was;
+          Object.assign(o, o.was); delete o.was; delete o._foot;
         }
         continue;
       }
@@ -357,11 +358,12 @@ const Craft = {
       UI.toast('🏺', 'Out of the kiln: ' + ready.map(x => x.n + ' × ' + ITEMS[x.out].n).join(', ') + '.', 'gold');
     } });
     if (k.length < KILN.slots) KILN.recipes.filter(r => canPay(r.in) && lvl >= (r.lvl || 1)).forEach(r => ch.push({
-      t: 'Fire ' + r.n + ' × ' + ITEMS[r.out].n.toLowerCase() + ' — ' + costWords(r.in) + ', ' + clockDur(r.t) + '.', to: null, do: () => {
+      t: 'Fire ' + r.n + ' × ' + ITEMS[r.out].n.toLowerCase() + ' — ' + costWords(r.in) + ', ' + clockDur(r.t * (1 - lvl * .04)) + '.', to: null, do: () => {
         pay(r.in);
-        k.push({ out: r.out, n: r.n, xp: r.xp, done: now + Math.round(r.t * (1 - lvl * .04)) });
+        const t = Math.round(r.t * (1 - lvl * .04));
+        k.push({ out: r.out, n: r.n, xp: r.xp, t, done: now + t });
         G.minutes += 5;
-        UI.toast('🔥', 'The kiln roars. ' + ITEMS[r.out].n + ' in about ' + clockDur(r.t) + '.');
+        UI.toast('🔥', 'The kiln roars. ' + ITEMS[r.out].n + ' in about ' + clockDur(t) + '.');
       } }));
     ch.push({ t: 'Leave it.', to: null });
     insp('🏺', 'Rafa’s kiln', k.length + '/' + KILN.slots + ' firing', lines, ch);
@@ -407,7 +409,7 @@ const Craft = {
     /* The kiln. */
     const k = G.flags.kiln || [];
     h += '<div class="h2">Production</div><div class="farm-prod"><div class="fst"><b>🏺 Rafa’s kiln</b><span>' + k.length + '/' + KILN.slots + ' firing</span>'
-      + k.map(x => { const r = KILN.recipes.find(q => q.out === x.out); return '<div class="fq">' + ITEMS[x.out].e + ' ' + x.n + ' × ' + esc(ITEMS[x.out].n) + ' · ' + (x.done <= now ? '✅ ready' : '⏳ ' + clockDur(x.done - now)) + bar(clamp(1 - (x.done - now) / r.t, 0, 1) * 100, 'grow') + '</div>'; }).join('') + '</div>';
+      + k.map(x => { const t = x.t || KILN.recipes.find(q => q.out === x.out).t; return '<div class="fq">' + ITEMS[x.out].e + ' ' + x.n + ' × ' + esc(ITEMS[x.out].n) + ' · ' + (x.done <= now ? '✅ ready' : '⏳ ' + clockDur(x.done - now)) + bar(clamp(1 - (x.done - now) / t, 0, 1) * 100, 'grow') + '</div>'; }).join('') + '</div>';
     const cab = Object.keys(Build.built()).filter(s => s.startsWith('cabana')).length;
     if (cab) h += '<div class="fst"><b>🛖 Beach cabanas</b><span>' + cab + ' built · ' + cash(CABANA_RENT * cab) + ' a day in rent, paid each morning</span></div>';
     h += '</div>';
@@ -420,7 +422,7 @@ const Craft = {
         + '<span>' + esc(P2.d) + '</span>'
         + '<div class="fq">' + (done >= sites.length ? '✅ Built' : costWords(P2.cost) + (lvlOk ? '' : ' · <i>needs Craftsmanship ' + P2.lvl + '</i>')) + '</div></div>';
     }
-    h += '</div><p class="idesc farm-key">Look for the 🚧 building sites: in the garden, in the yard, on the Promenade by the bar, and on Honeymoon Sands. Every job takes time and energy — eat, and sleep. Tools wear out.</p>';
+    h += '</div><p class="idesc farm-key">Look for the 🚧 building sites: in the garden, in the yard, on the Promenade by the bar, and on Honeymoon Sands. Every job takes time and energy — eat, and sleep. Tools wear out. Wind chimes, tiki mugs and sea glass sell to Teo at the supply boat, or better, to an order.</p>';
     return h;
   }
 };
@@ -441,12 +443,15 @@ const Build = {
   refresh() {
     if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
     for (const o of World.objects) {
-      if (!o.site || !this.has(o.site) || o.builtAs) continue;
+      if (!o.site || o.builtAs) continue;
+      /* Unbuilt, a site says what it is going to be. */
+      if (!this.has(o.site)) { const n = PROJECTS[o.proj].n.replace(/^A /, ''); o.name = 'A building site — ' + n[0].toLowerCase() + n.slice(1); continue; }
       const as = PROJECTS[o.proj].as;
       o.builtAs = o.proj;
       Object.assign(o, as);
       o.fdef = Object.assign({}, FURN[as.kind]);
       o.mount = null;
+      delete o._foot;
     }
     if (typeof Garden !== 'undefined') Garden.refresh();
   },
@@ -511,6 +516,23 @@ const Build = {
     insp('🪜', 'Rafa’s ladder', 'Against The Driftwood', ['Up there is a roof that no longer leaks: new battens, fresh thatch, and not one bucket.',
       'Guests tip better when they are not being dripped on — ×' + ROOF_TIPS + ', every day.']);
   }
+};
+
+/* ---------------- Teo buys what you make ----------------
+   Orders pay best, but orders come three at a time. The boat will take
+   crafted goods and sea glass off your hands at two-thirds of what they are
+   worth, so a good week at the kiln is never a bag full of mugs. */
+/* Only what is made to sell — never the planks and bricks you are saving up. */
+const GOODS = ['shell_chime', 'tiki_mug', 'sea_glass'];
+Craft.goodsValue = () => GOODS.reduce((a, id) => a + bag(id) * Math.round(ITEMS[id].v * .66 * 100) / 100, 0);
+Craft.sellGoods = () => {
+  const pay = Math.round(Craft.goodsValue() * 100) / 100;
+  if (!pay) return;
+  const words = GOODS.filter(id => bag(id)).map(id => bag(id) + ' × ' + ITEMS[id].n).join(', ');
+  GOODS.forEach(id => bagTake(id, bag(id)));
+  Player.mod({ money: pay, rep: 1 });
+  Sfx.cash && Sfx.cash();
+  UI.toast('⛵', 'Teo loads ' + words + ' and counts out <b>' + cash(pay) + '</b>. “For the market on San Tomás. Don’t tell Nico what I got for it.”', 'gold');
 };
 
 /* The stump of anything you felled. */
