@@ -65,6 +65,32 @@ const R = {
     c.fillText(e, x, y);
     if (alpha !== undefined) c.globalAlpha = 1;
   },
+  /* ---- the focus rim ----
+     A rim that follows the thing's own shape. `draw` runs off-canvas and only
+     its shadow lands: a flat silhouette in `colour` at eight offsets round the
+     real position, then one blurred pass in `glow`. Shadows follow alpha and
+     read no pixels back, so file:// is fine; the cost is nine draws of one
+     object. Shadow offsets are device pixels, untouched by the transform, so
+     the draw is shifted in device space to match. Call before drawing the
+     thing itself, which then covers the silhouette's middle. */
+  RIM_W: 2,
+  rim(draw, colour, glow) {
+    const c = this.ctx, m = c.getTransform(), O = 1e4;
+    const w = Math.hypot(m.a, m.b) * this.RIM_W;
+    c.save();
+    c.setTransform(m.a, m.b, m.c, m.d, m.e - O, m.f);
+    c.shadowBlur = 0; c.shadowColor = colour;
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      c.shadowOffsetX = O + Math.cos(a) * w; c.shadowOffsetY = Math.sin(a) * w;
+      draw();
+    }
+    c.shadowColor = glow; c.shadowBlur = w * 8; c.shadowOffsetX = O; c.shadowOffsetY = 0;
+    draw();
+    c.restore();
+  },
+  RIM_PERSON: ['#ff8c1a', 'rgba(255,140,26,.8)'],
+  RIM_THING: ['#7cc0ff', 'rgba(77,163,255,.75)'],
   /* A radial gradient is expensive to build; bake each colour once and blit it. */
   glow(colour, r) {
     const key = colour + r;
@@ -1412,7 +1438,7 @@ const R = {
 
   /* One vehicle from above: the baked body (carArt()), then what moves: brake
      lights, indicators, reversing wash and the occupant. */
-  car(car) {
+  car(car, focused) {
     const c = this.ctx, d = car.def;
     const hl = d.len / 2, hw = d.wid / 2;
     const S = this.CARSHAPES[d.shape] || this.CARSHAPES.car;
@@ -1430,6 +1456,8 @@ const R = {
 
     c.save();
     c.translate(car.x, car.y); c.rotate(car.a);
+    /* The rim goes round the body only, over the shadow. */
+    if (focused) this.rim(() => c.drawImage(art.body, ax, ay, art.w, art.h), ...this.RIM_THING);
 
     /* No drawn wheels: the sheet's bodies cover their own tyres. `car.wheel` still
        drives the physics. */
@@ -2487,10 +2515,20 @@ const R = {
     const bob = sprite ? 0
       : n.walking && this.animate ? Math.abs(Math.sin(n.bob * 2)) * 3.5 : Math.sin(n.bob * .5) * 1;
     const box = Sprites.bounds(n.id, at.x, at.y);
-    if (hi === n) {
-      c.save(); c.strokeStyle = 'rgba(255,179,71,.9)'; c.lineWidth = 2; c.shadowColor = '#ffb347'; c.shadowBlur = 14;
-      c.beginPath(); c.roundRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8); c.stroke(); c.restore();
-    }
+    let body;
+    if (sprite) {
+      /* Standing colleagues breathe; walkers and sitters do not. Off with Animation. */
+      const nf = seat ? Sprites.sit(n.id)
+        : n.walking ? Sprites.frame(n.id, this.animate, n.step)
+        : this.animate ? Sprites.breath(n.id) : 0;
+      const nlift = seat && this.animate ? Sprites.breathLift(n.id) : 0;
+      /* A seated person faces the chair's `face` (0 up, 1 left, 2 down, 3 right),
+         default 0 (towards the desk). Somebody hit turns to see who did it
+         (Guns.watch twist). */
+      body = () => Sprites.draw(c, n.id, seat ? (seat.face ?? 0) : n.dir ?? 2, nf, at.x, at.y - nlift,
+        seat ? null : Guns.watchOf(n));
+    } else body = () => this.emoji(n.face, at.x, at.y - bob, 29);
+    if (hi === n) this.rim(body, ...this.RIM_PERSON);
     if (!this.cinema && this.questMark(n)) this.emoji('❗', at.x + 13, box.y - 4, 15);
     /* A need, mood or inspiration icon over the head, opposite the quest mark,
        not while speaking. */
@@ -2503,18 +2541,7 @@ const R = {
         this.emoji(ic, ix, iy, 12);
       }
     }
-    if (sprite) {
-      /* Standing colleagues breathe; walkers and sitters do not. Off with Animation. */
-      const nf = seat ? Sprites.sit(n.id)
-        : n.walking ? Sprites.frame(n.id, this.animate, n.step)
-        : this.animate ? Sprites.breath(n.id) : 0;
-      const nlift = seat && this.animate ? Sprites.breathLift(n.id) : 0;
-      /* A seated person faces the chair's `face` (0 up, 1 left, 2 down, 3 right),
-         default 0 (towards the desk). */
-      /* Somebody hit turns to see who did it (Guns.watch twist). */
-      Sprites.draw(c, n.id, seat ? (seat.face ?? 0) : n.dir ?? 2, nf, at.x, at.y - nlift,
-        seat ? null : Guns.watchOf(n));
-    } else this.emoji(n.face, at.x, at.y - bob, 29);
+    body();
     /* NB: canvas font strings cannot contain CSS custom properties — an
        invalid string is ignored and the previous (emoji-sized) font sticks. */
     if (!this.cinema) {
@@ -2530,18 +2557,14 @@ const R = {
   stranger(p, hi) {
     const c = this.ctx;
     this.shadow(p.x, p.y + 13, 12, 5);
-    if (hi === p) {
-      const box = Sprites.bounds(p.sprite, p.x, p.y);
-      c.save(); c.strokeStyle = 'rgba(255,179,71,.9)'; c.lineWidth = 2;
-      c.shadowColor = '#ffb347'; c.shadowBlur = 14;
-      c.beginPath(); c.roundRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8); c.stroke();
-      c.restore();
-    }
+    let body;
     if (Sprites.has(p.sprite)) {
       const f = p.walking ? Sprites.frame(p.sprite, this.animate, p.step)
         : this.animate ? Sprites.breath(p.sprite) : 0;
-      Sprites.draw(c, p.sprite, p.dir ?? 2, f, p.x, p.y, Guns.watchOf(p));
-    } else this.emoji('🧑', p.x, p.y, 28);
+      body = () => Sprites.draw(c, p.sprite, p.dir ?? 2, f, p.x, p.y, Guns.watchOf(p));
+    } else body = () => this.emoji('🧑', p.x, p.y, 28);
+    if (hi === p) this.rim(body, ...this.RIM_PERSON);
+    body();
     /* No names over strangers. */
     if (p.sayT > 0) this.bubble(p.x, p.y - 34, p.say, Math.min(1, p.sayT));
   },
@@ -3172,16 +3195,7 @@ const R = {
           c.globalAlpha = pveil; this.stranger(p, hi); c.restore();
         }
       } else if (d.kind === 'car') {
-        this.car(d.car);
-        if (hi === d.car && !Cars.driving) {
-          c.save();
-          c.strokeStyle = 'rgba(77,163,255,.9)'; c.lineWidth = 2;
-          c.shadowColor = '#4da3ff'; c.shadowBlur = 14;
-          const cw = d.car.def.len + 12, ch = d.car.def.wid + 12;
-          c.translate(d.car.x, d.car.y); c.rotate(d.car.a);
-          c.beginPath(); c.roundRect(-cw / 2, -ch / 2, cw, ch, 10); c.stroke();
-          c.restore();
-        }
+        this.car(d.car, hi === d.car && !Cars.driving);
       } else if (d.kind === 'obj') {
         const o = d.o;
         /* Behind a wall you see the front of: not drawn at all. */
@@ -3235,14 +3249,6 @@ const R = {
         if (onFloor && !drawsOwn && o.kind !== 'hatch') {
           this.shadow(ex, ey + size * .45, Math.max(11, size * .42), 5);
         }
-        if (hi === o) {
-          c.save();
-          c.strokeStyle = 'rgba(77,163,255,.9)'; c.lineWidth = 2;
-          c.shadowColor = '#4da3ff'; c.shadowBlur = 14;
-          const hw = Math.max(40, size + 13), hh = Math.max(42, size + 15);
-          c.beginPath(); c.roundRect(ex - hw / 2, ey - hh / 2, hw, hh, 8); c.stroke();
-          c.restore();
-        }
         if (o.ringing) {
           /* a pool of light on the carpet, so a ringing phone reads from across
              the floor rather than only when it is already on screen centre */
@@ -3264,25 +3270,29 @@ const R = {
         /* Mirror some repeated objects for variety (FLIPPABLE, seeded off the tile). */
         const canFlip = FLIPPABLE.has(o.kind) && ((o.x * 7 + o.y * 13) & 1) === 1;
         /* `turn` is quarter turns clockwise and art only, like `flip`: collision and
-           interaction are unchanged. About the sprite's middle; shadow, highlight and
+           interaction are unchanged. About the sprite's middle; shadow and
            pool stay square. */
         /* Paint turns with its wall: on east and west walls a wide tag is turned a
            quarter so it runs along the wall. */
         const paintTurn = f.paint && o.mount === 'wall'
           ? (o.wallSide === 'e' ? 1 : o.wallSide === 'w' ? 3 : 0) : 0;
         const turn = ((o.turn || 0) + paintTurn) & 3;
-        if (turn) {
-          const mid = (fsprite && Tiles.has(fsprite))
-            ? Tiles.centre(fsprite, ex, ey + bob) : { x: ex, y: ey + bob };
-          c.save();
-          c.translate(mid.x, mid.y); c.rotate(turn * Math.PI / 2); c.translate(-mid.x, -mid.y);
-        }
-        if (edgeOn || !(fsprite && Tiles.draw(c, fsprite, ex, ey + bob, canFlip))) {
-          if (o.arm) this.signalHead(o.arm, ex, ey);
-          else if (o.art) this.wallArt(o, ex, ey + bob, size);
-          else if (!o.noEmoji) this.emoji(o.e, ex, ey + bob, size);
-        }
-        if (turn) c.restore();
+        const art = () => {
+          if (turn) {
+            const mid = (fsprite && Tiles.has(fsprite))
+              ? Tiles.centre(fsprite, ex, ey + bob) : { x: ex, y: ey + bob };
+            c.save();
+            c.translate(mid.x, mid.y); c.rotate(turn * Math.PI / 2); c.translate(-mid.x, -mid.y);
+          }
+          if (edgeOn || !(fsprite && Tiles.draw(c, fsprite, ex, ey + bob, canFlip))) {
+            if (o.arm) this.signalHead(o.arm, ex, ey);
+            else if (o.art) this.wallArt(o, ex, ey + bob, size);
+            else if (!o.noEmoji) this.emoji(o.e, ex, ey + bob, size);
+          }
+          if (turn) c.restore();
+        };
+        if (hi === o) this.rim(art, ...this.RIM_THING);
+        art();
         if (o.kind === 'pc' && this.animate) {
           c.fillStyle = 'rgba(120,190,255,' + (0.05 + Math.abs(Math.sin(this.t * 2 + o.wob)) * .08) + ')';
           c.fillRect(ex - 13, ey - 12, 26, 16);
