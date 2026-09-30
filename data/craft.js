@@ -550,5 +550,3 @@ Craft.stump = function (o) {
   const base = Farm.tipMult;
   Farm.tipMult = () => base() * (Build.has('roof') ? ROOF_TIPS : 1);
 }
-
-setInterval(() => { try { Craft.update(); Craft.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1000);

@@ -1,7 +1,7 @@
 'use strict';
 /* ---------------- TimeSystem + main loop ---------------- */
 const Game = {
-  acc: 0, mmT: 0, frozen: false, paused: false,
+  acc: 0, mmT: 0, secT: 0, frozen: false, paused: false,
   /* A full-screen overlay hides the world entirely, so there is nothing to gain
      from redrawing it — and plenty to lose, since the blurred backdrop then has
      to be re-rasterised every frame. */
@@ -125,6 +125,7 @@ const Game = {
        and the traffic are still moving above this line — so a map that stopped
        when it was opened would be a map of a minute ago. */
     this.mmT -= dt; if (this.mmT <= 0) { this.mmT = .25; Atlas.tick(); }
+    this.secT -= dt; if (this.secT <= 0) { this.secT = 1; Hook('second'); }
     if (this.overlayUp()) {
       /* draw one final frame, blur it into the canvas, then stop entirely */
       if (!this.frozen) { this.frozen = true; R.draw(dt); R.freeze(); }

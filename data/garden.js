@@ -191,9 +191,6 @@ function clockDur(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return h + (h === 1 ? ' hour' : ' hours') + (r >= 15 ? (r >= 45 ? ' and three-quarters' : r >= 25 ? ' and a half' : ' and a quarter') : '');
 }
-/* The farm's clock: water, growth, pests, spoilage and hunger, caught up
-   from the island's own minutes — see Farm.update() in data/farm.js. */
-setInterval(() => { try { if (typeof Farm !== 'undefined') Farm.update(); Garden.refresh(); } catch (e) { /* the level is mid-swap */ } }, 1000);
 
 /* ---------------- The blender ---------------- */
 const RECIPES = [

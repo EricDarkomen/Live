@@ -303,7 +303,8 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
      callWon(E)          an ordinary encounter was won
      bossWon(key, E)     a boss was beaten
      dayEnd(day)         the report has been shown
-     bought(id)          something was bought in a shop */
+     bought(id)          something was bought in a shop
+     second()            once a second of play, from the game loop */
 const HOOKS = {
   zoneEnter(z) {
     /* First time through the bar door is the first step of Mari's job. */
@@ -331,6 +332,11 @@ const HOOKS = {
   dayEnd() { Orders.refresh(); },
   bought(id) {
     if (ITEMS[id] && ITEMS[id].crop) qTo('q_garden', 1);
+  },
+  /* The farm and the workshop catch up from the island's own minutes. */
+  second() {
+    Farm.update(); Garden.refresh();
+    Craft.update(); Craft.refresh();
   },
   bossWon(key) {
     if (key === 'critic') {
