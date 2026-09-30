@@ -1,35 +1,18 @@
 'use strict';
 /* ---------------- The call, which is the game ----------------
-   Everything else this editor touches is scenery around one loop: a phone
-   rings, somebody is upset, and you have a handful of things you can say. That
-   loop is four tables in data/callers.js and nothing joins them up.
-
-     CALLERS   who rings, how angry, and what they say at each stage.
-     MOVES     what you can say back. Half data, half code.
-     TELLS     what the caller is showing you — the hint that says which need
-               is live. Keyed by NEED.
-     BOSSES    the set pieces: phases, lines, and the flag winning one sets.
-
-   The joins that fail silently are all of the same shape as everywhere else in
-   this project:
-
-     a move's `serves: ['heard']`   names a key in TELLS, checked by nobody
-     a boss's `win: 'printerBeaten'` names a G.flag something else has to read
-     a caller's `w:`                is a weight in a draw nothing normalises
-
-   All four are edited here, in one mode, because they are one subject: you
-   cannot sensibly write a move without seeing the tells it answers.
-
-   HALF OF MOVES IS CODE. `run(E)` is where a move actually does something and
-   `show:` decides whether it is offered at all. Both are captured as SOURCE and
-   carried through verbatim — never regenerated — for exactly the reason a
-   procedural furnish() and a dialogue do() are. This tool cannot write that
-   code and must not pretend to. */
+   Four tables in data/callers.js:
+     CALLERS  who rings, how angry, what they say at each stage
+     MOVES    what you can say back; half data, half code
+     TELLS    what the caller shows: the hint of which need is live
+     BOSSES   set pieces: phases, lines, and the flag a win sets
+   Silent joins: a move's `serves:` names a TELLS key; a boss's `win:` names a
+   flag something must read; a caller's `w:` weights an unnormalised draw.
+   Edited together, since moves are written against tells. A move's run(E)
+   and show: are captured source, carried through verbatim. */
 
 const Calls = {
-  /* The four tables, in the order the subject list shows them. `arr` says
-     whether the table is an array (id lives on the entry) or an object (the id
-     is the key), because that decides how it is read, written and emitted. */
+  /* The four tables in list order; `arr` says array (id on the entry) or
+     object (id as key). */
   KINDS: [
     { k: 'caller', label: 'Callers', arr: true, table: () => CALLERS },
     { k: 'move', label: 'Moves', arr: true, table: () => MOVES },
@@ -135,9 +118,7 @@ const Calls = {
     if (v === '' || !isFinite(n)) delete this.it[k]; else this.it[k] = n;
     this.rebuild();
   },
-  /* The string lists — a caller's `open`/`mid`/`hot`/`win`/`issues`, a tell
-     group's lines, a boss phase's lines. One per line in a textarea, because
-     that is how they read and how they are written in the file. */
+  /* String lists, one per line. */
   setLines(k, text) {
     this.mark('edit ' + k);
     const list = String(text).split('\n').map(s => s.trim()).filter(Boolean);
@@ -264,10 +245,8 @@ const CallsMake = {
 };
 
 /* ---------------- What is wrong with the phones ----------------
-   The faults that matter are the ones that are invisible while you play. A
-   move that serves a need nothing ever shows is a move offered at random; a
-   caller with no `win` lines ends every good call in silence; a boss whose flag
-   nobody reads is a fight with no consequence. */
+   Faults invisible in play: a move serving a need nothing shows, a caller
+   with no `win` lines, a boss flag nobody reads. */
 const CallCheck = {
   faults: [], per: new Map(),
 
@@ -308,9 +287,7 @@ const CallCheck = {
     const fault = (level, msg, extra) =>
       out.push(Object.assign({ level, msg, key }, extra || {}));
 
-    /* The open subject is read from the DOCUMENT and every other from the
-       table — the same rule the job and object checks follow, so something you
-       have just changed is reported now rather than after you export it. */
+    /* The open subject from the document, others from the table. */
     let e = this.entry(kind, id, live);
     if (!e) return out;
 
@@ -405,9 +382,8 @@ const CallCheck = {
     return out;
   },
 
-  /* The open subject as the document has it; anything else as the table has
-     it. Written once because all four kinds need it and they read differently:
-     a tell is a bare array, a move keeps its code beside its data. */
+  /* The open subject as the document has it, else the table's; shared by all
+     four kinds. */
   entry(kind, id, live) {
     if (!live) {
       const e = Calls.entry(kind, id);

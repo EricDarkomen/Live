@@ -1,16 +1,8 @@
 'use strict';
 /* ---------------- The art importer's panes ----------------
-   The workspace is the sheet itself, drawn at an honest zoom with a grid over
-   it, and you slice it by dragging. That is the whole interface, because the
-   only question a tileset asks is "which pixels are the printer" and the only
-   way to answer it is to look.
-
-   Two things are deliberate. The grid is how you PICK a rectangle and not how
-   one is stored — every entry is in pixels, because the kit's wall items are
-   not on the 32px grid and rounding one to a cell clips the frame off it. And
-   the sheet is drawn with smoothing off at integer scales: pixel art resampled
-   at 1.37× is pixel art you cannot slice, because the seam you are looking for
-   is one pixel wide. */
+   The workspace is the sheet at an honest zoom with a grid, sliced by
+   dragging. The grid picks rectangles; entries are stored in pixels. Drawn
+   unsmoothed at integer scales so one-pixel seams stay visible. */
 
 const ArtUI = {
   zoom: 2,
@@ -86,9 +78,8 @@ const ArtUI = {
   },
 
   /* ---- reading one in ----
-     The provenance is asked for AFTER the file has decoded, so the form can
-     show what it actually is and default the cell size to something sensible
-     rather than making you guess before you have seen it. */
+     Provenance is asked after decoding, so the form can show the file and guess
+     a cell size. */
   take(file) {
     Art.read(file).then(loaded => this.ask(loaded, file), err => Side.say(err.message));
   },
@@ -245,9 +236,7 @@ const ArtUI = {
   drawRows(c, s, z) {
     c.font = '600 10px system-ui, sans-serif';
     c.textBaseline = 'top';
-    /* The walk is 1..sit-1, exactly as Sprites.frame() derives it, and it is
-       drawn in the SOUTH block — a row is four direction-blocks of `frames`
-       side by side, and south is the pose you see most of anybody. */
+    /* The walk is 1..sit-1 (as Sprites.frame()), shown in the south block. */
     const walk = Math.max(1, s.sit - 1);
     const south = Math.max(0, s.dirs.indexOf('down'));
     const frame = south * s.frames + (s.frames > 1 ? 1 + (Math.floor(this.t * 6) % walk) : 0);
@@ -464,9 +453,7 @@ const ArtUI = {
     });
     p.querySelector('[data-a="png"]').onclick = () => this.savePng(s);
   },
-  /* The pixels back out as a file. The data: URI is base64 already, so this is
-     a decode rather than a re-encode — nothing is resampled and nothing is
-     recompressed, which for pixel art is the only acceptable answer. */
+  /* The PNG back out: decoded from the data: URI, never resampled. */
   savePng(s) {
     const at = s.src.indexOf(',');
     const b64 = s.src.slice(at + 1);

@@ -1,9 +1,6 @@
 'use strict';
 /* ---------------- The call editor's panes ----------------
-   Four tables in one list, because they are one subject. A move is written
-   against the tells it answers and a caller is written against the moves that
-   will be used on it, so putting them behind separate modes would mean editing
-   one with the other out of sight. */
+   Four tables in one list, since they are written against each other. */
 
 const CallsUI = {
   refresh() {

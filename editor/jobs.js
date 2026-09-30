@@ -1,22 +1,10 @@
 'use strict';
 /* ---------------- The job being edited ----------------
-   A quest is the one thing in this game that is pure data: a name, who gives it,
-   an ordered list of steps, one tracker target per step, and what you get. No
-   loops, no functions, nothing to capture — so unlike a level's furniture it
-   round-trips exactly, and the whole QUESTS table can be written back out.
-
-   Which makes the interesting part not the editing but the CHECKING. A quest is
-   two lists that have to stay the same length and one table of targets that
-   have to resolve, and both faults are invisible: `Guide.aim()` returns false
-   for a target that has gone and the tracker simply shows no pin, which reads
-   as a step that has nowhere to go rather than as a mistake. A step with no
-   entry in `track` is `undefined` rather than `null`, and `null` means
-   something here — it means "you are not told where to go, that is the puzzle".
-
-   The catalogue is not written to. QUESTS stays exactly as data/items.js
-   declared it and the doc is a copy, the same arrangement the level editor uses
-   with LEVELS: the preview and the checks read the doc, the export is the
-   deliverable, and Revert is a reload. */
+   A quest is pure data (name, giver, steps, one tracker target per step,
+   reward) and round-trips exactly. The work is in checking: `steps` and
+   `track` must stay paired, and targets must resolve (Guide.aim() shows no pin
+   for a missing one). `null` means "no pin, on purpose". QUESTS is not
+   written to; the doc is a copy, the export the deliverable, Revert a reload. */
 
 const Jobs = {
   id: null,
@@ -32,11 +20,8 @@ const Jobs = {
     this.n = q.n || id;
     this.giver = q.giver || '';
     this.steps = clone(q.steps || []);
-    /* One target per step, and `null` where there deliberately is none. A
-       shorter `track` than `steps` is not "the rest are null" — it is a step
-       whose target is `undefined`, which the tracker treats the same way and
-       the check does not, because one of them was meant and the other was
-       forgotten. Padded on the way in so the pairing is visible. */
+    /* `track` is padded to the steps on load: `undefined` (forgotten) and `null`
+       (meant) look the same in play but not to the check. */
     this.track = clone(q.track || []);
     while (this.track.length < this.steps.length) this.track.push(null);
     this.rw = Object.assign({ xp: 0, money: 0, item: null }, clone(q.rw || {}));
@@ -84,10 +69,7 @@ const Jobs = {
     this.steps[i] = text;
     this.rebuild();
   },
-  /* The two lists move together, always. Every one of these could be written as
-     a splice on `steps` alone and every one of them would leave the targets
-     shifted one step out — a job that points at Dave for the step about the
-     printer, which looks like a job that works. */
+  /* Steps and targets always move together, or the targets shift a step. */
   addStep() {
     this.mark('add a step');
     this.steps.push('');
@@ -111,9 +93,7 @@ const Jobs = {
     this.rebuild();
     return true;
   },
-  /* `kind` is 'npc', 'obj', 'wp' or '' — and '' is a real answer, not an empty
-     one. "Find out who has Terry's mug" has no destination on purpose: a
-     compass arrow pointing at the answer is the game telling you the answer. */
+  /* `kind` is 'npc', 'obj', 'wp' or '' (deliberately no destination). */
   setTarget(i, kind, value, label) {
     this.mark('point step ' + (i + 1));
     if (!kind) this.track[i] = null;
@@ -188,20 +168,9 @@ const JobMake = {
 };
 
 /* ---------------- What is wrong with the jobs ----------------
-   Three kinds of fault, and only the first is visible while you play.
-
-     THE PAIRING   — `steps` and `track` are one list written as two, and
-                     nothing enforces it. A target list one short does not fail;
-                     it shifts, so the step about the printer points at Dave.
-     THE TARGETS   — Guide.aim() returns false for a target that has gone and
-                     the tracker simply shows no pin, which is indistinguishable
-                     from a step that deliberately has none.
-     THE WIRING    — a job nobody starts is a job nobody sees, and a job nobody
-                     completes sits in the tracker until the shift ends.
-
-   The last one is the reason `Writing` exists: nothing in data/items.js says
-   which line of dialogue starts a job, so the only way to answer it is to read
-   the writing. */
+   The pairing (a short `track` shifts targets), the targets (a missing one
+   looks deliberate), and the wiring: a job nobody starts or completes. Only
+   Writing can answer the last, by reading the dialogue. */
 
 const JobCheck = {
   faults: [], per: new Map(),

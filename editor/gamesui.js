@@ -1,10 +1,7 @@
 'use strict';
 /* ---------------- The arcade editor's panes ----------------
-   One row per game, and the panel is the whole of what a minigame declares
-   about itself: what it is called, how it explains itself on each device, which
-   buttons a thumb gets, what a round costs and what it is worth — plus the code
-   it is made of, shown and not edited, because that is the half of a game this
-   tool must not pretend it can write. */
+   One row per game; the panel is everything it declares, plus its code shown
+   read-only. */
 
 const GamesUI = {
   refresh() {
@@ -24,10 +21,8 @@ const GamesUI = {
       const it = (id === Games.id && Games.it) ? Games.it : g;
       const worst = GameCheck.worstFor(id);
       const n = GameCheck.countFor(id);
-      /* Where it is INSTALLED, which is the table, plus any bare Arcade.open
-         still written into an act by hand. Reading only the second is how this
-         row came to say "nothing opens it" about all three of them the moment
-         the binding became data. */
+      /* Where it is installed (the cabinet table) plus any bare Arcade.open in an
+         act. */
       const cabs = id === Games.id && Games.cabs ? Games.cabs
         : Games.table().filter(c => c.game === id);
       const opens = Games.openedBy(id);
@@ -121,10 +116,7 @@ const GamesUI = {
       + 'left to right.</div>'
 
       /* ---- where it is played ----
-         The part that used to be code and could only be described. A cabinet
-         is one row: which object offers it, what the reply says, and what
-         winning it is wired into. Install, edit, remove — no file touched
-         until the export. */
+         Cabinets: the object, the reply, and the reward wiring. */
       + '<h4>Where it is played <span class="pill">' + (Games.cabs || []).length + '</span></h4>'
       + ((Games.cabs || []).length
         ? Games.cabs.map((c, i) => this.cabCard(c, i)).join('')
@@ -217,9 +209,7 @@ const GamesUI = {
     return free[0] || 'Space';
   },
 
-  /* One cabinet. Every join is a <select> over a known set wherever there is
-     one, because these are exactly the fields where a typo is silent: a skill
-     id that is not in SKILLS is a rank of zero for ever and nothing says so. */
+  /* One cabinet, with selects for every join over a known set. */
   cabCard(c, i) {
     const opt = (list, cur, none) => '<option value="">' + esc(none) + '</option>'
       + list.map(x => {
@@ -309,11 +299,8 @@ const GamesUI = {
   },
 
   /* ---- export ----
-     A minigame is its own FILE, which is what makes this export different from
-     every other one here: there is no table to paste a line into. So the
-     deliverable is the whole of minigames/<id>.js, declarations rewritten and
-     hooks verbatim — and, separately, the two lines in engine/arcade.js and
-     index.html without which the file is never loaded and never registered. */
+     The whole minigames/<id>.js (declarations rewritten, hooks verbatim), and
+     separately the lines that load and register it. */
   exportPane() {
     Side.exportChoices({
       rows: 18,
