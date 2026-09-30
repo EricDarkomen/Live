@@ -43,6 +43,8 @@ const Prog = {
      is not here is a name that does nothing. */
   SLOTS: GAME.slots,
   EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patience', 'energy'],
+  /* What a skill's `eff` may add to, per rank. */
+  SKILL_EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patMax', 'eneMax'],
   RARITY: ['common', 'rare', 'epic'],
 
   kind: 'item', id: null, it: null,
@@ -385,8 +387,12 @@ const ProgCheck = {
         if (!String(sk.n || '').trim()) fault('error', '“' + sid + '” has no name.', { skill: sid });
         if (!(sk.max > 0)) fault('error', '“' + sid + '” has a max of ' + JSON.stringify(sk.max)
           + ', so it can never be bought.', { skill: sid });
-        /* A skill nothing reads is three points spent on nothing. */
-        if (typeof Writing !== 'undefined') {
+        Object.keys(sk.eff || {}).forEach(k => {
+          if (Prog.SKILL_EFFECTS.indexOf(k) < 0) fault('error', '“' + sid + '” has effect “' + k
+            + '”, which is not one Player.recalc() reads (' + Prog.SKILL_EFFECTS.join(', ') + ').', { skill: sid });
+        });
+        /* A skill with no effect that nothing reads is points spent on nothing. */
+        if (!Object.keys(sk.eff || {}).length) {
           const reads = Writing.index().filter(x => x.src.indexOf("'" + sid + "'") >= 0
             || x.src.indexOf('"' + sid + '"') >= 0);
           if (!reads.length && !this.engineReads(sid) && !this.gatesAMove(sid)) {
