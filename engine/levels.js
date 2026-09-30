@@ -65,17 +65,7 @@ const Levels = {
        is still in the middle of Fenn Street. `carTiles` travels with them for
        the same reason `blocked` does — it is what the level's own collision
        reads, and a stale one from the last level is a set of invisible cars. */
-    'cars', 'carTiles', 'peds',
-    /* And the lights, for the same reason and with a sharper edge on it. A
-       signal has a clock in it: leave the crossing bleeping, walk into the
-       Greggs, come out, and it should be where you left it rather than back at
-       the start of its cycle. Left off this list it was worse than stale — it
-       was GONE, because building any level at all writes World.signals and
-       every level but this one has none, so the first background prefetch
-       after walking outside quietly emptied the town of its lights while the
-       poles went on standing there. Which is the failure the note above this
-       list describes, arriving on schedule. */
-    'signals'],
+    'cars', 'carTiles', 'peds'],
 
   /* Object fields that a level's own state may change after it is built, and
      that therefore have to survive being evicted and rebuilt. Everything else
@@ -103,19 +93,6 @@ const Levels = {
   onSite(id) {
     const d = this.def(id === undefined ? World.level : id);
     return !!(d && d.site);
-  },
-  /* WHERE A PART SITS INSIDE THE LEVEL IT IS BUILT INTO, or null if it is not
-     built into anything. The town is a part of the island now — see
-     data/island.js — and anything that was written in the town's own
-     coordinates before the island existed has to be able to ask. There is
-     exactly one such thing and it is where twenty-five people live; see
-     NPCM.townTile(). Cached, because the catalogue does not change. */
-  partOf(id) {
-    if (!this._parts) {
-      this._parts = new Map();
-      for (const k in LEVELS) ((LEVELS[k] || {}).parts || []).forEach(p => this._parts.set(p.of, { level: k, at: p.at }));
-    }
-    return this._parts.get(id) || null;
   },
   /* The level definitions, in catalogue order. */
   ids() { return Object.keys(LEVELS); },

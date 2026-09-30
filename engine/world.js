@@ -31,27 +31,6 @@ const World = {
      phones to ring. */
   level: null, def: null,
   solid: null, zone: null, seed: null, surf: null, objects: [], byTile: new Map(),
-  /* THE SAME WORLD, SEEN FROM SOMEWHERE ELSE. A part's furnish is handed this
-     instead of World: `add()` moves what it is given, and `solid` is the real
-     grid with every row starting at the part's own left-hand edge, which a
-     typed array gives for nothing — `subarray(dx)` is a view, and a write past
-     the end of a typed array is dropped rather than thrown, which is exactly
-     what a part drawing over the edge of itself should do. Everything else it
-     might reach for is the real World, inherited. */
-  shifted(world, dx, dy) {
-    if (!dx && !dy) return world;
-    const view = Object.create(world);
-    view.add = o => world.add(Object.assign({}, o, { x: o.x + dx, y: o.y + dy }));
-    const rowCache = [];
-    view.solid = new Proxy({}, {
-      get(_, k) {
-        const y = (+k) + dy;
-        if (!(y >= 0 && y < MAPH)) return EDGE;
-        return rowCache[y] || (rowCache[y] = world.solid[y].subarray(dx));
-      }
-    });
-    return view;
-  },
   build(def) {
     this.def = def; this.level = def.id;
     /* The live dimensions of the map, which is what MAPW/MAPH mean. Set before
@@ -129,13 +108,6 @@ const World = {
        cars and for the same reason: at a pixel, walking, and not the twenty
        colleagues in NPCM — see engine/peds.js. */
     this.peds = (typeof Peds !== 'undefined' && def.peds) ? Peds.build(def.peds) : [];
-    /* And the lights, which are the third thing on this map that is not on a
-       tile — a signal is a pole at a tile and a stop line at a point on a lane,
-       and the lane is half a tile off the grid. Built here with the cars and
-       the people because it has state that has to travel with the level: walk
-       into the building while the crossing is bleeping and come back out, and
-       it is where it was, not back at the start of its cycle. */
-    this.signals = (typeof Signals !== 'undefined' && def.signals) ? Signals.build(def.signals) : [];
     (def.doors || []).forEach(d => {
       this.solid[d.y][d.x] = 0;
       /* Whether this door is a HOLE CUT IN A WALL or a leaf standing on floor a
@@ -149,23 +121,6 @@ const World = {
       this.zone[d.y][d.x] = this.zone[d.y][d.x] || this.zid(d.z);
       this.add({ x: d.x, y: d.y, e: d.locked ? '🔐' : '🚪', name: d.name, kind: 'door', solid: false, use: d.locked ? 'lockedDoor' : 'door', locked: d.locked || null });
     });
-    /* THE POLES. A signal's arms declare where its posts stand, and a post on
-       a pavement is furniture: it is on a tile, it is solid, you walk round it
-       and you can press it. So they are added here rather than written out a
-       second time in furnish() — one declaration, and nothing can drift out of
-       step with the lights it is carrying. Before furnish(), so a level is
-       still free to put something next to one. */
-    this.signals.forEach(inst => inst.arms.forEach(arm => {
-      this.add({
-        x: arm.tx, y: arm.ty, e: '🚦', kind: 'signal', solid: true, noEmoji: true,
-        name: inst.kind === 'pelican' ? 'The crossing' : 'The lights',
-        use: inst.kind === 'pelican' ? 'crossingButton' : 'trafficLights',
-        /* The back-reference, and it is what the renderer draws from and what
-           the act reads. An arm knows its installation, so one field is the
-           whole of the link. */
-        arm
-      });
-    }));
     def.furnish.call(this);
     this.computeAO();
     this.buildDoorways();

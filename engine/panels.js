@@ -109,10 +109,6 @@ const Interact = {
       : kind === 'car' ? 'Look at ' + best.name
       : best.ringing ? (TEXT['act.answer'] ? say('act.answer') : 'ANSWER') + ' — ' + best.name
       : (best.kind === 'chair' || best.use === 'playerDesk') ? 'Use ' + best.name
-      /* A push button is the one piece of street furniture out there that
-         DOES something, so it says so. "Inspect the crossing" is what you do
-         to a bollard. */
-      : best.use === 'crossingButton' ? 'Press the button'
       /* Driftwood, shells and stones are for picking up, not for looking at. */
       : best.kind === 'pickup' ? 'Pick up ' + best.name
       : 'Inspect ' + best.name;
