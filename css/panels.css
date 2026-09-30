@@ -35,7 +35,7 @@
   border-radius:4px;margin-left:auto}
 .rar.common{color:var(--dim);border:1px solid var(--line)}
 .rar.rare{color:var(--brand);border:1px solid var(--brand)}
-.rar.legendary{color:var(--hold);border:1px solid var(--hold);box-shadow:0 0 14px -6px var(--hold)}
+.rar.epic{color:var(--hold);border:1px solid var(--hold);box-shadow:0 0 14px -6px var(--hold)}
 /* ---- the map ----
    The canvas takes whatever is left of the panel after the heading and the
    legend, and it is the CSS size only: Atlas.panel() sets the pixel size from

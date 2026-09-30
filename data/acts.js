@@ -187,7 +187,7 @@ const Acts = {
      A felled one is a stump until it grows back. */
   palm(o) {
     if (Craft.felled(o)) return Craft.stump(o);
-    const fronds = Craft.left(o, 'frond'), axe = Tools.best('axe');
+    const fronds = Craft.left(o, 'frond'), axe = Gear.best('axe');
     insp('🌴', 'A palm', 'Tall', [pick(['A coconut palm, leaning towards the sea the way they all do.', 'There is a coconut directly above your head. You move.', 'Somebody has carved two initials and a heart into the trunk.'])],
       [{ t: 'Shake it for a coconut.', to: null, if: () => !G.flags['palm_' + G.day] && chance(.5), do() { G.flags['palm_' + G.day] = true; Item.give('coconut'); } },
        { t: 'Pull down a frond (' + fronds + ' within reach).', to: null, if: () => fronds > 0, do() { Craft.work(o, 'frond'); } },
@@ -196,7 +196,7 @@ const Acts = {
   },
   tree(o) {
     if (Craft.felled(o)) return Craft.stump(o);
-    const vines = Craft.left(o, 'vines'), axe = Tools.best('axe');
+    const vines = Craft.left(o, 'vines'), axe = Gear.best('axe');
     insp('🌳', 'A tree', 'Jungle', ['Something bright green and very loud lives in it.', vines ? 'Vines hang off it in ropes — strip some and twist them into rope.' : 'You have stripped every vine you can reach.'],
       [{ t: 'Strip some vines.', to: null, if: () => vines > 0, do() { Craft.work(o, 'vines'); } },
        { t: 'Fell it for timber — ' + (axe ? ITEMS[axe].n.toLowerCase() : 'you need an axe') + '.', to: null, if: () => !!axe, do() { Craft.work(o, 'chop_tree'); } },
@@ -270,11 +270,11 @@ const Acts = {
       [{ t: 'Dig out some clay.', to: null, if: () => left > 0, do() { G.flags.dugClay = true; Craft.work(o, 'claybank'); } }, { t: 'Leave it.', to: null }]);
   },
   outcrop(o) {
-    const left = Craft.left(o, 'outcrop'), pick = Tools.best('pick');
+    const left = Craft.left(o, 'outcrop'), pick = Gear.best('pick');
     /* A pickaxe in your hand and rock left to break: just swing it. */
     if (left > 0 && pick) return Craft.work(o, 'outcrop');
     insp('🪨', 'A rock outcrop', left ? 'Grey, streaked with rust' : 'Picked clean', [left ? 'Grey rock pushing up through the ground, streaked rust-red where there is iron in it.' : 'You have broken off everything worth having. Give the weather ' + clockDur(Craft.back(o, 'outcrop')) + ' to loosen some more.',
-      pick ? 'Your ' + ITEMS[pick].n.toLowerCase() + ' has ' + Tools.left(pick) + ' jobs left in it.' : 'You would need a pickaxe. Rafa’s workbench, behind the garden.'],
+      pick ? 'Your ' + ITEMS[pick].n.toLowerCase() + ' has ' + Gear.left(pick) + ' jobs left in it.' : 'You would need a pickaxe. Rafa’s workbench, behind the garden.'],
       [{ t: 'Break it up with the pickaxe.', to: null, if: () => left > 0 && !!pick, do() { Craft.work(o, 'outcrop'); } }, { t: 'Leave it.', to: null }]);
   },
   /* The farm's stations — data/farm.js. */

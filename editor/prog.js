@@ -43,7 +43,7 @@ const Prog = {
      is not here is a name that does nothing. */
   SLOTS: ['headset', 'trinket', 'mug'],
   EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patience', 'energy'],
-  RARITY: ['common', 'rare', 'legendary'],
+  RARITY: ['common', 'rare', 'epic'],
 
   kind: 'item', id: null, it: null,
   base: null, undoStack: [], redoStack: [],
@@ -82,6 +82,11 @@ const Prog = {
     if (!e) return false;
     this.kind = kind; this.id = id;
     this.it = clone(e);
+    /* A shelf written as a getter — Rosie's and Nico's change with the catch —
+       is code, and clone() would freeze it into whatever it returned just now.
+       Carried as its source instead, and written back exactly. */
+    const src = Prog.stockSrc(e);
+    if (src) { delete this.it.stock; this.it.stockSrc = src; }
     this.rebase();
     return true;
   },
@@ -119,7 +124,27 @@ const Prog = {
   },
   /* A shop's shelf. Ordered, because that is the order it is offered in. */
   stock() { return (this.it && this.it.stock) || []; },
+  /* The source of a shelf that is a getter, or null for a plain list. */
+  stockSrc(e) {
+    if (!e) return null;
+    if (typeof e.stockSrc === 'string') return e.stockSrc;
+    const d = Object.getOwnPropertyDescriptor(e, 'stock');
+    return d && typeof d.get === 'function' ? String(d.get) : null;
+  },
+  /* Everything a shop can EVER have on its shelf: the list, or for a getter
+     every item it names — the union of its days, which is what "is this ever
+     sold" and "does this name a real item" are both asking. */
+  shelf(e) {
+    const src = this.stockSrc(e);
+    if (!src) return (e && e.stock) || [];
+    const out = [];
+    src.replace(/['"]([A-Za-z_$][\w$]*)['"]/g, (_, id) => {
+      if (typeof ITEMS !== 'undefined' && ITEMS[id] && out.indexOf(id) < 0) out.push(id);
+    });
+    return out;
+  },
   addStock(id) {
+    if (this.it && this.it.stockSrc) return false;
     if (!id || this.stock().indexOf(id) >= 0) return false;
     this.mark('stock ' + id);
     this.it.stock = this.stock().concat([id]);
@@ -127,13 +152,14 @@ const Prog = {
     return true;
   },
   removeStock(i) {
-    if (!this.stock()[i]) return false;
+    if ((this.it && this.it.stockSrc) || !this.stock()[i]) return false;
     this.mark('unstock ' + this.stock()[i]);
     this.it.stock = this.stock().filter((_, j) => j !== i);
     this.rebuild();
     return true;
   },
   moveStock(i, d) {
+    if (this.it && this.it.stockSrc) return false;
     const s = this.stock().slice(), j = i + d;
     if (j < 0 || j >= s.length) return false;
     this.mark('reorder the shelf');
@@ -235,11 +261,12 @@ const ProgCheck = {
      invisible to a regular expression over source, and a table that grants
      things is a root whether or not anybody remembered to say so. */
   reachable(id) {
-    const stocked = Object.keys(SHOP).some(s => ((SHOP[s] || {}).stock || []).indexOf(id) >= 0);
+    const stocked = Object.keys(SHOP).some(s => Prog.shelf(SHOP[s]).indexOf(id) >= 0);
     if (stocked) return true;
     if (typeof QUESTS !== 'undefined'
       && Object.keys(QUESTS).some(q => ((QUESTS[q] || {}).rw || {}).item === id)) return true;
     if (this.cabinetGives(id)) return true;
+    if (this.tableGives().has(id)) return true;
     if (typeof Writing !== 'undefined'
       && Writing.calls('Item', 'give').some(c => c.id === id)) return true;
     /* Starting kit and anything the engine hands over by name. */
@@ -256,6 +283,26 @@ const ProgCheck = {
     return live.some(c => c && c.item === id);
   },
 
+  /* The island's production tables, which hand over by variable too —
+     `Item.give(r.out)` — and so are roots for the same reason QUESTS and the
+     cabinets are: a harvest from CROPS, what a node on the beach or in the
+     rock gives, and whatever the blender, bench, kiln, oven and drying rack
+     make. Read fresh each time: they are the game's, and cheap. */
+  tableGives() {
+    const out = new Set();
+    const outs = list => (Array.isArray(list) ? list : []).forEach(r => { if (r && r.out) out.add(r.out); });
+    if (typeof CROPS !== 'undefined') Object.keys(CROPS).forEach(k => out.add(k));
+    if (typeof NODES !== 'undefined') Object.keys(NODES).forEach(k => {
+      ((NODES[k] || {}).gives || []).concat((NODES[k] || {}).extra || []).forEach(g => out.add(g[0]));
+    });
+    if (typeof RECIPES !== 'undefined') outs(RECIPES);
+    if (typeof WORKBENCH !== 'undefined') outs(WORKBENCH);
+    if (typeof KILN !== 'undefined') outs(KILN.recipes);
+    if (typeof OVEN !== 'undefined') outs(OVEN);
+    if (typeof RACK !== 'undefined') outs(RACK.recipes);
+    return out;
+  },
+
   /* What else names this thing, for the delete question. */
   usedBy(kind, id) {
     const out = [];
@@ -263,7 +310,7 @@ const ProgCheck = {
       (typeof CABINETS !== 'undefined' && Array.isArray(CABINETS) ? CABINETS : [])
         .forEach(c => { if (c.item === id) out.push('the ' + c.game + ' cabinet on ' + c.use); });
       Object.keys(SHOP).forEach(s => {
-        if (((SHOP[s] || {}).stock || []).indexOf(id) >= 0) out.push('the ' + (SHOP[s].title || s));
+        if (Prog.shelf(SHOP[s]).indexOf(id) >= 0) out.push('the ' + (SHOP[s].title || s));
       });
       if (typeof Writing !== 'undefined') {
         Writing.calls('Item', 'give').filter(c => c.id === id).forEach(c => out.push(c.where));
@@ -317,7 +364,7 @@ const ProgCheck = {
 
     if (kind === 'shop') {
       if (!String(e.title || '').trim()) fault('error', 'No title.', { field: 'title' });
-      const stock = e.stock || [];
+      const stock = Prog.shelf(e);
       if (!stock.length) fault('warn', 'Nothing on the shelf, so opening it shows an empty shop.', { field: 'stock' });
       stock.forEach(s => {
         if (!ITEMS[s]) {

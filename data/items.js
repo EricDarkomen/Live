@@ -142,27 +142,27 @@ const QUESTS = {
       'Fill an order for the supply boat.',
     ],
     track: [{ obj: 'orderBoard' }, { obj: 'orderBoard' }],
-    rw: { xp: 90, money: 40 } },
+    rw: { xp: 90, money: 40, item: null } },
   q_kai: { n: 'Catch a Wave', giver: 'Kai', steps: [
       'Pick up a board at the surf shack.',
       'Find the lagoon Kai told you about, somewhere in the jungle.',
       'Tell Kai you found it.',
     ],
     track: [{ obj: 'surfShack' }, null, { npc: 'kai' }],
-    rw: { xp: 80, item: 'shell' } },
+    rw: { xp: 80, money: 0, item: 'shell' } },
   q_jade: { n: 'Lifeguard on Duty', giver: 'Jade', steps: [
       'Bring Jade something cold from the bar.',
       'Meet Jade at the cove lantern after sunset.',
     ],
     track: [{ npc: 'jade' }, { obj: 'coveLantern' }],
-    rw: { xp: 90, item: 'aviators' } },
+    rw: { xp: 90, money: 0, item: 'aviators' } },
   q_luca: { n: 'Sunrise Salutations', giver: 'Luca', steps: [
       'Join Luca on the yoga deck.',
       'Put a record on the jukebox for his set.',
       'Find Luca on the deck at The Driftwood.',
     ],
     track: [{ obj: 'yogaMats' }, { obj: 'jukebox' }, { npc: 'luca' }],
-    rw: { xp: 80, money: 15 } },
+    rw: { xp: 80, money: 15, item: null } },
   q_nico: { n: 'Chum Run', giver: 'Nico', steps: [
       'Bring Nico three handfuls of kitchen scraps for bait.',
     ],
@@ -172,19 +172,19 @@ const QUESTS = {
       'Bring Amara two scoops of compost for the dune grass.',
     ],
     track: [{ npc: 'amara' }],
-    rw: { xp: 90, item: 'seed_coconut' } },
+    rw: { xp: 90, money: 0, item: 'seed_coconut' } },
   q_tito: { n: 'Tito’s Big Break', giver: 'Tito', steps: [
       'Help Tito practise until he is good enough to play a set (Music 4).',
       'Catch Tito’s first set at the plaza fountain, one evening.',
     ],
     track: [{ npc: 'tito' }, { npc: 'tito' }],
-    rw: { xp: 100, money: 10 } },
+    rw: { xp: 100, money: 10, item: null } },
   q_critic: { n: 'The Review', giver: 'Mari', steps: [
       'Blend three cocktails to have ready.',
       'Win over Sienna Vale on the deck.',
     ],
     track: [{ obj: 'blender' }, { npc: 'sienna' }],
-    rw: { xp: 150, money: 60 } },
+    rw: { xp: 150, money: 60, item: null } },
   q_build: { n: 'Rafa’s Yard', giver: 'Mari', steps: [
       'Gather driftwood and stones — the beaches and the hills are covered in them.',
       'Make a stone axe at Rafa’s workbench, in the yard behind the garden.',
@@ -192,12 +192,12 @@ const QUESTS = {
       'Build something from Rafa’s plans at a 🚧 building site.',
     ],
     track: [null, { obj: 'workbench' }, null, { obj: 'buildSite' }],
-    rw: { xp: 120, money: 30 } },
+    rw: { xp: 120, money: 30, item: null } },
   q_offer: { n: 'The Offer', giver: 'Blake Sterling', steps: [
       'Hear Blake Sterling out.',
     ],
     track: [{ npc: 'blake' }],
-    rw: { xp: 200 } },
+    rw: { xp: 200, money: 0, item: null } },
 };
 
 /* ---------------- Achievements ----------------

@@ -205,3 +205,22 @@ const FAULTS = {
 function clone(v) {
   return v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 }
+
+/* The same copy for a value that may have CODE in it — a person's `onGift()`,
+   the `if:` on one of their extra replies. clone() cannot take those: a bare
+   function is `undefined` to JSON and throws, and one inside an object simply
+   vanishes, which is worse. So each function becomes `{ __src }`, its source,
+   which is JSON like everything else in a document and which Emit.prop() writes
+   back as the code it was. */
+function capture(v) {
+  if (typeof v === 'function') return { __src: String(v) };
+  if (Array.isArray(v)) return v.map(capture);
+  if (v && typeof v === 'object') {
+    const out = {};
+    Object.keys(v).forEach(k => { out[k] = capture(v[k]); });
+    return out;
+  }
+  return v;
+}
+const isSrc = v => !!v && typeof v === 'object' && !Array.isArray(v)
+  && Object.keys(v).length === 1 && typeof v.__src === 'string';
