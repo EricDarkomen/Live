@@ -28,6 +28,11 @@ const Game = {
        player as far as everything downstream is concerned — Cars.update writes
        P.x and P.y — so it has to have moved before Cam.follow reads them, or
        the camera is permanently one frame behind the thing it is following. */
+    /* Before the cars, because the cars read it. A signal updated after the
+       traffic is a signal every vehicle in town obeys one frame late, which is
+       invisible — and which puts the amber a frame out from the brake lights
+       of the car stopping for it, which is not. */
+    Signals.update(dt);
     Cars.update(dt);
     Peds.update(dt);
     /* After the walk and after the cars, because a shot is fired from wherever

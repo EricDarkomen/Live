@@ -280,7 +280,7 @@ const Island = {
       arrive: true,
       indoors: false,
       w: W, h: H,
-      net, rooms, surfaces, paint, cars, peds,
+      net, rooms, surfaces, paint, cars, peds, signals: [],
       /* Every building site and what it becomes, for Rafa's plans. */
       sites,
       counters: [],

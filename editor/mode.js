@@ -120,7 +120,14 @@ const Mode = {
   /* What the subject select offers, and what the current one is called. */
   subjects() {
     return this.id === 'games' ? Games.ids().map(id => [id, Games.label(id)])
-      : this.id === 'levels' ? Levels.ids().map(id => [id, LEVELS[id].name || id])
+      /* A COMPOSED LEVEL IS NOT DRAWN, IT IS ASSEMBLED — see composeLevel() in
+         data/world.js. The island is the town and the outskirts stamped into a
+         map with a coast round it, so what you would be editing here is the
+         merge: rooms that belong to two other levels, at coordinates neither of
+         them uses, which emit.js would then write out as one enormous level and
+         somebody would paste over the town. The parts themselves are in this
+         list and are what you actually want. */
+      : this.id === 'levels' ? Levels.ids().filter(id => !LEVELS[id].composed).map(id => [id, LEVELS[id].name || id])
       : this.id === 'jobs' ? Jobs.ids().map(id => [id, QUESTS[id].n || id])
         : this.id === 'art' ? Art.sheets.map(s => [s.id, s.credit.name || s.id])
           : this.id === 'things' ? Things.ids().map(k => [k, k])

@@ -101,6 +101,12 @@ const Cars = {
            driver signals BEFORE the wheel moves, which is the entire point of
            signalling. See signal(). */
         blink: 0, blinkT: 0,
+        /* Which set of lights is holding it, and whether it is being held.
+           `sig` is an arm's id rather than the arm itself, for the reason
+           Cars.driving is not hung off P: a level rebuild makes new arms, and
+           a car carrying a stale one would be stopped at a line that is no
+           longer there. See Signals.hold(). */
+        sig: null, atRed: false,
         /* What is holding it up, published for the car behind: the give-way
            rule is the only thing out there that needs to know what somebody
            ELSE can see. */
@@ -998,6 +1004,9 @@ const Cars = {
     let best = Infinity;
     for (const other of this.list()) {
       if (other === car) continue;
+      /* A car held at a red is not coming, and waiting for one is how a
+         junction fills up with cars waiting for each other. */
+      if (other.atRed) continue;
       const his = other.plot;
       if (!his || his.length < 3) continue;
       const clear = (car.def.wid + other.def.wid) * 0.5 + TILE * 0.6;
@@ -1115,6 +1124,17 @@ const Cars = {
        about one. It is the most realistic traffic this town has. */
     if (car.stops.length) want = this.serveStop(car, want, c, s, dt);
 
+    /* THE LIGHTS. The one thing out here that is not geometry: this stops a car
+       because of what a lamp on a pole is doing, at a painted line, in front of
+       a junction that may well be empty. See engine/signals.js. It goes through
+       the same following model as everything else, so a car arrives at a stop
+       line the way it arrives at the car in front — which is to say by braking
+       for it from a sensible distance. Half a tile of slack at the end, because
+       a stop line is a line you stop AT and not a line you stop on. */
+    const sigD = Signals.hold(car, dt);
+    car.atRed = sigD >= 0;
+    if (car.atRed) want = Math.min(want, this.follow(car, sigD, 0, TILE * 0.5));
+
     /* WHAT IS IN THE WAY. */
     const see = this.scan(car);
     car.blockedBy = (see.what && see.what !== 'person') ? see.what : null;
@@ -1135,9 +1155,12 @@ const Cars = {
        between a queue and an obstruction. */
     car.hold = (see.what && want < car.cruise * 0.45) ? car.hold + dt : 0;
 
-    /* WHO GETS THE JUNCTION. */
-    const give = this.giveWay(car);
-    if (give < Infinity) want = Math.min(want, this.follow(car, give, 0, 0));
+    /* WHO GETS THE JUNCTION. After the lights, because a green light is
+       permission and this is only ever about the junctions that have none. */
+    if (!car.atRed) {
+      const give = this.giveWay(car);
+      if (give < Infinity) want = Math.min(want, this.follow(car, give, 0, 0));
+    }
 
     /* ---- sitting off the lane ----
        Two reasons a car sits off its own lane, and they are the same number.
@@ -1152,12 +1175,12 @@ const Cars = {
        at a kerb — and never, ever, for a person. */
     const run = this.straight(car);
     if (car.pull > 0) car.pull -= dt;
-    else if (see.what && see.what !== 'person' && !astray
+    else if (see.what && see.what !== 'person' && !car.atRed && !astray
              && car.hold > 2.6 && run > d.len * 3.5 && Math.abs(see.what.fwd) < 6) {
       const by = this.roomToPass(car, see.what);
       if (by) { car.pull = 4.2; car.pullBy = clamp(by, -this.MAXOFF, this.MAXOFF); car.past = see.what; }
     }
-    if (car.pull > 0 && see.what !== 'person'
+    if (car.pull > 0 && see.what !== 'person' && !car.atRed
         && (!see.what || see.what === car.past)) want = Math.max(want, 34);
     let off = car.pull > 0 ? car.pullBy
       : (see.sit === null ? 0 : clamp(see.sit, -this.EDGE, this.EDGE));
@@ -1260,8 +1283,8 @@ const Cars = {
        reversed. Touching something that has not moved in five seconds is not a
        queue, it is a wedge. */
     const wedged = see.what && see.what !== 'person' && see.gap < 3
-      && see.what.stopped > 5;
-    if (car.stopFor > 0 || car.stopCool > 0 || car.serving) car.stuck = 0;
+      && see.what.stopped > 5 && !see.what.atRed;
+    if (car.stopFor > 0 || car.stopCool > 0 || car.serving || car.atRed) car.stuck = 0;
     else if (want > 12 && Math.abs(car.fwd) < 8 && !see.what) car.stuck += dt;
     else if (wedged && car.stopped > 5) car.stuck += dt * 0.7;
     else car.stuck = Math.max(0, car.stuck - dt * 2);
@@ -1296,7 +1319,7 @@ const Cars = {
        decide and a coin lands differently every frame.
        It creeps rather than drives: slowly enough that touching the thing in
        front is silent (see prang()), and not at all once it is touching. */
-    const facing = !!other;
+    const facing = other && !car.atRed && !other.atRed;
     if (facing && other.blockedBy === car && (car.stopped > 1.2 || car.press > 0)
         && !this.yields(car, other, Math.max(0, see.gap), Math.max(0, other.gapTo))) {
       /* LATCHED, and the latch is the whole of whether this works. Without it
@@ -1319,7 +1342,7 @@ const Cars = {
        and off four times a second is not one. A car easing along behind a bus
        is constantly a hair either side of the speed it wants, and every one of
        those crossings used to be a flash of red. */
-    const slowing = want < car.fwd - 8 || (!!see.what && see.gap < TILE * 2.5);
+    const slowing = car.atRed || want < car.fwd - 8 || (!!see.what && see.gap < TILE * 2.5);
     if (slowing) car.brakeT = 0.28;
     else car.brakeT = Math.max(0, (car.brakeT || 0) - dt);
     car.braking = slowing || car.brakeT > 0;
@@ -1331,7 +1354,8 @@ const Cars = {
        then it waits like everybody else — and never at a red, because nobody
        sounds the horn at a traffic light. They sound it at the car in front of
        them a second after the light has changed, which is a different game. */
-    if (car.braking && car.stopped > 2.4 && !car.honkT) { Sfx.horn(); car.honkT = 6; }
+    if (car.braking && !car.atRed && !(car.blockedBy && car.blockedBy.atRed)
+        && car.stopped > 2.4 && !car.honkT) { Sfx.horn(); car.honkT = 6; }
   },
 
   /* IS THERE A REASON FOR THIS QUEUE. Walked up the chain of who is blocked by
@@ -1344,7 +1368,7 @@ const Cars = {
   excused(car) {
     let c = car;
     for (let n = 0; c && c !== 'person' && n < 6; n++) {
-      if (c.stopFor > 0 || c.serving || c.stopCool > 0) return true;
+      if (c.atRed || c.stopFor > 0 || c.serving || c.stopCool > 0) return true;
       c = c.blockedBy;
     }
     return false;

@@ -1414,7 +1414,7 @@ const NPCM = {
              camera, and give up in view only when standing and watching it has
              become worse than the blink. */
           const h = n.def.home;
-          const at = h && h.at;
+          const at = h && h.at && this.townTile(h.at, h.part);
           if (!at) { gone(); continue; }
           n.callOut = { tile: at, until: this.now + 2, haste: 1.35 };
           const arrived = reached(n, at);
@@ -1502,6 +1502,16 @@ const NPCM = {
      rather than written into each person's `home:`, because it is a fact about
      the building's front door and not about any of them. Null when the street
      will not build, and then going home is what it always was. */
+  /* A HOME IS A TILE ON THE TOWN, and the town is no longer a map of its own:
+     it is a part of the island, at an offset. Written in data/npcs.js as the
+     bus stop, the bay, the door above the parade — all of them tiles of
+     Bellhaven, which is the frame somebody drawing that data is looking at —
+     and translated here, once, rather than twenty-five times by hand into
+     numbers nobody could check against anything. See Levels.partOf(). */
+  townTile(at, part) {
+    const p = part && Levels.partOf(part);
+    return p ? [at[0] + p.at[0], at[1] + p.at[1]] : at;
+  },
   streetSpot(n) {
     const st = Levels.street(), sd = st && Levels.def(st);
     const rec = st && Levels.ensure(st);

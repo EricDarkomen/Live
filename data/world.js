@@ -170,3 +170,110 @@ const WP = {
      where Nico lands his catch, and the rocks at the cove Amara studies. */
   truck: [59, 44, 'island'], pier: [121, 48, 'island'], reef: [11, 50, 'island']
 };
+
+/* ---- A LEVEL BUILT OUT OF PARTS -------------------------------------------
+   A level may say it is made of other levels, stamped in at an offset:
+
+     parts: [ { of: 'town', at: [44, 177] }, { of: 'outskirts', at: [168, 40] } ]
+
+   which is how the town and the twenty minutes of country east of it became
+   one island rather than two levels with a signpost between them — see
+   data/island.js. Everything here is translation and concatenation: what comes
+   out is an ordinary level definition, and the builder that reads it is the
+   builder that always read it. Neither part knows it has been moved, and
+   nothing downstream of this line knows there was ever more than one of them.
+
+   IT IS DONE HERE, at the bottom of the definitions, rather than in
+   engine/world.js — because a composed level has to BE a level from the moment
+   the catalogue has it. Levels.go() reads a level's arrival points before it
+   builds anything, the editor lists them, and tools/levelcheck.mjs checks every
+   link against them; all three would be reading half a level if this waited for
+   the builder.
+
+   WHAT CANNOT BE TRANSLATED FROM OUT HERE is `furnish()`, which is the one
+   thing about a level that is code rather than a table: the town's adds two
+   hundred objects at coordinates it works out itself, and the outskirts' puts
+   two thousand pieces of mass back into the map. So a part's furnish is called
+   with a `this` that is the world seen from the part's own corner — see
+   World.shifted() in engine/world.js, which is ten lines and makes the other
+   eight hundred somebody else's problem. */
+function composeLevel(def) {
+  if (!def.parts || !def.parts.length || def.composed) return def;
+  const out = Object.assign({}, def);
+  /* `parts` is KEPT rather than dropped, because what a level is made of is a
+     fact about it and not a step in making it: Levels.partOf() reads it to
+     answer "where is the town inside the island", which is the question
+     anything written in a part's own coordinates has to ask. `composed` is what
+     stops this running twice. */
+  out.composed = true;
+  const ids = def.parts.map(p => p.of);
+  /* The translation, one shape at a time and explicitly, because nothing
+     generic can tell an [x, y] from a [w, h]. */
+  const R = (r, dx, dy) => [r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy];
+  const P = (p, dx, dy) => (p.length > 2 ? [p[0] + dx, p[1] + dy, p[2]] : [p[0] + dx, p[1] + dy]);
+  ['rooms', 'surfaces', 'roofs', 'paint', 'doors', 'cars', 'peds', 'signals', 'counters']
+    .forEach(f => out[f] = (def[f] || []).slice());
+  out.entries = Object.assign({}, def.entries);
+  out.links = (def.links || []).slice();
+  const furnishes = [];
+
+  for (const part of def.parts) {
+    const src = LEVELS[part.of];
+    if (!src) { console.warn('level ' + def.id + ' names a part that is not there: ' + part.of); continue; }
+    const dx = part.at[0], dy = part.at[1];
+    (src.rooms || []).forEach(o => out.rooms.push(Object.assign({}, o, { r: R(o.r, dx, dy) })));
+    (src.surfaces || []).forEach(o => out.surfaces.push(Object.assign({}, o, { r: R(o.r, dx, dy) })));
+    (src.roofs || []).forEach(o => out.roofs.push(Object.assign({}, o, { r: R(o.r, dx, dy) })));
+    (src.counters || []).forEach(o => out.counters.push(o.r ? Object.assign({}, o, { r: R(o.r, dx, dy) }) : o));
+    (src.doors || []).forEach(o => out.doors.push(Object.assign({}, o, { x: o.x + dx, y: o.y + dy })));
+    /* A marking is a line between two points, a rectangle, or a word at a
+       point, and those three are the whole of `paint`. */
+    (src.paint || []).forEach(o => {
+      const m = Object.assign({}, o);
+      if (o.a) m.a = P(o.a, dx, dy);
+      if (o.b) m.b = P(o.b, dx, dy);
+      if (o.r) m.r = R(o.r, dx, dy);
+      if (o.at) m.at = P(o.at, dx, dy);
+      out.paint.push(m);
+    });
+    /* A car is a tile, a route and a list of stops; a person is a route. */
+    (src.cars || []).forEach(o => out.cars.push(Object.assign({}, o, {
+      x: (o.x || 0) + dx, y: (o.y || 0) + dy,
+      route: o.route && o.route.map(p => P(p, dx, dy)),
+      stops: o.stops && o.stops.map(q => Object.assign({}, q, { at: P(q.at, dx, dy) }))
+    })));
+    (src.peds || []).forEach(o => out.peds.push(Object.assign({}, o, {
+      route: o.route && o.route.map(p => P(p, dx, dy))
+    })));
+    /* A signal is a post at a tile, a stop line at a point on a lane, and — on
+       a crossing — the piece of carriageway people walk over. */
+    (src.signals || []).forEach(inst => out.signals.push(Object.assign({}, inst, {
+      over: inst.over && R(inst.over, dx, dy),
+      arms: inst.arms.map(a => Object.assign({}, a, { at: P(a.at, dx, dy), stop: P(a.stop, dx, dy) }))
+    })));
+    /* An arrival point keeps its NAME, which is the whole reason a shop's link
+       back to `entry: 'greggs'` still lands on the Greggs doorway without the
+       shop being told anything at all. The composed level's own win a clash,
+       because the level is the thing being built. */
+    for (const k in (src.entries || {})) if (!(k in out.entries)) out.entries[k] = P(src.entries[k], dx, dy);
+    /* AND A PART'S WAYS OUT COME WITH IT — except the ones that led somewhere
+       that is now here. The road east out of the town and the road west back
+       into it were a link each; one map later they are a road. */
+    (src.links || []).forEach(l => {
+      if (l.to === def.id || ids.indexOf(l.to) >= 0) return;
+      if (out.links.some(k => k.via === l.via)) return;
+      out.links.push(l);
+    });
+    if (src.furnish) furnishes.push({ f: src.furnish, dx, dy });
+  }
+
+  const own = def.furnish;
+  out.furnish = function () {
+    /* The parts first, in the order they are declared, and then the level's
+       own — which is what lets an island lay a coast round two places that were
+       drawn without one. */
+    for (const p of furnishes) p.f.call(World.shifted(this, p.dx, p.dy));
+    if (own) own.call(this);
+  };
+  return out;
+}

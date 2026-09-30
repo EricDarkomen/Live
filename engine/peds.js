@@ -234,6 +234,26 @@ const Peds = {
         return;
       }
     }
+    /* THE KERB. The last thing checked before the step is taken, because this
+       is the only rule out here that is about the step rather than about the
+       ground: everything above asks whether somebody CAN be at (nx, ny), and
+       this asks whether they may go there yet.
+
+       It is tested on the step and not on the position, so nobody is ever held
+       INSIDE a crossing. Somebody caught in the road by the man going out
+       keeps walking, which is what a person does and what the flashing amber
+       is for — and the cars have stopped for anybody in front of them since
+       before there were any people out here to stop for.
+
+       Pressing the button is part of arriving at the kerb rather than a second
+       thing to remember: see Signals.crossing(). Stopping here freezes the
+       "getting nowhere" backstop above, or three seconds into a red man
+       everybody at the kerb turns round and walks home. */
+    if (Signals.crossing(ped.x, ped.y, nx, ny)) {
+      ped.walking = false; ped.stuck = 0;
+      ped.dir = Sprites.dirOf(hx, hy);
+      return;
+    }
     ped.x = nx; ped.y = ny;
     ped.walking = true;
     ped.dir = Sprites.dirOf(hx, hy);
