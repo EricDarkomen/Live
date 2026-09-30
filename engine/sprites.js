@@ -276,7 +276,7 @@ const Sprites = {
       backgroundPosition: '-' + (fx * scale) + 'px -' + (fy * scale) + 'px',
     };
   },
-  /* The box a sprite occupies, for highlight rings and hit feedback. Sized off
+  /* The box a sprite occupies, for hit feedback and what hangs over a head. Sized off
      that person's own sheet — two sheets at two scales is the point. */
   box(id, x, y) {
     const r = this.at(id);
@@ -285,7 +285,7 @@ const Sprites = {
     return { x: x - m.fw / 2, y: y + this.FOOT - m.fh, w: m.fw, h: m.fh };
   },
   /* The person, not the cell: the 64px cell leaves room for a swing; a standing
-     body is the middle 38, which a highlight ring is drawn round. */
+     body is the middle 38. */
   BODY_W: 38,
   bounds(id, x, y) {
     const b = this.box(id, x, y);
