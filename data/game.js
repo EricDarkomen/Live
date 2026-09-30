@@ -21,6 +21,11 @@ const GAME = {
   sub: 'Sun, sand & questionable decisions',
   company: 'The Driftwood',
   currency: '€',
+  /* The game's own panel tabs, shown after Skills: a key, and what they draw. */
+  tabs: [
+    { id: 'farm', n: 'Farm', e: '🌾', key: 'KeyO', panel: () => Farm.panel() },
+    { id: 'workshop', n: 'Workshop', e: '🛠️', key: 'KeyY', panel: () => Craft.panel() }
+  ],
   /* What the player can wear, one item each; TEXT's `slot.<id>` names them. */
   slots: ['headset', 'trinket', 'mug'],
   version: 1,
@@ -306,7 +311,9 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
      bossWon(key, E)     a boss was beaten
      dayEnd(day)         the report has been shown
      bought(id)          something was bought in a shop
-     second()            once a second of play, from the game loop */
+     second()            once a second of play, from the game loop
+     tips(E)             a multiplier on what a won encounter pays
+     eat(n)              the player ate something worth n food */
 const HOOKS = {
   zoneEnter(z) {
     /* First time through the bar door is the first step of Mari's job. */
@@ -335,6 +342,8 @@ const HOOKS = {
   bought(id) {
     if (ITEMS[id] && ITEMS[id].crop) qTo('q_garden', 1);
   },
+  tips() { return Farm.tipMult(); },
+  eat(n) { Hunger.eat(n); },
   /* The farm and the workshop catch up from the island's own minutes. */
   second() {
     Farm.update(); Garden.refresh();

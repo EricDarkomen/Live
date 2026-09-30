@@ -60,6 +60,9 @@ const Sfx = {
   printer() { this.noise(0.28, 0.3); this.tone(90, 0.3, 'square', 0.2, 0.1, 30); this.noise(0.2, 0.22, 0.34); },
   door() { this.tone(220, 0.1, 'sine', 0.22); this.noise(0.1, 0.12, 0.05); },
   key() { this.tone(ri(900, 1400), 0.02, 'square', 0.06); },
+  /* A letter, and a text: also the chimes their encounters open with. */
+  mail() { this.tone(760, .07, 'sine', .22); this.tone(570, .09, 'sine', .16, .07); },
+  text() { this.tone(1180, .05, 'sine', .2); this.tone(1480, .07, 'sine', .16, .05); },
   notify() { this.tone(988, 0.08, 'sine', 0.28); this.tone(1319, 0.12, 'sine', 0.24, 0.07); },
   bad() { this.tone(200, 0.2, 'sawtooth', 0.28); this.tone(150, 0.3, 'sawtooth', 0.24, 0.12); },
   cash() { this.tone(1200, 0.05, 'square', 0.2); this.tone(1600, 0.08, 'square', 0.18, 0.05); },

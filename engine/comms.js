@@ -186,8 +186,8 @@ const Comms = {
   sound(item) {
     if (item.k === 'gold') return Sfx.notify();
     if (item.k === 'bad') return Sfx.bad();
-    if (item.ch === 'text') return Sfx.tone(1180, .05, 'sine', .2), Sfx.tone(1480, .07, 'sine', .16, .05);
-    if (item.ch === 'mail') return Sfx.tone(760, .07, 'sine', .22), Sfx.tone(570, .09, 'sine', .16, .07);
+    if (item.ch === 'text') return Sfx.text();
+    if (item.ch === 'mail') return Sfx.mail();
     Sfx.blip();
   },
   /* Tags stripped, for aria-labels. */

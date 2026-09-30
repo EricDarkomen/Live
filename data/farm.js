@@ -359,7 +359,7 @@ const Hunger = {
   },
   eat(n) {
     P.food = clamp(this.get() + n, 0, 100);
-    if (typeof UI !== 'undefined') UI.float('+' + Math.round(n) + ' 🍽️', '#5ad48a');
+    UI.float('+' + Math.round(n) + ' 🍽️', '#5ad48a');
     G.flags.hungerWarn = 0;
   },
   /* An empty stomach costs you: energy runs down twice as fast when you are
@@ -375,7 +375,7 @@ const Hunger = {
       G.flags.hungerWarn = warn;
       UI.toast('🍽️', ['', 'Your stomach rumbles. Eat something — fruit from the garden, or one of Mama Coco’s empanadas.', 'You are starving. Your energy is draining fast.', 'Faint with hunger. Your nerve is going. EAT.'][warn], 'bad');
     }
-    if (typeof UI !== 'undefined') UI.hud();
+    UI.hud();
   }
 };
 
@@ -421,5 +421,6 @@ NPC_ACTS.lunchRush = n => {
   Mind.train('rosie', 'cooking', 6);
   if (n && n.level === World.level && Cam.visible(n.x, n.y)) { n.say = pick(['¡A COMER!', 'Tacos! Get them while I still like you!']); n.sayT = 3.6; }
 };
-/* How much more a guest tips today — read by the bar. */
-Farm.tipMult = () => (G.flags.stocked === G.day ? STOCK.tips : 1);
+/* How much more a guest tips today: a bar stocked this morning, under a roof
+   that does not leak (ROOF_TIPS, data/craft.js). */
+Farm.tipMult = () => (G.flags.stocked === G.day ? STOCK.tips : 1) * (Build.has('roof') ? ROOF_TIPS : 1);

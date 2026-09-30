@@ -1,5 +1,8 @@
 'use strict';
 /* ---------------- Input ---------------- */
+/* Panel shortcuts: the engine's, and each GAME.tabs entry's `key`. */
+const PANEL_KEYS = Object.assign({ KeyN: 'map', KeyI: 'inventory', KeyJ: 'quests', KeyK: 'skills', KeyP: 'stats', KeyL: 'ach', KeyT: 'shift', KeyU: 'people' },
+  Object.fromEntries((GAME.tabs || []).filter(t => t.key).map(t => [t.key, t.id])));
 const Keys = { up: 0, down: 0, left: 0, right: 0 };
 const KEYMAP = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' };
 /* The right hand, on a keyboard. The same four arrows, read as a bearing
@@ -118,7 +121,7 @@ function bindInput() {
       return;
     }
     if (Comms.on) return;      /* the panel keys do not reach through the console */
-    const map = { KeyN: 'map', KeyI: 'inventory', KeyJ: 'quests', KeyK: 'skills', KeyP: 'stats', KeyL: 'ach', KeyT: 'shift', KeyU: 'people', KeyO: 'farm', KeyY: 'workshop' };
+    const map = PANEL_KEYS;
     if (map[e.code]) { if (Panels.on && Panels.tab === map[e.code]) Panels.close(); else Panels.open(map[e.code]); }
   });
   /* Keep Tab inside whichever modal is open, rather than letting focus escape

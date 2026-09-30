@@ -181,30 +181,12 @@ const Shop = {
 };
 
 /* ---------------- Panels / UIManager ---------------- */
+/* The engine's tabs, with the game's own (GAME.tabs) after Skills. */
 const TABS = [
-  /* The map is first, and it is the only tab in here that is about the world
-     rather than about the employee: everything else on this row is a thing the
-     company would like you to fill in. It is here at all because the panel is
-     the one piece of UI a phone can reach — the key-hint row is a menu button
-     on a touch screen and the minimap is not drawn there at all — so a map
-     that lived anywhere else would be a map only a desktop has. */
   { id: 'map', n: 'Map', e: '🗺️' },
-  /* The shift page, which used to be a screen that arrived at five whether you
-     were at a desk or on a dual carriageway. It is a tab now, and a live one:
-     today's figures whenever you ask for them. See Report in engine/menus.js. */
-  { id: 'shift', get n() { return TEXT['tab.shift'] ? say('tab.shift') : 'Shift'; }, e: '💶' },
+  { id: 'shift', get n() { return say('tab.shift'); }, e: '💶' },
   { id: 'quests', n: 'Jobs', e: '🗂️' }, { id: 'inventory', n: 'Inventory', e: '🎒' }, { id: 'skills', n: 'Skills', e: '📈' },
-  /* CHAT AND EMAIL USED TO BE TWO OF THESE and they are not administration.
-     A portal tab is where you go to look something up about yourself — your
-     jobs, your kit, your skills, your figures. An inbox is a place you WORK,
-     and putting it behind the eighth of ten tabs in a self-service portal is
-     what made reading it feel like filing a form. They are two of the five
-     channels in the comms console now (engine/comms.js), which takes this
-     strip from ten tabs to eight on a screen that has room for about four. */
-  /* The garden, the water, the stores and what is cooking — data/farm.js. */
-  { id: 'farm', n: 'Farm', e: '🌾' },
-  /* Gathering, woodcutting, mining, crafting and building — data/craft.js. */
-  { id: 'workshop', n: 'Workshop', e: '🛠️' },
+  ...(GAME.tabs || []),
   /* How everybody you have met is doing, and why — engine/mind.js. */
   { id: 'people', n: 'Islanders', e: '🌴' },
   { id: 'ach', n: 'Achievements', e: '🏆' },
@@ -259,7 +241,8 @@ const Panels = {
     /* Your name and rank — it was the office's "Employee self-service portal"
        for a long time after there stopped being an office. */
     $('#pnTitle').textContent = '🌺 ' + P.name + ' · ' + RANKS[P.rank].n;
-    b.innerHTML = this['r_' + this.tab] ? this['r_' + this.tab]() : '';
+    const tab = TABS.find(t => t.id === this.tab);
+    b.innerHTML = tab && tab.panel ? tab.panel() : this['r_' + this.tab] ? this['r_' + this.tab]() : '';
     b.querySelectorAll('[data-item]').forEach(el => el.onclick = () => Item.use(el.dataset.item));
     b.querySelectorAll('[data-uneq]').forEach(el => el.onclick = () => Item.equip(el.dataset.uneq));
     b.querySelectorAll('[data-skill]').forEach(el => el.onclick = () => Sk.buy(el.dataset.branch, el.dataset.skill));
@@ -275,8 +258,6 @@ const Panels = {
   },
   r_shop() { return Shop.render(); },
   r_people() { return Mind.panel(); },
-  r_farm() { return Farm.panel(); },
-  r_workshop() { return Craft.panel(); },
   /* WHERE YOU ARE, WHAT IT IS CALLED, AND THE WAY OUT OF IT. The canvas is
      sized by the stylesheet and drawn by Atlas.panel(); everything here is the
      furniture round it. The line under the map is the legend, and it is short

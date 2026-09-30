@@ -98,13 +98,14 @@ const ITEMS = {
    player reads is here. */
 /* ---------------- Skills ----------------
    `eff` is what each rank adds: the stats a move reads (empathy, knowledge,
-   bullshit, chaos) or the maxima (patMax, eneMax). Moves may also read a
-   rank directly with Sk.rank(). */
+   bullshit, chaos), the maxima (patMax, eneMax), the share of a guest's
+   pressure you shrug off (calm) or XP on every win (winXp). Moves may also
+   read a rank directly with Sk.rank(). */
 const SKILLS = {
   people: { name: '💋 Charm', colour: '#ff7eb6', list: {
     empathy: { n: 'Read the Room', d: 'You know what they want before they do.', max: 3, eff: { empathy: 2 } },
-    deesc: { n: 'Cool Head', d: 'A difficult guest bothers you less.', max: 3 },
-    persuade: { n: 'Big Tipper', d: 'A happy guest pays more.', max: 3 } } },
+    deesc: { n: 'Cool Head', d: 'A difficult guest bothers you less.', max: 3, eff: { calm: .13 } },
+    persuade: { n: 'Big Tipper', d: 'A happy guest pays more.', max: 3, eff: { winXp: 8 } } } },
   systems: { name: '🍸 Mixology', colour: '#4dd4ff', list: {
     product: { n: 'Recipes', d: 'Your drinks hit harder.', max: 3, eff: { knowledge: 2 } },
     system: { n: 'Speed Pour', d: 'Faster, flashier, more ice.', max: 3, eff: { knowledge: 1 } },

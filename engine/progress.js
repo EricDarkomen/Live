@@ -107,7 +107,7 @@ const Item = {
     if (u.minutes) G.minutes += u.minutes;
     const m = {}; ['energy', 'patience', 'money', 'rep'].forEach(k => { if (u[k]) m[k] = u[k]; });
     Player.mod(m);
-    if (u.food) Hunger.eat(u.food);   /* data/farm.js */
+    if (u.food) Hook('eat', u.food);
     Object.entries(u.stats || {}).forEach(([k, n]) => { P.stats[k] = (P.stats[k] || 0) + n; });
     Object.entries(u.count || {}).forEach(([k, n]) => count(k, n));
     if (u.flag) G.flags[u.flag] = true;

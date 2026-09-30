@@ -544,9 +544,3 @@ Craft.stump = function (o) {
     'It will be a proper tree again in about ' + clockDur(this.back(o, type)) + '. The island is not in a hurry.']);
 };
 
-/* How much more a guest tips under a roof that does not leak — wrapping the
-   farm's stocked-bar bonus in data/farm.js. */
-{
-  const base = Farm.tipMult;
-  Farm.tipMult = () => base() * (Build.has('roof') ? ROOF_TIPS : 1);
-}

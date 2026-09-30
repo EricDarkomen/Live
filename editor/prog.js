@@ -44,7 +44,7 @@ const Prog = {
   SLOTS: GAME.slots,
   EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patience', 'energy'],
   /* What a skill's `eff` may add to, per rank. */
-  SKILL_EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patMax', 'eneMax'],
+  SKILL_EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patMax', 'eneMax', 'calm', 'winXp'],
   RARITY: ['common', 'rare', 'epic'],
 
   kind: 'item', id: null, it: null,
