@@ -1,8 +1,7 @@
 'use strict';
 /* ---------------- The reward editor's panes ----------------
-   Four tables in one list, like the phones. What makes this one worth having is
-   the two questions it can answer that nothing else can: whether an achievement
-   is reachable, and whether a skill does anything. */
+   Four tables in one list. It answers what nothing else can: whether an
+   achievement is reachable and whether a skill does anything. */
 
 const ProgUI = {
   refresh() {

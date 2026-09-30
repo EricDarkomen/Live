@@ -1,8 +1,6 @@
 'use strict';
 /* ---------------- The zone editor's panes ----------------
-   The list is swatches, because thirteen dark navy-greys are told apart by
-   looking at them and by nothing else — the same reason the room-tool palette
-   carries its tints. */
+   The list is swatches: the zones are told apart by looking. */
 
 const ZonesUI = {
   refresh() {
@@ -70,19 +68,10 @@ const ZonesUI = {
       + '" spellcheck="false">' + '</span>');
   },
   /* ---- choosing a floor or a wall ----
-     This is the control the mode exists for and it was a <select> of atlas
-     names: `floor.sub` against `floor.herring` is a decision made entirely by
-     eye, and a dropdown of strings is the one shape that cannot be looked at.
-     So it is the tiles themselves, baked by the renderer through this room's
-     own colours — what you are choosing between is what the room will be.
-
-     Two rows, because the data has two fields and they are not the same
-     question. The top row is the ATLAS, which wins; the bottom is the surface
-     the renderer DRAWS, which is what the room falls back to when the art is
-     off — or missing, which is what happens to a copy of the game taken
-     without art/. Nothing is hidden behind the other: picking a drawn surface
-     while the atlas is set clears the atlas in the same edit, because the
-     alternative is a click that visibly does nothing. */
+     The tiles themselves, baked through this room's colours. Two rows: the
+     atlas rect (which wins) and the procedural surface (the fallback without
+     art). Picking a procedural surface while a rect is set clears the rect in
+     the same edit. */
   label(n) { return n.replace(/^(floor|wall)\./, '').replace(/\./g, ' · '); },
 
   cell(where, o) {
@@ -125,18 +114,14 @@ const ZonesUI = {
         : 'Drawn <b>' + esc(surf || plain) + '</b>.') + '</div>';
   },
 
-  /* The previews are drawn AFTER the panel is in the DOM, into canvases rather
-     than into a background-image: turning one into a data URI means reading the
-     pixels back out of a canvas the atlas has been drawn into, and this project
-     opens off `file://`, where that canvas is tainted and the read throws. */
+  /* Previews are drawn into canvases after the panel is in the DOM: a data URI
+     would need a pixel read, which throws on file://. */
   paint(p) {
     p.querySelectorAll('.mat').forEach(b => {
       const where = b.dataset.mat, patch = {};
       const kitK = where === 'wall' ? 'wtile' : 'tile';
       patch[b.dataset.set] = b.dataset.v || undefined;
-      /* A drawn surface is previewed WITHOUT the atlas over it, because that is
-         what clicking it does: the rect wins in R.floorTile(), so leaving it in
-         would draw six identical swatches of the tile you already have. */
+      /* A procedural swatch is previewed without the atlas over it. */
       if (b.dataset.set !== kitK) patch[kitK] = undefined;
       const cv = Zones.swatch(where, patch, b.dataset.set + ':' + b.dataset.key);
       const host = b.querySelector('.mat-p');
@@ -154,9 +139,7 @@ const ZonesUI = {
         const k = b.dataset.set, v = b.dataset.v;
         const wall = b.dataset.mat === 'wall';
         const kitK = wall ? 'wtile' : 'tile';
-        /* The atlas wins, so choosing a drawn surface under one that is set is
-           choosing something you would never see. One edit, one undo step, and
-           said out loud — a click that silently does nothing is worse. */
+        /* One edit and one undo step, said out loud. */
         if (k !== kitK && Zones.z[kitK]) {
           const patch = {};
           patch[k] = v; patch[kitK] = '';

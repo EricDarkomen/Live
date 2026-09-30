@@ -1,8 +1,7 @@
 'use strict';
 /* ---------------- The object editor's panes ----------------
-   One row per kind, and the panel is the three files at once: how it is
-   furnished, what pressing it does, and every one of them in the building.
-   The level editor moves one object; this moves what all of them are. */
+   One row per kind; the panel shows its furnishing, its act and every
+   placement. */
 
 const ThingsUI = {
   refresh() {
@@ -146,10 +145,8 @@ const ThingsUI = {
     });
   },
 
-  /* The act behind a `use`, with its source. Read off the loaded function, so
-     what is shown is what will run — and the panel is honest that this is the
-     one thing here it cannot edit: data/acts.js is where most of the writing
-     lives, and an editor that regenerated it would flatten the lot. */
+  /* The act behind a `use`, from the loaded function: shown, not edited
+     (data/acts.js stays hand-written). */
   actCard(use) {
     const src = Things.act(use);
     return '<div class="step">'

@@ -1,26 +1,14 @@
 'use strict';
 /* ---------------- Where in the writing something is named ----------------
-   A quest is started by a line of dialogue calling `Q.start('q_headset')`, and
-   nothing anywhere declares that. Neither does anything declare that the
-   printer job has four steps and exactly three places that advance it. So the
-   faults that matter most in a quest or a conversation are all of the same
-   shape: a name in one file that has to exist in another, checked by nobody.
-
-     Q.start('q_kettle')   — a job that is never started is a job nobody sees
-     Q.step('q_typo')      — a silent no-op; Q.step returns early if it is not active
-     Ach.get('a_typo')     — throws, mid-sentence, in front of the player
-     Item.give('mug2')     — gives nothing, quietly
-
-   This is the index that makes those answerable, and it is what turns "check
-   this level" into "check this writing". It reads the SOURCE of the functions
-   that are already loaded — `String(fn)` — rather than fetching files, because
-   the page cannot fetch a local file (that is the whole `file://` rule this
-   project is built on) and because the functions are right here.
-
-   The roots are declared rather than crawled. There is no way to enumerate the
-   global lexical scope a classic script writes into — `window.Acts` is
-   undefined while bare `Acts` works — so a crawl is not available even in
-   principle, and a declared list is honest about what has been looked at. */
+   Nothing declares which line starts a quest or advances it, so the faults
+   that matter are names that must exist elsewhere:
+     Q.start('q_kettle')  a job never started is never seen
+     Q.step('q_typo')     a silent no-op
+     Ach.get('a_typo')    throws mid-sentence
+     Item.give('mug2')    gives nothing, quietly
+   This index reads `String(fn)` of the loaded functions (no fetching under
+   file://). Roots are declared, since a classic script's global lexical scope
+   cannot be enumerated (`window.Acts` is undefined while `Acts` works). */
 
 const Writing = {
   /* Built once. Nothing in it changes while the tab is open: these are the
@@ -42,10 +30,7 @@ const Writing = {
     }
     /* The engine drives some of it too — finishing a boss call completes a job,
        and signing the biscuit rota is a panel button. */
-    /* EVENTS is a table of one-off office happenings, each with a go() that is
-       as much writing as any act — free pizza in the break room hands over an
-       item, and the reward editor called that item unobtainable until this list
-       included it. A root missing here is a call site nothing can see. */
+    /* EVENTS' go() is writing too (free pizza hands out an item). */
     if (typeof EVENTS !== 'undefined' && Array.isArray(EVENTS)) {
       EVENTS.forEach(e => {
         if (!e) return;
@@ -64,11 +49,8 @@ const Writing = {
      ['HOOKS', typeof HOOKS !== 'undefined' && HOOKS],
      ['Uses', typeof Uses !== 'undefined' && Uses],
      ['BaseActs', typeof BaseActs !== 'undefined' && BaseActs],
-     /* The island's own systems, each written after this list was and each
-        where its achievements, jobs and items actually happen: the garden, the
-        blender, the boat and the dates in data/garden.js; the farm in
-        data/farm.js; the workshop in data/craft.js; minds in engine/mind.js.
-        Leaving them out made every achievement they hand out look unearnable. */
+     /* The island's systems: data/garden.js, data/farm.js, data/craft.js and
+        engine/mind.js. */
      ['Garden', typeof Garden !== 'undefined' && Garden],
      ['Blender', typeof Blender !== 'undefined' && Blender],
      ['Orders', typeof Orders !== 'undefined' && Orders],
@@ -86,23 +68,14 @@ const Writing = {
       Object.keys(obj).forEach(k => add(label + '.' + k, obj[k]));
     });
 
-    /* MOVES are the player's own lines, and their run() is where a move does
-       what it does — hands out an achievement, counts a transfer, reads a
-       skill. As much writing as any act, and leaving them out made the reward
-       editor call three achievements unearnable and three skills dead when all
-       six were used right here. */
+    /* MOVES' run() grants achievements, counts, and reads skills. */
     if (typeof MOVES !== 'undefined' && Array.isArray(MOVES)) {
       MOVES.forEach(m => {
         if (!m) return;
         Object.keys(m).forEach(k => add('move ' + (m.id || m.n || '?') + '.' + k, m[k]));
       });
     }
-    /* A minigame's reward() is where it hands out its achievement, and the
-       arcade host is where the round is paid out at all. A root missing here is
-       a call site nothing can see: without it the reward editor calls five
-       perfectly earnable achievements unearnable, which is the same blind spot
-       leaving MOVES out once opened. Arcade.catalogue() is the games' own
-       declaration of themselves, so a fourth game is covered for nothing. */
+    /* Minigames' reward() and the arcade host, via Arcade.catalogue(). */
     if (typeof Arcade !== 'undefined') {
       Object.keys(Arcade).forEach(k => add('Arcade.' + k, Arcade[k]));
       let games = [];
@@ -155,18 +128,13 @@ const Writing = {
     Object.keys(v).forEach(k => this.deep(where + '.' + k, v[k], add, (depth || 0) + 1));
   },
 
-  /* The writing's own shorthand for the same calls: data/garden.js defines
-     qTo(id, n), which is Q.step until step n, and qAt(id, n), which reads
-     Q.active. A job only ever moved by qTo() was reported as never advanced. */
+  /* data/garden.js's shorthand: qTo(id, n) is Q.step to step n, qAt(id, n) reads
+     Q.active. */
   ALIASES: { 'Q.step': ['qTo'], 'Q.active': ['qAt'] },
 
-  /* Every string literal handed to `Callee.method(` anywhere in the writing,
-     with where it was. Deliberately a regular expression over source and not a
-     parse: the calls being looked for are all of the form `Q.step('q_x')`, on
-     one line, with a literal first argument — that is the whole convention this
-     codebase writes them in, and a real parser buys nothing but a dependency.
-     A call built out of a variable is invisible here, which is the honest limit
-     and why every count below is reported as "found", never as "all". */
+  /* Every string literal passed to `Callee.method(` in the writing, with where.
+     A regex over source, by convention (a literal first argument on one line);
+     calls built from variables are invisible, so counts are "found", not "all". */
   calls(callee, method) {
     const names = [callee + '\\.' + method].concat(this.ALIASES[callee + '.' + method] || []);
     const re = new RegExp('\\b(?:' + names.join('|') + ')\\(\\s*[\'"]([^\'"]+)[\'"]', 'g');

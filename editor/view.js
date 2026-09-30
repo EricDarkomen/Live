@@ -1,16 +1,8 @@
 'use strict';
 /* ---------------- The canvas: camera, loop and overlays ----------------
-   The preview is the GAME's renderer, not a diagram of the level. R.draw()
-   reads Cam, World and MAPW/MAPH by bare name and has no idea it is being
-   driven by an editor, so the walls, the light pools, the worktops and the
-   doorway leaves are all exactly what the player will see.
-
-   Zoom is the one thing that had to be arranged rather than asked for. R.draw()
-   sets its transform from R.dpr and clears Cam.w × Cam.h, so drawing the world
-   at 2× is a matter of handing it twice the device ratio and half the visible
-   span. R.dpr is put back immediately afterwards, because R.resize() sizes the
-   canvas backing store from it and a zoomed value there would grow the canvas
-   on every resize until the tab fell over. */
+   The preview is the game's renderer, driven through Cam, World and MAPW/MAPH.
+   Zoom hands R.draw() a scaled device ratio and a smaller span, then puts
+   R.dpr back at once (R.resize() sizes the canvas from it). */
 
 /* What is selected, if anything. One thing at a time, addressed the way the doc
    addresses it: an index into a list, or an entry's name. */
@@ -18,10 +10,7 @@ const Sel = { kind: null, i: -1, name: null };
 
 const View = {
   x: 0, y: 0, zoom: 1,
-  /* The floor is low enough that fit() can actually fit. The fourth floor is
-     64×44 tiles — 2048px — and a phone is 390 of them, so the whole level needs
-     about 0.19 and the old floor of 0.25 meant "see all of it" was a thing the
-     button could not do on the device that most needs it. */
+  /* Low enough that fit() can fit the largest level on a phone. */
   MIN: 0.1, MAX: 3,
   /* Where the pointer is, in tiles, or null when it is off the canvas. */
   hover: null,
@@ -42,16 +31,9 @@ const View = {
   },
 
   /* ---- what the chrome is covering ----
-     The tools and the zoom float ON the map now, so "the visible map" is the
-     canvas minus whatever is parked over it — a rail down one side on a desktop,
-     a strip along the bottom of a phone. Everything that centres or fits reads
-     this, or the fourth floor is fitted to a box a fifth of which is behind the
-     tool strip and the middle of the level is under your thumb.
-
-     Measured off the real elements rather than written down, because which edge
-     the dock is on is a media query's decision and this file must not have to
-     agree with it. Cached: clamp() runs on every pointermove of a drag, and two
-     getBoundingClientRects per move is a layout flush per move. */
+     The visible map is the canvas minus the tool rail or strip over it,
+     measured off the real elements (a media query decides which edge), and
+     cached since clamp() runs on every pointermove. */
   ins: { l: 0, t: 0, r: 0, b: 0 },
   measure() {
     const cv = R.cv;
@@ -65,11 +47,7 @@ const View = {
         const b = el.getBoundingClientRect();
         if (!b.width || !b.height) return;
         const gap = 10;
-        /* A band across the map, a rail down one side of it, or a widget in a
-           corner. Only the first two are worth steering round: reserving a
-           column for the zoom pill cost a 320px phone 128px of camera and drove
-           "fit the whole level" into the zoom floor — a corner widget is small,
-           it is in a corner, and the map is allowed to run under it. */
+        /* Only bands and rails are steered round; a corner widget may cover the map. */
         const band = b.width > r.width * 0.6, rail = b.height > r.height * 0.4;
         if (band) {
           if (b.top - r.top < r.height / 2) out.t = Math.max(out.t, b.bottom - r.top + gap);
@@ -105,10 +83,8 @@ const View = {
     requestAnimationFrame(View.loop);
   },
   frame(dt) {
-    /* The map is only one of the three documents. The loop keeps running — it
-       is what notices a resize — but there is nothing to draw when the canvas is
-       behind a workspace, and drawing it anyway is a phone getting warm for a
-       picture nobody can see. */
+    /* No drawing while another mode's workspace covers the canvas; the loop keeps
+       running to catch resizes. */
     if (typeof Mode !== 'undefined' && Mode.id !== 'levels') {
       /* Except the art importer, which has a sheet of its own to draw and a
          walk cycle that has to actually walk. */
@@ -136,9 +112,7 @@ const View = {
     const i = this.ins, z = this.zoom;
     const il = i.l / z, ir = i.r / z, it = i.t / z, ib = i.b / z;
     const mw = MAPW * TILE, mh = MAPH * TILE;
-    /* Centre a map smaller than the window rather than pinning it to a corner,
-       which is what the game's own camera does for the same reason — but centre
-       it in the part of the canvas that is not behind the tool rail. */
+    /* Centre a map smaller than the view, within the uncovered part. */
     this.x = mw <= w - il - ir ? (mw - w) / 2 - (il - ir) / 2
       : clamp(this.x, -TILE - il, mw - w + TILE + ir);
     this.y = mh <= h - it - ib ? (mh - h) / 2 - (it - ib) / 2
@@ -203,9 +177,7 @@ const View = {
   inMap(t) { return t.x >= 0 && t.y >= 0 && t.x < MAPW && t.y < MAPH; },
 
   /* ---- overlays ----
-     Drawn in world space under the same transform R.draw() used, with every
-     stroke width and font divided by the zoom so they stay the size of a line
-     on the screen rather than the size of a line on the floor. */
+     In world space, with strokes and fonts divided by the zoom. */
   overlay() {
     const c = R.ctx, z = this.zoom;
     c.save();
@@ -255,13 +227,7 @@ const View = {
   },
 
   /* ---- labels ----
-     A knocked-out stroke behind the text was not enough: the labels sit over a
-     drawn floor at whatever zoom you are at, and at "fit" on a phone thirteen
-     room names at eleven screen pixels each ran into one another and read as
-     one long word. They are chips now — a dark plate, the room's own tint — and
-     a chip that would land on one already drawn simply does not draw. What you
-     lose is the name of a room too small to hold its own name, which is a room
-     you can see the shape of anyway. */
+     Chips (dark plate, room tint); one that would overlap another is skipped. */
   CHIP_FONT: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   free(x, y, w, h) {
     return !this.taken.some(b =>
@@ -406,9 +372,7 @@ const View = {
     c.restore();
   },
 
-  /* The tile under the pointer, and — for the tools where it is not obvious
-     what is about to happen — what would happen to it. The object tool used to
-     say what it was holding in a toast that had gone by the time you looked. */
+  /* The tile under the pointer, and what the tool would do there. */
   drawHover(c, z) {
     const t = this.hover;
     const tool = Tools.current;

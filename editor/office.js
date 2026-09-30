@@ -1,36 +1,16 @@
 'use strict';
 /* ---------------- The day around the calls ----------------
-   Everything in data/office.js: the things that happen to you, the things
-   people say behind your back, and how it ends.
-
-     EVENTS       one-off happenings. Half data, half code — `go()` is what an
-                  event actually does.
-     CHAT_SCRIPT  the office chat, by channel, on a clock.
-     MAIL_SCRIPT  the inbox, on the same clock.
-     TEXT_SCRIPT  the texts, by who sent them, on a clock that does NOT stop.
-     ENDINGS      the thirteen ways out.
-     CUT          the opening, which is the first thing anybody sees.
-
-   Two joins here fail silently and one fails loudly:
-
-     a chat or mail `t` outside the shift never fires at all. Chat.tick() and
-     Mail.tick() only ever compare `G.minutes >= t`, and the shift ends at
-     DAY_END — so a message timed for 18:30 is writing nobody will read.
-
-     A TEXT IS THE EXCEPTION, and it is the whole character of that channel:
-     Texts.tick() is called OUTSIDE the Sky.working() test in engine/boot.js,
-     because the chat is the company talking to itself and a text is somebody
-     who knows you. So a text timed for 18:30 arrives, and one timed for 04:00
-     arrives tomorrow — which is why the check below bounds them by the day
-     rather than by the shift, and why getting that wrong would flag half a
-     working script as broken.
-
-     an ENDINGS entry that Endings.available() never names is an ending no
-     player can reach.
-
-     and the other way round, Endings.offer() does `ENDINGS[k].t` for every key
-     available() returns — so a key that is NOT in the table throws, at the very
-     end of the game, on the last screen there is. */
+   Everything in data/office.js:
+     EVENTS       one-off happenings; `go()` is code
+     CHAT_SCRIPT  the office chat, by channel, on the clock
+     MAIL_SCRIPT  the inbox, on the same clock
+     TEXT_SCRIPT  texts, by sender, on a clock that does not stop at five
+     ENDINGS      the ways out
+     CUT          the opening
+   Silent faults: a chat or mail `t` outside the shift never fires (their ticks
+   run only in working hours). Texts tick at any hour (engine/boot.js), so
+   they are bounded by the day instead. An ending available() never offers is
+   unreachable; one it offers that is not in the table would throw. */
 
 const Office = {
   KINDS: [
@@ -174,14 +154,11 @@ const Office = {
     if (!rows[i]) return false;
     this.mark('edit line ' + (i + 1));
     rows[i] = Object.assign({}, rows[i]);
-    /* `t` is a TIME on a chat line and the TEXT on a beat of the opening, and
-       this coerced both to a number — so editing a beat's writing here replaced
-       the whole paragraph with 0, silently, and the export wrote it out. */
+    /* `t` is a time on a chat or text line but the text on an opening beat: only
+       the first is numeric. */
     if (k === 't' && (this.kind === 'chat' || this.kind === 'text')) rows[i].t = Number(v) || 0;
-    /* A camera is two tile coordinates or nothing at all, and nothing is a
-       real answer: it means keep the shot before this one. Anything that is
-       not two numbers is dropped rather than half-stored, or a beat ends up
-       with a camera that aims at NaN and the opening quietly stops moving. */
+    /* A camera is two numbers or empty ("keep the previous shot"); anything else
+       is dropped rather than aiming at NaN. */
     else if (k === 'cam') {
       const n = String(v).split(/[\s,]+/).filter(Boolean).map(Number);
       if (n.length === 2 && n.every(x => isFinite(x))) rows[i].cam = n; else delete rows[i].cam;
@@ -367,11 +344,8 @@ const OfficeCheck = {
       });
     }
 
-    /* A TEXT IS BOUNDED BY THE DAY, NOT BY THE SHIFT. Texts.tick() is outside
-       the Sky.working() test, so 18:30 is a text that arrives — the evening
-       ones are the point of the channel. What is still wrong is a time that no
-       clock reaches: under zero, or past midnight, where G.minutes wraps and
-       the send index is cleared by Sky.newDay(). */
+    /* Texts are bounded by the day, not the shift: only times below zero or past
+       midnight (where Sky.newDay() clears the index) are wrong. */
     if (kind === 'text') {
       const rows = live ? Office.list() : TEXT_SCRIPT.filter(c => c.who === id);
       if (!rows.length) fault('error', 'No texts in this thread.', { field: 'lines' });
@@ -459,11 +433,8 @@ const OfficeCheck = {
     return out;
   },
 
-  /* WHICH ENDINGS CAN BE OFFERED. Endings.available() walks ENDINGS itself
-     and keeps each row whose own `when()` passes (or which has none), so every
-     row is on offer by construction and none can be offered that is not in the
-     table. That used to be a hand-kept list of pushes that could disagree with
-     the table in both directions; it cannot now, and this says so. */
+  /* Endings.available() walks ENDINGS and keeps rows whose `when()` passes, so
+     every row is offerable by construction. */
   pushed() {
     if (typeof ENDINGS === 'undefined') return null;
     return new Set(Object.keys(ENDINGS));
