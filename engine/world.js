@@ -94,10 +94,34 @@ const World = {
       });
     }));
     def.furnish.call(this);
+    this.buildSwim();
     this.computeAO();
     this.buildDoorways();
     this.buildFurniture();
     return this;
+  },
+  /* Water you can swim in: the lagoon, and the sea out to SWIM_REACH tiles
+     from the nearest ground you can stand on. Collide lets the player (and only
+     the player) through it; engine/moves.js does the swimming. */
+  SWIM_REACH: 6,
+  buildSwim() {
+    const N = MAPW * MAPH, d = new Int16Array(N).fill(-1), q = [];
+    const wet = (x, y) => { const s = this.surfAt(x, y); return s === 'sea' || s === 'water'; };
+    for (let y = 0; y < MAPH; y++) for (let x = 0; x < MAPW; x++) {
+      if (!this.solid[y][x] && !wet(x, y)) { d[y * MAPW + x] = 0; q.push(y * MAPW + x); }
+    }
+    this._swim = new Uint8Array(N);
+    let any = false;
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], x = i % MAPW, y = (i - x) / MAPW;
+      if (d[i] >= this.SWIM_REACH) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy, j = ny * MAPW + nx;
+        if (nx < 0 || ny < 0 || nx >= MAPW || ny >= MAPH || d[j] >= 0 || !wet(nx, ny)) continue;
+        d[j] = d[i] + 1; this._swim[j] = 1; any = true; q.push(j);
+      }
+    }
+    this.swim = any ? rows(this._swim) : null;
   },
   /* An opening cut through a wall run, rather than floor a room covers. */
   isOpening(x, y) { return !!this.openings && this.openings.has(x + ',' + y); },

@@ -245,6 +245,8 @@ const ACHS = {
   a_kiss: { n: 'Sunset Kiss', e: '💋', d: 'Win somebody’s heart completely.' },
   a_stayed: { n: 'Paradise Kept', e: '🌴', d: 'Turn down Blake Sterling.' },
   a_dip: { n: 'Skinny Dip', e: '🌙', d: 'Go for a swim in the lagoon after dark.' },
+  a_swim: { n: 'Making Waves', e: '🏊', d: 'Wade out into the sea and swim.' },
+  a_leap: { n: 'Cannonball!', e: '💦', d: 'Jump into the water from dry land.' },
 };
 
 /* ---------------- The arcade cabinets ----------------

@@ -21,10 +21,12 @@ const Collide = {
   FEET_RX: TILE * 0.30, FEET_RY: 7.4, FEET_OY: 2.2,
   BODY_R: TILE * 0.30,
 
-  /* Off the map, a wall, or a bare stretch of counter (waist height, not wall). */
-  wall(tx, ty) {
-    return tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH || !!World.solid[ty][tx]
-      || World.blocked.has(tx + ',' + ty);
+  /* Off the map, a wall, or a bare stretch of counter (waist height, not wall).
+     A swimmer (the player: `swim`) goes through water World.swim marks. */
+  wall(tx, ty, swim) {
+    if (tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH) return true;
+    if (World.solid[ty][tx] && !(swim && World.swim && World.swim[ty][tx])) return true;
+    return World.blocked.has(tx + ',' + ty);
   },
 
   /* ---- an object's own shapes ----
@@ -70,11 +72,11 @@ const Collide = {
   },
 
   /* ---- the tests: boxes as (x, y, rx, ry) in world pixels ---- */
-  tiles(x, y, rx, ry) {
+  tiles(x, y, rx, ry, swim) {
     const tx0 = Math.floor((x - rx) / TILE), tx1 = Math.floor((x + rx - 0.01) / TILE);
     const ty0 = Math.floor((y - ry) / TILE), ty1 = Math.floor((y + ry - 0.01) / TILE);
     for (let ty = ty0; ty <= ty1; ty++) {
-      for (let tx = tx0; tx <= tx1; tx++) if (this.wall(tx, ty)) return true;
+      for (let tx = tx0; tx <= tx1; tx++) if (this.wall(tx, ty, swim)) return true;
     }
     return false;
   },
@@ -122,7 +124,7 @@ const Collide = {
   /* Can a foot box be here? */
   free(x, y, rx, ry, opts) {
     opts = opts || {};
-    if (this.tiles(x, y, rx, ry)) return false;
+    if (this.tiles(x, y, rx, ry, opts.swim)) return false;
     if (this.objects(x, y, rx, ry, () => true)) return false;
     if (!opts.noCars && this.cars(x, y, rx, ry, opts.ignore, () => true)) return false;
     return true;
@@ -137,7 +139,7 @@ const Collide = {
     const ty0 = Math.floor((y - ry) / TILE), ty1 = Math.floor((y + ry - 0.01) / TILE);
     for (let ty = ty0; ty <= ty1; ty++) {
       for (let tx = tx0; tx <= tx1; tx++) {
-        if (!this.wall(tx, ty)) continue;
+        if (!this.wall(tx, ty, opts.swim)) continue;
         const p = this.mtv(x, y, rx, ry, (tx + .5) * TILE, (ty + .5) * TILE, TILE / 2, TILE / 2);
         px += p[0]; py += p[1];
       }

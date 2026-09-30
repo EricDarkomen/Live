@@ -34,6 +34,8 @@
 <link rel="stylesheet" href="css/responsive.css?v=20261010">
 <!-- The look. Last, so it restyles everything above it; see the note at its top. -->
 <link rel="stylesheet" href="css/bubble.css?v=20261010">
+<!-- The quieter HUD, the menu and the moves. After the look, and only restyles. -->
+<link rel="stylesheet" href="css/polish.css?v=20261012">
 </head>
 <body>
 <div id="app">
@@ -320,6 +322,8 @@
         <button class="r" data-dir="right">▶</button><button class="d" data-dir="down">▼</button>
       </div>
       <button id="touchE">E</button>
+      <!-- Jump; in the water it dives (engine/moves.js). -->
+      <button id="touchJ" aria-label="Jump"><span class="tj-i" aria-hidden="true">⤒</span><span class="tj-t">JUMP</span></button>
       <button id="touchMenu" aria-label="Open jobs, inventory and menus">☰</button>
     </div>
 
@@ -408,9 +412,14 @@
     <div id="panel" role="dialog" aria-modal="true" aria-label="Your things">
       <div class="pn sign">
         <div class="sign-title"><span id="pnTitle">Your things</span>
+          <button class="pn-back" id="pnBack" type="button" hidden aria-label="Back to the menu">‹ Menu</button>
           <button class="btn small" id="pnClose">Close · Esc</button></div>
-        <div class="tabs" id="pnTabs" role="tablist"></div>
-        <div class="pn-body scroll" id="pnBody"></div>
+        <!-- A sidebar and the page on a desktop; on a phone the sidebar gives
+             way to the launcher (Panels.r_home). -->
+        <div class="pn-main">
+          <nav class="tabs" id="pnTabs" role="tablist" aria-label="Sections" aria-orientation="vertical"></nav>
+          <div class="pn-body scroll" id="pnBody"></div>
+        </div>
       </div>
     </div>
 
@@ -458,7 +467,7 @@
 <script src="data/island.js?v=20261008"></script>
 <script src="data/npcs.js?v=20261010"></script>
 <script src="data/minds.js?v=20261010"></script>
-<script src="data/items.js?v=20261010"></script>
+<script src="data/items.js?v=20261012"></script>
 <script src="data/garden.js?v=20261010"></script>
 <script src="data/farm.js?v=20261010"></script>
 <script src="data/craft.js?v=20261010"></script>
@@ -471,10 +480,10 @@
 <script src="engine/audio.js?v=20261010"></script>
 <script src="engine/state.js?v=20261010"></script>
 <script src="engine/sky.js?v=20261010"></script>
-<script src="engine/world.js?v=20261010"></script>
-<script src="engine/collide.js?v=20261010"></script>
-<script src="engine/levels.js?v=20261010"></script>
-<script src="engine/ui.js?v=20261010"></script>
+<script src="engine/world.js?v=20261012"></script>
+<script src="engine/collide.js?v=20261012"></script>
+<script src="engine/levels.js?v=20261012"></script>
+<script src="engine/ui.js?v=20261012"></script>
 <script src="engine/comms.js?v=20261010"></script>
 <script src="engine/progress.js?v=20261010"></script>
 <script src="engine/office.js?v=20261010"></script>
@@ -487,15 +496,16 @@
 <script src="engine/cars.js?v=20261010"></script>
 <script src="engine/peds.js?v=20261010"></script>
 <script src="engine/signals.js?v=20261010"></script>
-<script src="engine/guns.js?v=20261010"></script>
-<script src="engine/render.js?v=20261011"></script>
-<script src="engine/panels.js?v=20261010"></script>
+<script src="engine/guns.js?v=20261012"></script>
+<script src="engine/moves.js?v=20261012"></script>
+<script src="engine/render.js?v=20261012"></script>
+<script src="engine/panels.js?v=20261012"></script>
 <script src="engine/map.js?v=20261010"></script>
-<script src="engine/menus.js?v=20261010"></script>
+<script src="engine/menus.js?v=20261012"></script>
 <script src="engine/arcade.js?v=20261010"></script>
 <script src="engine/look.js?v=20261010"></script>
 <script src="engine/title.js?v=20261010"></script>
-<script src="engine/input.js?v=20261010"></script>
+<script src="engine/input.js?v=20261012"></script>
 <!-- The minigame library. Separate files on purpose: each is a whole game
      that knows only the interface in engine/arcade.js, and a fourth is a new
      file here rather than a change to anything above it. -->
@@ -504,6 +514,6 @@
 <script src="minigames/patch.js?v=20261010"></script>
 <script src="engine/juice.js?v=20261010"></script>
 <script src="engine/portrait.js?v=20261010"></script>
-<script src="engine/boot.js?v=20261010"></script>
+<script src="engine/boot.js?v=20261012"></script>
 </body>
 </html>
