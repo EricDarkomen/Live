@@ -56,6 +56,35 @@ const ITEMS = {
   taco: { n: 'Rosie’s Taco', e: '🌮', d: 'Pork, pineapple, a lot of lime, and a sauce Rosie will not name.', v: 4, r: 'common', use: { energy: 18, patience: 8, food: 38, t: 'Juice down your chin. Rosie shouts “SERVILLETA!” and throws a napkin at you.' } },
   fishtaco: { n: 'Fish Taco', e: '🌮', d: 'Nico’s snapper, Rosie’s tortilla, and a truce between the two of them that lasts exactly as long as lunch.', v: 6, r: 'rare', use: { energy: 22, patience: 10, food: 45, t: 'The best thing you have eaten on this island. Do not tell Mama Coco.' } },
   aguafresca: { n: 'Agua Fresca', e: '🥤', d: 'Watermelon, lime and ice, in a bag with a straw.', v: 2, r: 'common', use: { energy: 12, patience: 6, food: 6, t: 'Cold, pink and gone.' } },
+  /* What the island gives, and what you make of it — see data/craft.js.
+     Gathered by hand, felled with an axe, broken out with a pickaxe, then
+     made into things at Rafa's workbench and kiln. */
+  sticks: { n: 'Driftwood', e: '🥢', d: 'Sea-bleached sticks off the beach. Tool handles, kindling, fence posts.', v: 1, r: 'common' },
+  frond: { n: 'Palm Fronds', e: '🍃', d: 'Thatch for a roof, or three of them twisted into rope.', v: 1, r: 'common' },
+  fibre: { n: 'Vine Fibre', e: '🌾', d: 'Stripped from the jungle trees. Three make a rope.', v: 1, r: 'common' },
+  stone: { n: 'Stone', e: '🪨', d: 'Grey, heavy and honest. Axe heads, oven walls, the edges of garden plots.', v: 1, r: 'common' },
+  shells: { n: 'Shells', e: '🐚', d: 'Cowries, conches and something pink. The gift shops love a wind chime.', v: 2, r: 'common' },
+  sea_glass: { n: 'Sea Glass', e: '💎', d: 'A bottle somebody threw off a yacht in 1974, tumbled smooth and frosted green. Jewellers pay well for it.', v: 14, r: 'rare' },
+  clay: { n: 'Clay', e: '🟤', d: 'Red, sticky lagoon clay. The kiln turns it into bricks and tiki mugs.', v: 2, r: 'common' },
+  log: { n: 'Timber', e: '🪵', d: 'A length of trunk. Saw it into planks, or burn it down to charcoal in the kiln.', v: 4, r: 'common' },
+  ore: { n: 'Iron Ore', e: '🌑', d: 'Rust-red rock, heavy for its size. Two of it and some charcoal make iron in the kiln.', v: 5, r: 'common' },
+  plank: { n: 'Planks', e: '🪚', d: 'Sawn at Rafa’s workbench, more or less straight.', v: 5, r: 'common' },
+  rope: { n: 'Rope', e: '🪢', d: 'Twisted by hand. Holds a tool head on, and a roof down.', v: 4, r: 'common' },
+  charcoal: { n: 'Charcoal', e: '⚫', d: 'Timber, baked in the kiln until it gives up. Fuel for bricks and iron.', v: 3, r: 'common' },
+  brick: { n: 'Bricks', e: '🧱', d: 'Fired lagoon clay, the colour of a sunset. An oven wants a dozen.', v: 6, r: 'common' },
+  iron: { n: 'Iron', e: '🔩', d: 'A small, lumpy bar of it. Nails, and tools that last.', v: 12, r: 'rare' },
+  nails: { n: 'Nails', e: '📌', d: 'Hammered out of iron at the workbench. Straighter than Rafa’s.', v: 1, r: 'common' },
+  /* Tools, which wear out — see TOOLS in data/craft.js. */
+  stone_axe: { n: 'Stone Axe', e: '🪓', d: 'A stone head lashed to driftwood. Fells a palm or a jungle tree, eventually. About thirty jobs in it.', v: 4, r: 'common' },
+  iron_axe: { n: 'Iron Axe', e: '🪓', d: 'A proper axe. Faster, more timber, and ninety jobs before it needs replacing.', v: 30, r: 'rare' },
+  stone_pick: { n: 'Stone Pickaxe', e: '⛏️', d: 'For breaking rock outcrops into stone, clay and, now and then, iron ore. About thirty jobs in it.', v: 4, r: 'common' },
+  iron_pick: { n: 'Iron Pickaxe', e: '⛏️', d: 'Bites deeper, finds more ore, and lasts three times as long.', v: 34, r: 'rare' },
+  /* Things made to sell. */
+  shell_chime: { n: 'Shell Wind Chime', e: '🎐', d: 'Shells on strings from a driftwood bar. Plays the breeze. The Coral Resort gift shop cannot get enough.', v: 20, r: 'rare' },
+  tiki_mug: { n: 'Tiki Mug', e: '🗿', d: 'Kiln-fired clay with a grumpy face. It looks a bit like Teo.', v: 16, r: 'rare' },
+  /* Out of the brick oven. Cooked food keeps. */
+  grilled_fish: { n: 'Grilled Snapper', e: '🍢', d: 'Nico’s fish off your own oven, charred at the edges. It keeps.', v: 12, r: 'rare', use: { energy: 24, patience: 10, food: 55, minutes: 10, t: 'Smoky, salty, perfect. You lick your fingers.' } },
+  coconut_bread: { n: 'Coconut Bread', e: '🍞', d: 'Sweet, dense and still warm. It keeps for days.', v: 10, r: 'common', use: { energy: 18, patience: 8, food: 45, t: 'Warm bread. On an island. You could cry.' } },
   /* Toys. */
   soaker: { n: 'Water Pistol', e: '💦', d: 'From the surf shack. For “emergencies”.', v: 0, r: 'rare', gun: 'water' },
   /* Keepsakes. */
@@ -156,6 +185,14 @@ const QUESTS = {
     ],
     track: [{ obj: 'blender' }, { npc: 'sienna' }],
     rw: { xp: 150, money: 60 } },
+  q_build: { n: 'Rafa’s Yard', giver: 'Mari', steps: [
+      'Gather driftwood and stones — the beaches and the hills are covered in them.',
+      'Make a stone axe at Rafa’s workbench, in the yard behind the garden.',
+      'Fell a palm or a jungle tree for timber.',
+      'Build something from Rafa’s plans at a 🚧 building site.',
+    ],
+    track: [null, { obj: 'workbench' }, null, { obj: 'buildSite' }],
+    rw: { xp: 120, money: 30 } },
   q_offer: { n: 'The Offer', giver: 'Blake Sterling', steps: [
       'Hear Blake Sterling out.',
     ],
@@ -191,6 +228,12 @@ const ACHS = {
   a_compost: { n: 'Circle of Life', e: '🪱', d: 'Turn scraps into compost.' },
   a_dried: { n: 'Preserved', e: '🌞', d: 'Dry something on Rafa’s rack.' },
   a_stocked: { n: 'Fully Stocked', e: '🧊', d: 'Keep the bar stocked from your own fridge three days running.' },
+  a_timber: { n: 'Timber!', e: '🪓', d: 'Fell a tree.' },
+  a_ore: { n: 'Rock Bottom', e: '⛏️', d: 'Find iron ore.' },
+  a_glass: { n: 'Beachcomber', e: '💎', d: 'Find a piece of sea glass.' },
+  a_builder: { n: 'Rafa Would Be Proud', e: '🚧', d: 'Build something from Rafa’s plans.' },
+  a_landlord: { n: 'Landlord', e: '🛖', d: 'Build every beach cabana.' },
+  a_trades: { n: 'Jack of All Trades', e: '🛠️', d: 'Reach level 3 in every trade.' },
   a_mixer: { n: 'Mixologist', e: '🍸', d: 'Blend ten cocktails.' },
   a_cargo: { n: 'Shipshape', e: '⛵', d: 'Fill five orders for the supply boat.' },
   a_date: { n: 'Lantern Light', e: '🏮', d: 'Go on a date at Lovers’ Cove.' },

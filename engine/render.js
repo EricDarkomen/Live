@@ -4316,6 +4316,9 @@ const R = {
     /* drawables sorted by y */
     const drawables = [];
     World.objects.forEach(o => {
+      /* Picked up, and not back yet — driftwood the tide has not replaced. The
+         object stays where it is, so its id and everything keyed on it do too. */
+      if (o.gone) return;
       const wx = (o.x + .5) * TILE, wy = (o.y + .5) * TILE;
       if (!Cam.visible(wx, wy)) return;
       /* An occupied chair sorts AFTER its occupant: same tile centre, so a
