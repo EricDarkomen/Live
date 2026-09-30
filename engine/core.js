@@ -21,6 +21,8 @@ const say = (key, vars) => {
   }
   return fill(t, vars);
 };
+/* An optional key: its words if the game has them, else the fallback. */
+const sayOr = (key, fallback, vars) => TEXT[key] !== undefined ? say(key, vars) : fallback;
 /* All of it, in order: pages or paragraphs rather than a list to pick from. */
 const says = (key, vars) => {
   const t = TEXT[key];
