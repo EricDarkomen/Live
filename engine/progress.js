@@ -2,12 +2,8 @@
 /* ---------------- Player ---------------- */
 const Player = {
   init(name) {
-    P.name = name; P.level = 1; P.xpv = 0; P.xpNext = 100; P.rank = 0;
-    if (typeof RANKS !== 'undefined' && RANKS[0] && RANKS[0].face) P.face = RANKS[0].face;
-    P.patience = 100; P.energy = 100; P.money = 0; P.rep = 0; P.food = 100;
-    P.stats = { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 };
-    P.skills = {}; P.skillPoints = 1; P.inventory = []; P.equipment = emptyKit();
-    P.x = SPAWN.x; P.y = SPAWN.y; P.buffs = [];
+    Object.assign(P, freshPlayer(), { name });
+    if (RANKS[0].face) P.face = RANKS[0].face;
     Item.give('headset0', true); Item.equip('headset0', true);
     this.recalc(); P.patience = P.patMax; P.energy = P.eneMax;
   },

@@ -115,7 +115,7 @@ const Portrait = {
      with yourself when a tip lands (see Juice's bump). */
   mood() {
     if (typeof Faces === 'undefined' || typeof P === 'undefined' || !P.eneMax) return;
-    const food = P.food === undefined ? 100 : P.food;
+    const food = P.food;
     const expr = P.energy < P.eneMax * .18 ? 'closing'
       : (food < 20 || P.patience < P.patMax * .3) ? 'sad' : null;
     if (Faces.held.player !== expr) Faces.hold('player', expr);

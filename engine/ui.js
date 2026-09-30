@@ -30,19 +30,8 @@ const FX = {
 
 /* ---------------- UI helpers ---------------- */
 const UI = {
-  /* EVERY TOAST IN THIS GAME IS AN EVENT, so this is now the way into the event
-     log rather than a surface of its own. Hundreds of call sites say
-     UI.toast('📵', 'A phone stops ringing on its own.', 'bad') and every one of
-     them is a line in the ledger of a day — which is exactly what the log
-     channel is. So the signature does not change and the destination does: the
-     record goes to Comms, and the one-line alert over the game is Comms's
-     business too.
-
-     `cls` was a border colour on a box and is a severity now ('bad', 'good',
-     'gold'), which is the same three values doing the job they were always
-     really doing. Anything that is NOT an event — a text, an email, a message
-     in the chat — does not come through here at all; it posts to its own
-     channel, because that is the entire point of there being channels. */
+  /* Every toast is an event: it goes to the log channel, and the alert over
+     the game is Comms's business. `cls` is a severity: 'bad', 'good', 'gold'. */
   toast(e, msg, cls = '') {
     Comms.post('log', { face: e, body: msg, k: cls });
   },
@@ -56,9 +45,7 @@ const UI = {
     const f = $('#flash'); f.style.background = c; f.style.opacity = a;
     setTimeout(() => f.style.opacity = 0, 90);
   },
-  /* The HUD is refreshed every frame, so each field is written only when its
-     value has actually changed — otherwise this is ~14 layout-invalidating DOM
-     writes per frame for text that changes a few times a minute. */
+  /* The HUD runs every frame, so each field is written only when it changes. */
   _last: {},
   set(id, prop, val) {
     const k = id + prop;
@@ -73,11 +60,9 @@ const UI = {
   },
   hud() {
     this.set('#hName', 't', P.name.toUpperCase());
-    /* Your own face, alive, once your sprite is ready (engine/portrait.js);
-       the rank's emoji until then, and wherever there is no sprite at all. */
-    if (!(typeof Portrait !== 'undefined' && Portrait.hud())) this.set('#hFace', 't', P.face);
-    /* In pieces, so the phone bar can put the rank on a line of its own under
-       the level rather than cutting it off after three letters. */
+    /* Your live face once your sprite is ready, the rank's emoji until then. */
+    if (!Portrait.hud()) this.set('#hFace', 't', P.face);
+    /* In pieces, so the phone bar can put the rank under the level. */
     this.set('#hRank', 'h', '<span>Lv.' + P.level + '</span><span class="rk-sep"> · </span><span class="rk-nm">' + esc(RANKS[P.rank].n) + '</span>');
     this.set('#bPat', 'w', clamp(P.patience / P.patMax * 100, 0, 100).toFixed(1) + '%');
     this.set('#vPat', 't', String(Math.round(P.patience)));
@@ -85,10 +70,8 @@ const UI = {
     this.set('#bEne', 'w', clamp(P.energy / P.eneMax * 100, 0, 100).toFixed(1) + '%');
     this.set('#vEne', 't', String(Math.round(P.energy)));
     this.set('#mEne', 't', '/' + Math.round(P.eneMax));
-    /* Food — data/farm.js. A save from before there was a stomach is full. */
-    const food = P.food === undefined ? 100 : P.food;
-    this.set('#bFood', 'w', clamp(food, 0, 100).toFixed(1) + '%');
-    this.set('#vFood', 't', String(Math.round(food)));
+    this.set('#bFood', 'w', clamp(P.food, 0, 100).toFixed(1) + '%');
+    this.set('#vFood', 't', String(Math.round(P.food)));
     this.set('#bXp', 'w', clamp(P.xpv / P.xpNext * 100, 0, 100).toFixed(1) + '%');
     this.set('#vXp', 't', String(P.xpv));
     this.set('#mXp', 't', '/' + P.xpNext);
@@ -101,9 +84,7 @@ const UI = {
       const el = $('#hClock');
       if (el && el.firstChild) el.firstChild.textContent = clock;
     }
-    /* THE OTHER QUEUE, and it is a different fact from the phones in every
-       way that matters: it does not ring, it does not abandon, and it does not
-       stop at the front door. One row, said once. */
+    /* Messages waiting on a reply: a queue that does not ring. */
     const w = Comms.pending();
     if (this._last.w !== w) {
       this._last.w = w;
@@ -115,29 +96,20 @@ const UI = {
     if (this._last.q !== q) {
       this._last.q = q;
       $('#hQueue').hidden = q === 0;
-      /* Shorter on a phone: the queue shares one bar with the clock, the money
-         and three meters, and "calls" is the word the amber dot beside it is
-         already saying. */
       if (q) $('#hQueueT').textContent = TOUCH ? q + ' waiting'
         : q === 1 ? '1 guest waiting' : q + ' guests waiting';
     }
-    /* the bars turn red when you are nearly out of yourself */
+    /* The bars turn red when you are nearly out of yourself. */
     const low = P.patience <= P.patMax * 0.25;
     if (this._last.low !== low) { this._last.low = low; $('#hudTL').classList.toggle('low', low); }
-    /* The sky, in four words: what is falling, what season it is, and — after
-       five — that the shift is over, because at 19:40 on a Tuesday the clock
-       above it is the one number on this screen that could be misread as
-       something you are still being paid for. */
+    /* The weather, the season, and whether work is over. */
     const sky = Sky.label() + ' · ' + Sky.seasonName()
       + (Sky.working() ? '' : ' · off shift');
     if (this._last.sky !== sky) {
       this._last.sky = sky;
       this.set('#hSkyT', 't', sky);
     }
-    /* How much of the shift is behind you, as the hairline along the bottom of
-       the phone bar. The clock says 14:20; this says "nearly there" — and once
-       it is over it says so by sitting full and going out, rather than by
-       staying pinned at 100% all evening looking like it is still counting. */
+    /* The working day as a hairline along the phone bar; full and dimmed after. */
     const shift = (clamp((G.minutes - DAY_START) / (DAY_END - DAY_START), 0, 1) * 100).toFixed(1) + '%';
     if (this._last.shift !== shift) {
       this._last.shift = shift;
@@ -150,6 +122,6 @@ const UI = {
     }
     Track.sync();
   },
-  /* forces the next hud() to rewrite everything — used after a load */
+  /* Rewrite every field on the next hud(), after a load. */
   hudDirty() { this._last = {}; this.hud(); }
 };

@@ -352,7 +352,7 @@ const Stations = {
 
 /* ---------------- Hunger ---------------- */
 const Hunger = {
-  get() { return P.food === undefined ? 100 : P.food; },
+  get() { return P.food; },
   word() {
     const f = this.get();
     return f >= 70 ? 'Full' : f >= 45 ? 'Peckish' : f >= 25 ? 'Hungry' : f > 0 ? 'Starving' : 'Faint';

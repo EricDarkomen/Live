@@ -3,18 +3,21 @@
    P is the player, G is the run. Both are plain data, so Save.write() carries
    every field without knowing what it is for. */
 const emptyKit = () => Object.fromEntries(GAME.slots.map(s => [s, null]));
-const P = {
-  name: 'Trainee', face: '🧑‍💻',
-  level: 1, xpv: 0, xpNext: 100, rank: 0,
-  patience: 100, patMax: 100, energy: 100, eneMax: 100,
-  money: 0, rep: 0,
-  stats: { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 },
-  skills: {}, skillPoints: 1,
-  inventory: [], equipment: emptyKit(),
-  /* `dir` is a sprite row: 2 faces the camera. */
-  x: SPAWN.x, y: SPAWN.y, vx: 0, vy: 0, dir: 2, moving: false, bob: 0,
-  buffs: []
-};
+function freshPlayer() {
+  return {
+    name: 'Trainee', face: '🧑‍💻',
+    level: 1, xpv: 0, xpNext: 100, rank: 0,
+    patience: 100, patMax: 100, energy: 100, eneMax: 100, food: 100,
+    money: 0, rep: 0,
+    stats: { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 },
+    skills: {}, skillPoints: 1,
+    inventory: [], equipment: emptyKit(),
+    /* `dir` is a sprite row: 2 faces the camera. */
+    x: SPAWN.x, y: SPAWN.y, vx: 0, vy: 0, dir: 2, moving: false, bob: 0,
+    buffs: []
+  };
+}
+const P = freshPlayer();
 
 function freshTotals() {
   return { calls: 0, coffee: 0, toiletMin: 0, printer: 0, angered: 0, satisfied: 0, transfers: 0, bullshit: 0, written: 0 };
