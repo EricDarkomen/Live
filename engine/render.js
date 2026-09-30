@@ -3397,7 +3397,7 @@ const R = {
            The engaged one also gets a real closed door drawn over all of this,
            below — the indicator stays because the door is only there when the
            atlas is. */
-        c.fillStyle = o.n === 1 && G.flags.looClosed ? '#ff5f56' : '#5ad48a';
+        c.fillStyle = o.n === 1 && G.today.looClosed ? '#ff5f56' : '#5ad48a';
         c.fillRect(px + TILE - T - 4, py + TILE - 7, 3, 3);
       }
     });
@@ -3407,7 +3407,7 @@ const R = {
        three you can walk into would cover the pan, and the whole point of the
        stall standing open is that you can see there is one. */
     for (const o of World.objects) {
-      if (o.kind !== 'loo' || !(o.n === 1 && G.flags.looClosed)) continue;
+      if (o.kind !== 'loo' || !(o.n === 1 && G.today.looClosed)) continue;
       if (o.x < x0 - 1 || o.x > x1 + 1 || o.y < y0 - 1 || o.y > y1 + 1) continue;
       if (!World.solid[o.y - 1] || !World.solid[o.y - 1][o.x]) continue;
       Tiles.draw(this.ctx, 'loo.door', (o.x + .5) * TILE, (o.y + .5) * TILE);

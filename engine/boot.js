@@ -110,8 +110,8 @@ const Game = {
            exactly as it was — you might be at your desk, you might be on the
            bypass. The flag stops it being announced again on every minute until
            midnight, and is cleared by Sky.newDay() with the rest of today's. */
-        if (G.minutes >= DAY_END && !G.flags.clockedOff) {
-          G.flags.clockedOff = true; Report.post(); break;
+        if (G.minutes >= DAY_END && !G.today.clockedOff) {
+          G.today.clockedOff = true; Report.post(); break;
         }
         pace = Sky.pace();
       }

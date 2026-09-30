@@ -286,7 +286,7 @@ const Report = {
   post() {
     Sfx.holdMusic(false);
     Phones.clearAll();
-    G.flags.leaving = pick(this.LEAVING);
+    G.today.leaving = pick(this.LEAVING);
     Ach.get('a_first');
     Q.restand();
     UI.toast('🌅', say('dayOver', { where: TOUCH ? '<b>☰ · ' + (TEXT['tab.shift'] ? say('tab.shift') : 'Shift') + '</b>' : 'press <span class="kbd">T</span>' }), 'gold');

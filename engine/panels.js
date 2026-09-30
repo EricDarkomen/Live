@@ -304,7 +304,7 @@ const Panels = {
      The rows come from Report so there is exactly one list of what a day is
      made of, and the counters they read are today's. */
   r_shift() {
-    const done = !!G.flags.clockedOff;
+    const done = !!G.today.clockedOff;
     const head = done
       ? say('shift.after', { time: clockStr(G.minutes) })
       : Sky.working()
@@ -317,8 +317,8 @@ const Panels = {
       const v = Report.verdict();
       h += '<div class="verdict"><div class="sk" style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">' + say('shift.verdict') + '</div>'
         + '<div class="vt">“' + v[0] + '”</div><div class="vn">*' + v[1] + '</div></div>';
-      if (G.flags.leaving)
-        h += '<p style="margin-top:14px;font-size:13px;color:var(--dim);font-style:italic">' + esc(G.flags.leaving) + '</p>';
+      if (G.today.leaving)
+        h += '<p style="margin-top:14px;font-size:13px;color:var(--dim);font-style:italic">' + esc(G.today.leaving) + '</p>';
     } else {
       /* What the page is for while the day is still in front of you: not a
          verdict, a clock. */

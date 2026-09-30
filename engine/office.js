@@ -164,7 +164,7 @@ const Phones = {
      lobby and nobody is on a rota they have not walked onto yet. */
   live() { return !!G.flags.onTheFloor && Sky.working() && Levels.onSite(); },
   tick(dt) {
-    if (G.flags.phonesDown || G.state !== 'play') return;
+    if (G.today.phonesDown || G.state !== 'play') return;
     /* NOT YOUR QUEUE, and the two ways that can be true end differently.
        AT FIVE the queue closes. It is the one promise this building keeps, and
        until the clock ran past seventeen hundred there was no way to keep it —

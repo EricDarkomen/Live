@@ -26,7 +26,7 @@ function freshRun() {
     day: 1, minutes: DAY_START,
     flags: {}, quests: {}, achievements: {}, rel: {},
     minds: {},                                  /* islanders' needs and moods: engine/mind.js */
-    todayStats: {}, totals: freshTotals(),
+    todayStats: {}, today: {}, totals: freshTotals(),   /* today: state that ends at midnight */
     comms: { mail: [], text: [], chat: [], log: [], calls: [] },   /* engine/comms.js */
     chatSent: {}, mailSent: {}, textSent: {},
     callers: {},                                /* how each kind of guest opens, −3 to +3 */
@@ -34,7 +34,7 @@ function freshRun() {
     lastZone: null, objective: '',
     track: null, trackOff: false, tkShut: {}, tkFold: false, tkTitles: false,   /* the job tracker */
     arcade: { best: {}, won: {}, played: 0 },
-    wx: { k: 'grey', t: 0, w: 0, l: 0, flash: 0 },                  /* engine/sky.js */
+    wx: { k: 'grey', t: 0, w: 0, l: 0, f: 0, flash: 0 },                  /* engine/sky.js */
     guns: { have: [], gun: null, ammo: {}, hit: {} },               /* engine/guns.js */
     look: null,                                 /* the character creator's picks */
     levelState: {}
