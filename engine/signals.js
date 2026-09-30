@@ -276,7 +276,7 @@ const Signals = {
         inst.bleep += dt;
         if (inst.bleep >= .5) {
           inst.bleep -= .5;
-          if (typeof Cam !== 'undefined' && Cam.visible(inst.arms[0].x, inst.arms[0].y)) Sfx.bleep();
+          if (Cam.visible(inst.arms[0].x, inst.arms[0].y)) Sfx.bleep();
         }
         if (inst.t >= this.MAN) { inst.mode = 'flash'; inst.t = 0; }
         return;

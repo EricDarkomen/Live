@@ -12,13 +12,7 @@
    getImageData, which would break opening the game off disk. Missing or broken
    sheets fall back to emoji per person, gated by has(). */
 
-/* typeof, because a copy opened without art/ never loads the manifest at all
-   and the const is simply never declared. */
-function atlasSheets() {
-  if (typeof SPRITE_ATLAS === 'undefined') return [];
-  const list = SPRITE_ATLAS && SPRITE_ATLAS.sheets;
-  return Array.isArray(list) ? list : [];
-}
+const atlasSheets = () => SPRITE_ATLAS.sheets;
 
 const Sprites = {
   ready: false, sheets: [], rows: new Map(),
@@ -40,7 +34,7 @@ const Sprites = {
        the people it goes on, from the one place sheets are loaded. Guarded
        because a page that does not ship engine/faces.js is still a page that
        ships people — see engine/faces.js. */
-    if (typeof Faces !== 'undefined') Faces.load();
+    Faces.load();
   },
 
   /* ---- the character creator's parts ----
@@ -547,7 +541,7 @@ const Sprites = {
     } else top();
     /* And the face, inside the same transform: an expression is part of the
        head and the head has just turned. */
-    if (typeof Faces !== 'undefined') this.faceOn(c, id, b, m, cell, tdir, tframe, lift);
+    this.faceOn(c, id, b, m, cell, tdir, tframe, lift);
     /* The arm goes on LAST and in front of everything, because it is the near
        arm: it is the one the hand at the end of it is holding something with,
        and a blaster behind a shoulder is a blaster nobody can see. */
@@ -616,7 +610,7 @@ const Sprites = {
        same smoothing rule — an expression is pixel art too. It goes here
        rather than in the renderer because everybody who draws a person calls
        this: the floor, the street, and the character creator's preview. */
-    if (typeof Faces !== 'undefined') Faces.paint(c, id, dir, frame, b.x, b.y);
+    Faces.paint(c, id, dir, frame, b.x, b.y);
     c.imageSmoothingEnabled = smooth;
   }
 };

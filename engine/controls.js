@@ -99,8 +99,8 @@ function releaseSticks() {
 /* Which right-hand stick shows is a body class: driving or armed. Called every
    frame, so it only touches the DOM when the answer changes. */
 function syncControls() {
-  const driving = typeof Cars !== 'undefined' && !!Cars.driving;
-  const armed = !driving && typeof Guns !== 'undefined' && Guns.can();
+  const driving = !!Cars.driving;
+  const armed = !driving && Guns.can();
   if (syncControls.was === armed) return;
   syncControls.was = armed;
   document.body.classList.toggle('armed', armed);

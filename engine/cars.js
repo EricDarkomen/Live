@@ -181,7 +181,7 @@ const Cars = {
          follows this and needed no changing. */
       P.x = this.driving.x; P.y = this.driving.y;
       P.moving = Math.abs(this.driving.fwd) > 6;
-      if (typeof zoneCheck === 'function') zoneCheck();
+      zoneCheck();
       const z = World.zoneAt(Math.floor(P.x / TILE), Math.floor(P.y / TILE));
       if (z && this.seen) {
         this.seen.add(z);
@@ -1468,7 +1468,7 @@ const Cars = {
      driver — and the worst it can look like from outside is a car that got
      itself back on the road while you were somewhere else. */
   rejoin(car) {
-    if (typeof Cam !== 'undefined' && Cam.visible && Cam.visible(car.x, car.y)) return false;
+    if (Cam.visible(car.x, car.y)) return false;
     const R = car.route, n = R.length;
     const f = R[car.leg], g = R[(car.leg + 1) % n];
     const dx = g.x - f.x, dy = g.y - f.y, L = Math.hypot(dx, dy) || 1;

@@ -441,8 +441,8 @@ const Guns = {
      right-hand stick is the throttle. */
   can() {
     return G.state === 'play' && this.any()
-      && !(typeof Cars !== 'undefined' && Cars.driving)
-      && !Dialogue.on && !Panels.on && !Arcade.on && !(typeof Combat !== 'undefined' && Combat.E);
+      && !Cars.driving
+      && !Dialogue.on && !Panels.on && !Arcade.on && !Combat.E;
   },
 
   arm(on) {
@@ -731,7 +731,7 @@ const Guns = {
         k = Math.min(m[cycle].length - 1, Math.floor(p * m[cycle].length));
       } else {
         cycle = 'ready';
-        k = (typeof R !== 'undefined' && R.animate) ? Math.floor(R.t / this.READY_S) % m.ready.length : 0;
+        k = R.animate ? Math.floor(R.t / this.READY_S) % m.ready.length : 0;
       }
       t.frame = m[cycle][k];
       t.arm = null;
@@ -743,7 +743,7 @@ const Guns = {
     /* A BRACED TOP HALF IS NOT A FROZEN ONE. One pixel, on the rhythm every
        seated person in the building breathes on, and only while nothing else
        is moving it. */
-    t.lift = (t.grip || this.swingT > 0 || this.kickT > 0 || !(typeof R !== 'undefined' && R.animate))
+    t.lift = (t.grip || this.swingT > 0 || this.kickT > 0 || !R.animate)
       ? 0 : Sprites.breathLift('player');
     const l = this.legs(t.dir);
     P.dir = l.dir; this.back = l.back;
@@ -922,8 +922,8 @@ const Guns = {
       this.swingHit.add(o);
       this.land(this.id(), o, kind, o.x, o.y - 6);
     };
-    if (typeof NPCM !== 'undefined' && NPCM.list) NPCM.list.forEach(n => test(n, 'npc'));
-    if (typeof Peds !== 'undefined') Peds.list().forEach(q => test(q, 'ped'));
+    NPCM.list.forEach(n => test(n, 'npc'));
+    Peds.list().forEach(q => test(q, 'ped'));
   },
 
   /* Where the end of the barrel is, in drawn pixels: the hand, plus the muzzle
@@ -1033,7 +1033,7 @@ const Guns = {
     const d = GUNS[id] || GUNS.dart;
     FX.parts.push(...this.spray(x, y, d.melee ? 4 : 3, d.melee ? '#ffe27a' : d.shot.body));
     if (d.melee) Sfx.bonk(); 
-    if (typeof FX !== 'undefined') FX.burst(who.x, who.y - 18, d.e, 3, d.melee ? '#ffd166' : d.shot.body);
+    FX.burst(who.x, who.y - 18, d.e, 3, d.melee ? '#ffd166' : d.shot.body);
     /* They turn to look at whoever did it, upper body first, feet later, which
        is the same twist the player is using to aim and the reason it lives in
        one place. */
@@ -1044,11 +1044,11 @@ const Guns = {
     }
     who.stunTimer = Math.max(who.stunTimer || 0, 0.9);
     if (who.sayT <= 0) { who.say = pick(this.NPC_LINES[id] || this.NPC_LINES.dart); who.sayT = 3.2; }
-    if (typeof Faces !== 'undefined') Faces.flash(who.id, id === 'band' || id === 'pack' ? 'anger' : 'shock', 1.6);
+    Faces.flash(who.id, id === 'band' || id === 'pack' ? 'anger' : 'shock', 1.6);
     /* Every hit, not only the first: the grudge below is once a shift, but how
        their afternoon is going is not — and Kai, for one, is having a great
        time. See `soaked` in data/minds.js. */
-    if (typeof Mind !== 'undefined') Mind.event(who.id, 'soaked');
+    Mind.event(who.id, 'soaked');
     /* It costs you something, once per person per shift. A second dart at the
        same person is the same joke and should not be a second grudge — and
        forty darts at Marjorie should not put her below anything a conversation

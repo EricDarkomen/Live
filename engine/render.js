@@ -1667,7 +1667,7 @@ const R = {
      to ask before it draws, and two spellings of the same question is how one
      of them ends up answering something slightly different. */
   carSheet(S) {
-    return typeof Tiles !== 'undefined' && !!S.sprite && Tiles.has(S.sprite)
+    return !!S.sprite && Tiles.has(S.sprite)
       && !!Tiles.rects[S.sprite] && !!Tiles.imgFor(S.sprite);
   },
   carSprite(c, d, S, wet) {
@@ -1823,7 +1823,7 @@ const R = {
        has something round it at eight o'clock and nothing round it at two in
        the afternoon. Signals glow a little in daylight too, because they are
        the only thing on a street bright enough to. */
-    const night = (typeof Sky !== 'undefined') ? clamp(-Sky.sunPos() * 1.6 + .55, .22, 1) : .5;
+    const night = clamp(-Sky.sunPos() * 1.6 + .55, .22, 1);
     c.save();
     c.globalCompositeOperation = 'lighter';
     lamps.forEach(([k, lit], i) => {
@@ -1914,7 +1914,7 @@ const R = {
        further down would be ninety-two shadows a frame for as long as the
        sheet took to arrive. */
     if (!this.carSheet(S)) return null;
-    const wet = Math.round((((typeof Sky !== 'undefined' && Sky.wet()) || 0)) * 4) / 4;
+    const wet = Math.round(Sky.wet() * 4) / 4;
     const key = d.len + ':' + d.wid + ':' + (d.shape || 'car') + ':' + d.body
       + (d.sign ? 'S' : '') + ':' + wet;
     this._cars = this._cars || new Map();
@@ -3487,7 +3487,7 @@ const R = {
        over the head when a need is running out, a mood is at the bottom, or
        they are inspired. Opposite shoulder to the quest mark so both fit, and
        not while they are speaking — the bubble is already saying it. */
-    else if (!this.cinema && !(n.sayT > 0) && typeof Mind !== 'undefined') {
+    else if (!this.cinema && !(n.sayT > 0)) {
       const ic = Mind.icon(n);
       if (ic) {
         const ix = at.x + 14, iy = box.y - 2 + (this.animate ? Math.sin(n.bob * .8) * 1.5 : 0);
@@ -3848,7 +3848,7 @@ const R = {
         c.fillStyle = 'rgba(120,128,140,.9)';
         c.fillRect(x0 + w + 2, h * .04, 1.6, 1.6);
         /* And the light over the top, showing where the car is. */
-        const floor = (typeof Lifts !== 'undefined' && Lifts.at()) || '';
+        const floor = Lifts.at() || '';
         c.fillStyle = '#0d1016';
         c.fillRect(x0 + w * .18, y0 - 6, w * .64, 4.6);
         if (floor) {
@@ -3931,7 +3931,7 @@ const R = {
     return clamp(Math.pow(2, Math.ceil(Math.log2(d))), 1 / 16, 4);
   },
   ground(x0, y0, x1, y1) {
-    if (this.noGroundCache || !World._solid || typeof document === 'undefined') return false;
+    if (this.noGroundCache || !World._solid) return false;
     const S = this.groundScale();
     const key = S + '|' + Sky.season() + '|' + (Tiles.gen || 0);
     let G = this._ground;

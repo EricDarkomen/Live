@@ -324,7 +324,7 @@ const NPCM = {
     this.drill = null; this.lastEvent = null;
     /* A new roster is new people standing in new places. What they feel is in
        G.minds and survives; what they were about to do about it does not. */
-    if (typeof Mind !== 'undefined') Mind.reset();
+    Mind.reset();
     this.all = NPCS.map(def => {
       const t = this.traits(def);
       return {
@@ -402,7 +402,6 @@ const NPCM = {
      front of somebody who has just pressed Load is not an empty building, it is
      a bug they are watching happen. */
   homeSnap() {
-    if (typeof Sky === 'undefined') return;
     const after = !Sky.staffed();
     this._wasAfter = after;
     /* Far enough in the past that nobody is waiting on the stagger: the stagger
@@ -639,7 +638,7 @@ const NPCM = {
        everything: a coffee is cut short to open the bar on time, and a
        bartender about to faint does not finish carrying the glasses first.
        The mind knows the priorities — see THE AGENDA in engine/mind.js. */
-    if (e && typeof Mind !== 'undefined' && Mind.preempt(n, e)) n.errand = null;
+    if (e && Mind.preempt(n, e)) n.errand = null;
     else if (e) {
       /* Still on the way. The timetable can say what it likes. */
       if (!e.arrived && this.now - e.began < 90) return this.aim(n, e.wp);
@@ -651,21 +650,19 @@ const NPCM = {
       n.errand = null;
       /* Given up on without getting there is a step skipped, not a step done:
          nobody gets better at surfing by failing to reach the sea. */
-      if (e.mind && typeof Mind !== 'undefined') Mind.done(n, !e.arrived);
+      if (e.mind) Mind.done(n, !e.arrived);
     }
     /* THE DAY SAYS "YOUR OWN SPOT", which is most of the day — and so the
        mind gets a say. Asked here, after the errand above has had its chance
        to finish, so an errand the mind made and has just been ended is not
        immediately made again. See engine/mind.js. */
     let minded = false;
-    if (typeof Mind !== 'undefined') {
-      /* Asked whatever the timetable says, because a duty or an emergency
-         outranks a timetabled break; Mind.want() declines anything that does
-         not. 'desk' is a real answer — a step behind their own counter. */
-      const w = Mind.want(n, want);
-      if (w === 'desk') want = 'desk';
-      else if (w && WP[w]) { want = w; minded = true; }
-    }
+    /* Asked whatever the timetable says, because a duty or an emergency
+       outranks a timetabled break; Mind.want() declines anything that does
+       not. 'desk' is a real answer — a step behind their own counter. */
+    const w = Mind.want(n, want);
+    if (w === 'desk') want = 'desk';
+    else if (w && WP[w]) { want = w; minded = true; }
     if (want !== 'desk' && WP[want]) {
       /* Not the instant the clock says so. Nobody stands up mid-sentence
          because it has become half past: they finish the thing they are doing
@@ -964,7 +961,7 @@ const NPCM = {
        { evacuate: true }    the fire drill: out to the level one door away
                              with an `assemblyPoint` object standing on it
      Nothing in it can fail: a waypoint that is not in WP is ignored. */
-  get REACT() { const o = {}; (typeof EVENTS !== 'undefined' ? EVENTS : []).forEach(e => { if (e.crowd) o[e.id] = e.crowd; }); return o; },
+  get REACT() { const o = {}; EVENTS.forEach(e => { if (e.crowd) o[e.id] = e.crowd; }); return o; },
 
   watchFloor() {
     const ev = G.activeEvent;
@@ -1248,7 +1245,7 @@ const NPCM = {
   offDuty(n) {
     if (this.stays(n)) return false;
     const h = n.def.hours;
-    if (!h) return typeof Sky === 'undefined' ? false : !Sky.staffed();
+    if (!h) return !Sky.staffed();
     const m = Sky.m();
     return h[0] <= h[1] ? (m < h[0] || m >= h[1]) : (m < h[0] && m >= h[1]);
   },
@@ -1273,7 +1270,6 @@ const NPCM = {
     /* An evacuation outranks the end of a shift, and they can overlap: the
        alarm can go at ten to five. Whoever is in a drill is in a drill. */
     if (this.drill) return;
-    if (typeof Sky === 'undefined') return;
     /* When the tide turned, in real SECONDS. It has to be real seconds and not
        game minutes for the same reason the drill's clock is: what this is
        pacing is people walking across an office, and walking happens in real
@@ -1320,7 +1316,7 @@ const NPCM = {
        level test it says yes to somebody standing at the same coordinates two
        floors up. */
     const onScreen = n => n.level === World.level
-      && typeof Cam !== 'undefined' && Cam.visible && Cam.visible(n.x, n.y);
+      && Cam.visible(n.x, n.y);
     let moved = false;
     for (const n of this.all) {
       if (this.stays(n)) continue;
@@ -1427,7 +1423,7 @@ const NPCM = {
              ninety seconds is a person who caught it, and nobody was ever
              going to be told otherwise. */
           if (arrived && h.bus && onScreen(n)) {
-            if (typeof Cars !== 'undefined' && Cars.stoppedAt(at[0], at[1])) gone();
+            if (Cars.stoppedAt(at[0], at[1])) gone();
             continue;
           }
           if (arrived || (this.now > n.homeward + 20 && !onScreen(n)) || this.now > n.homeward + 60) gone();
@@ -1577,7 +1573,7 @@ const NPCM = {
   },
   errandFor(n) {
     if (!n.def.out) return null;
-    const m = typeof Sky !== 'undefined' ? Sky.m() : 0;
+    const m = Sky.m();
     /* Written the obvious way round and read the wrapping way, so a window
        that crosses midnight — a kebab shop, which is most of what a kebab shop
        is — needs no second entry. First match rather than best: two windows
@@ -1604,7 +1600,7 @@ const NPCM = {
     /* And what kind of day they are having, in their own words, when it is a
        day worth mentioning — see Mind.think(), which decides it a few times a
        minute rather than on every line. */
-    return (typeof Mind !== 'undefined' && Mind.lines(n)) || n.def.lines;
+    return Mind.lines(n) || n.def.lines;
   },
   /* THE WAY OUT OF A ROOM THAT IS NOT THE OFFICE: the square in front of its
      own door, and the square of pavement on the other side of it. Both are
@@ -1664,7 +1660,6 @@ const NPCM = {
   },
   runErrands() {
     if (this.drill) return;
-    if (typeof Sky === 'undefined') return;
     /* Cheap first, as runHome() does: nothing to do on almost every frame.
        Somebody needs moving if a window is open and they are not standing in
        it, or no window is open and they are still standing in one. `away` is
@@ -1700,7 +1695,7 @@ const NPCM = {
     const talkingTo = (Dialogue.on && Dialogue.npc && Dialogue.npc.id) || null;
     const reached = (n, t) => Math.hypot((t[0] + .5) * TILE - n.x, (t[1] + .5) * TILE - n.y) < TILE * 1.4;
     const onScreen = n => n.level === World.level
-      && typeof Cam !== 'undefined' && Cam.visible && Cam.visible(n.x, n.y);
+      && Cam.visible(n.x, n.y);
     let moved = false;
     for (const n of this.all) {
       if (!n.def.out) continue;
@@ -1988,7 +1983,7 @@ const NPCM = {
     /* After everything with a claim on where somebody is, and before the walk
        that reads what the mind decided. */
     this.grid();
-    if (typeof Mind !== 'undefined') Mind.update(dt);
+    Mind.update(dt);
     /* Where everybody who is standing still is standing, once per frame, as
        tile keys. The walk below prices these up so a knot of people is walked
        round rather than into — and nothing else reads it, so it is rebuilt
@@ -2363,7 +2358,7 @@ const NPCM = {
        arriving in a heap. */
     /* And how they are feeling: somebody exhausted drags their feet, and
        somebody inspired has a spring in them. See Mind.pace(). */
-    let pace = n.speed * (n.callOut ? n.callOut.haste : 1) * (typeof Mind !== 'undefined' ? Mind.pace(n) : 1);
+    let pace = n.speed * (n.callOut ? n.callOut.haste : 1) * Mind.pace(n);
     const eu = Math.hypot(tx - (n.x / TILE - .5), ty - (n.y / TILE - .5));
     if (eu < .9) pace *= clamp(.5 + eu * .55, .5, 1);
     else if (step && this.busyTiles.has(step[0] + ',' + step[1])) pace *= .72;
@@ -2731,13 +2726,13 @@ const NPCM = {
          somebody who has told a colleague about you barely raises their head.
          It is the only place in the game where a relationship is visible
          without opening a panel or saying a word. */
-      const rel = typeof Rel === 'undefined' ? 0 : Rel.get(n.id);
+      const rel = Rel.get(n.id);
       if (d < TILE * (n.t.notice + clamp(rel, -3, 6) * .18)) {
         n.lookAt = P; n.lookT = Math.max(n.lookT, .9 + Math.max(0, rel) * .12);
       }
       /* A phone that has been ringing for a while. Everybody looks at it. This
          is a call centre, so nobody answers it. */
-      else if (n.lookT <= 0 && typeof Phones !== 'undefined' && Phones.ringing && Phones.ringing.length && chance(dt * .3)) {
+      else if (n.lookT <= 0 && Phones.ringing.length && chance(dt * .3)) {
         const ph = Phones.ringing.find(q => q.lvl === n.level
           && Math.hypot((q.x + .5) * TILE - n.x, (q.y + .5) * TILE - n.y) < TILE * 5);
         if (ph) { n.lookAt = { x: (ph.x + .5) * TILE, y: (ph.y + .5) * TILE }; n.lookT = rnd(1, 2.4); }
@@ -2842,7 +2837,7 @@ const NPCM = {
         who.say = pick(said); who.sayT = 3.4;
         /* They have just said something. Not twice. */
         who.nextSay = Math.max(who.nextSay, rnd(18, 45));
-        if (typeof Mind !== 'undefined') Mind.chatLine(who.id);
+        Mind.chatLine(who.id);
       }
       return;
     }
@@ -2851,7 +2846,7 @@ const NPCM = {
     const mine = this.linesFor(n);
     if (!mine || !mine.length) return;
     /* Lonelier people start more conversations. See engine/mind.js. */
-    const lonely = typeof Mind !== 'undefined' && G.minds && G.minds[n.id]
+    const lonely = G.minds && G.minds[n.id]
       ? 1 + (100 - G.minds[n.id].needs.social) / 100 : 1;
     if (!chance(dt * n.t.social * .55 * lonely)) return;
     /* WHO WITH: the one they like best out of whoever is in reach, rather than
@@ -2863,14 +2858,14 @@ const NPCM = {
       if (Math.hypot(x.x - n.x, x.y - n.y) >= TILE * 2.6) continue;
       const lines = this.linesFor(x);
       if (!lines || !lines.length) continue;
-      if (typeof Mind !== 'undefined' && !Mind.canChat(n.id, x.id)) continue;
-      const v = typeof Mind !== 'undefined' ? Mind.chatPull(n.id, x.id) : 0;
+      if (!Mind.canChat(n.id, x.id)) continue;
+      const v = Mind.chatPull(n.id, x.id);
       if (v > pull) { pull = v; o = x; }
     }
     if (!o) return;
     n.chat = { with: o.id, host: true, t: .5, turns: ri(2, 5), lead: true };
     o.chat = { with: n.id, host: false, t: 0, turns: 0, lead: false };
-    if (typeof Mind !== 'undefined') Mind.chatStart(n.id, o.id);
+    Mind.chatStart(n.id, o.id);
     /* Long enough that the same two are not still at it when you come back
        from the loo, and different enough per pair that the room does not fall
        silent all at once. */
@@ -3032,7 +3027,7 @@ const Guide = {
        moment it exists for. Found by the `prog` suite in test/, three weeks
        after the lobby became the arrival floor and the day the suite was run
        again. */
-    if (!door && typeof EXITS !== 'undefined') {
+    if (!door) {
       const ex = EXITS.find(e => (e.vias || []).includes(link.via));
       if (ex) door = World.objects.find(x => x.kind === ex.kind);
     }

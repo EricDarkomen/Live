@@ -37,7 +37,7 @@ const Mind = {
   rts: new Map(),
   reset() { this.rts.clear(); this.lastClock = null; this.acc = 0; },
   clock() { return (G.day || 1) * 1440 + (G.minutes || 0); },
-  persona(id) { return (typeof MINDS !== 'undefined' && MINDS[id]) || this.NOBODY; },
+  persona(id) { return MINDS[id] || this.NOBODY; },
   NOBODY: {},
   WORDS: ['Happy', 'Good', 'Okay', 'Low', 'Miserable'],
   /* Where the mood bands start, best first. */
@@ -73,7 +73,7 @@ const Mind = {
   /* ---- the clock ---- */
   update(dt) {
     this.now += dt;
-    if (!NPCM.all.length || typeof MIND_NEEDS === 'undefined') return;
+    if (!NPCM.all.length) return;
     const c = this.clock();
     /* A clock that went backwards or leapt — a load, a new game, a night
        skipped — is not twelve hours of thirst. It is a fresh start from here. */
@@ -98,7 +98,7 @@ const Mind = {
        how people are doing that only knew how they were doing when you opened
        it would be a photograph. Once a second is often enough to watch a bar
        fill up. */
-    if (typeof Panels !== 'undefined' && Panels.on && Panels.tab === 'people') {
+    if (Panels.on && Panels.tab === 'people') {
       this.panelT = (this.panelT || 0) - dt;
       if (this.panelT <= 0) { this.panelT = 1; Panels.render(); }
     }
@@ -128,13 +128,12 @@ const Mind = {
   /* Their own spot, which at night is somewhere to doze for anybody who never
      goes home — Kai does not stand to attention at his shack until dawn. */
   post(n) {
-    if (typeof Sky === 'undefined') return 'desk';
     const m = Sky.m();
     return (m >= 1380 || m < 420) ? 'home' : 'desk';
   },
   working(n) {
     const p = this.persona(n.id);
-    return p.works !== false && typeof Sky !== 'undefined' && Sky.working();
+    return p.works !== false && Sky.working();
   },
 
   tick(n, real, gm) {
@@ -265,7 +264,6 @@ const Mind = {
   /* THE WORLD, AS IT LANDS ON SOMEBODY: the weather where they are standing,
      the sunset, and who they are standing next to. */
   feel(n, m, here) {
-    if (typeof Sky === 'undefined') return;
     const outdoors = MIND_OUTDOORS.levels.includes(n.level) || (here && MIND_OUTDOORS.spots.includes(n.dest));
     if (outdoors && !n.away) {
       const k = Sky.kind(), sm = Sky.m();
@@ -320,7 +318,7 @@ const Mind = {
     const p = this.persona(id);
     const s = (p.named && p.named[t.k]) || (MIND_THOUGHTS[t.k] || {}).n || t.k;
     const who = t.who && (NPCS.find(x => x.id === t.who) || {}).name;
-    const what = t.who && ((typeof MIND_SKILLS !== 'undefined' && MIND_SKILLS[t.who]) ? MIND_SKILLS[t.who].n.toLowerCase() : t.who);
+    const what = t.who && (MIND_SKILLS[t.who] ? MIND_SKILLS[t.who].n.toLowerCase() : t.who);
     return s.replace('{who}', who || 'somebody').replace('{what}', what || 'it').replace('{you}', (P && P.name) || 'you');
   },
 
@@ -355,7 +353,6 @@ const Mind = {
   /* Would these two talk. A rival is somebody you stand near and resent, not
      somebody you start a conversation with. */
   canChat(a, b) {
-    if (typeof MINDS === 'undefined') return true;
     if (this.opinion(a, b) < -25 || this.opinion(b, a) < -25) return false;
     return true;
   },
@@ -385,7 +382,7 @@ const Mind = {
   /* What you did to somebody. Called from the shared islander moves in
      data/npcs.js, the dialogue box and the water pistol. */
   event(id, key) {
-    if (typeof MIND_NEEDS === 'undefined' || !NPCS.some(x => x.id === id)) return;
+    if (!NPCS.some(x => x.id === id)) return;
     const m = this.of(id), p = this.persona(id);
     if (key === 'talked') {
       m.needs.social = Math.min(100, m.needs.social + 8);
@@ -467,7 +464,7 @@ const Mind = {
   blocked(n) {
     if (NPCM.drill || n.callOut || n.away || n.outward || n.leaving || n.homeward || n.lift) return true;
     if (n.stunTimer > 0 || NPCM.errandFor(n)) return true;
-    if (typeof Dialogue !== 'undefined' && Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return true;
+    if (Dialogue.on && Dialogue.npc && Dialogue.npc.id === n.id) return true;
     return false;
   },
   decide(n, m, p, r, here) {
@@ -574,7 +571,7 @@ const Mind = {
     const far = (x, y) => away ? Math.hypot(x - fx, y - fy) * 1.3 : Nav.steps(fx, fy, x, y, true);
     const pace = Math.max(.5, (n.t && n.t.pace) || 1);
     const left = urgent ? Infinity : this.timeLeft(n, p, m);
-    const toGame = secs => secs * 1000 / (typeof Sky !== 'undefined' && Sky.pace ? Sky.pace() : MS_PER_GAME_MIN);
+    const toGame = secs => secs * 1000 / Sky.pace();
     const passionAt = (p.passion && p.passion.at) || [];
     const others = away ? NPCM.all.filter(o => o !== n && o.level === n.level) : NPCM.list;
     let best = null, bs = working ? .04 : .08, bWhy = why, bRt = null;
@@ -660,7 +657,6 @@ const Mind = {
      schedule" — not the timetable itself, which the engine has always
      followed, but the gap before it, and what will fit in it. */
   timeLeft(n, p, m) {
-    if (typeof Sky === 'undefined') return Infinity;
     const sm = Sky.m(), now = G.minutes + (n.t ? n.t.drift : 0);
     let next = Infinity;
     for (const [t] of n.def.schedule || []) if (t > now) next = Math.min(next, t - now);
@@ -773,7 +769,7 @@ const Mind = {
     if (!skip && s && s.train) for (const k in s.train) this.train(n.id, k, s.train[k]);
     /* A step can DO something — stock the bar, say — and it happens whether
        or not you were there to see it. See NPC_ACTS in data/farm.js. */
-    if (!skip && s && s.act && typeof NPC_ACTS !== 'undefined' && NPC_ACTS[s.act]) {
+    if (!skip && s && s.act && NPC_ACTS[s.act]) {
       try { NPC_ACTS[s.act](n); } catch (e) { console.warn(e); }
     }
     pl.i++;
@@ -838,7 +834,7 @@ const Mind = {
   /* Practice. Talent makes it quicker, a good mood quicker still, and a bad
      one slower: nobody learns much on the worst day of their week. */
   train(id, k, xp) {
-    if (typeof MIND_SKILLS === 'undefined' || !MIND_SKILLS[k] || !(xp > 0)) return;
+    if (!MIND_SKILLS[k] || !(xp > 0)) return;
     const m = this.of(id), p = this.persona(id), sk = this.skills(id);
     const mult = ((p.talent && p.talent[k]) || 1) * (this.inspired(id) ? 1.5 : m.mood < 30 ? .7 : 1);
     const before = this.level(id, k);
@@ -851,7 +847,7 @@ const Mind = {
     this.add(id, 'levelup', k);
     this.log(id, S.e + ' ' + S.n + ' reached ' + L);
     const n = NPCM.get(id);
-    if (n && n.level === World.level && Cam.visible(n.x, n.y) && typeof FX !== 'undefined') {
+    if (n && n.level === World.level && Cam.visible(n.x, n.y)) {
       FX.float(n.x, n.y - 46, S.e + ' ' + S.n + ' ' + L + '!', '#ffd166');
     }
     /* And what it opens up. Told to you only if you know them — the island
@@ -864,7 +860,7 @@ const Mind = {
       /* A routine can mean something to the story when it opens up — Tito
          being good enough to play moves his job along. */
       if (typeof rt.onUnlock === 'function') { try { rt.onUnlock(); } catch (e) { console.warn(e); } }
-      if (G.rel[id] !== undefined && typeof UI !== 'undefined' && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
+      if (G.rel[id] !== undefined && G.state !== 'title') UI.toast(d.face || '✨', d.name + ' has grown: ' + rt.n + '.', 'good');
     }
   },
   /* THE LIFE LOG: the handful of things that have happened to somebody that
@@ -924,11 +920,11 @@ const Mind = {
   },
   EMO: ['😄', '🙂', '😐', '😕', '😣'],
   badge(id) {
-    if (typeof MIND_NEEDS === 'undefined' || !NPCS.some(x => x.id === id)) return '';
+    if (!NPCS.some(x => x.id === id)) return '';
     const m = this.of(id);
     return this.EMO[this.band(m.mood)] + ' ' + this.word(id) + (this.inspired(id) ? ' ✨' : '');
   },
-  spotName(wp) { return (typeof MIND_SPOT_NAMES !== 'undefined' && MIND_SPOT_NAMES[wp]) || wp; },
+  spotName(wp) { return MIND_SPOT_NAMES[wp] || wp; },
   WHY: { energy: 'for a rest', thirst: 'for a drink', fun: 'for some fun', social: 'for some company', passion: '' },
   doing(n) {
     const p = this.persona(n.id), r = this.rts.get(n.id), m = this.of(n.id);

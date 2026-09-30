@@ -48,7 +48,7 @@ const Peds = {
            writing does the rest: the acts out here are all strangers you half
            recognise from the lift, which is what somebody who works in a
            different office in the same building actually is. */
-        sprite: p.sprite || ((typeof NPCS !== 'undefined' && NPCS[0]) || {}).id || 'player',
+        sprite: p.sprite || (NPCS[0] || {}).id || 'player',
         speed: (p.speed || 1.15) * TILE,
         route, leg: 0, wait: 0,
         /* WHICH WAY ROUND THE LOOP. A route is a ring of pavement and this is
