@@ -1,12 +1,7 @@
 /* ============================================================
-   The arcade — the shell around whatever minigame is running.
-   engine/arcade.js owns the canvas; this owns everything round it.
-
-   Its phone rules live HERE rather than in responsive.css, which is
-   otherwise the rule: responsive.css is last so its media queries win, and
-   nothing in it mentions the arcade, so there is nothing here for it to
-   win against. One component, one file — and the day responsive.css does
-   want a say, it still gets the last word.
+   The arcade: the shell around the running minigame (engine/arcade.js owns
+   the canvas). Its phone rules live here, not in responsive.css: one
+   component, one file, and responsive.css still loads later.
    ============================================================ */
 
 /* Above the panel and the call, below the report: a minigame is optional and
@@ -15,13 +10,9 @@
   background:rgba(6,9,14,.92);backdrop-filter:blur(3px);padding:14px}
 #arcade.on{display:flex;animation:fadeIn .2s ease}
 
-/* The height is DECLARED, not left to the content. Every row in here sizes to
-   what is in it and a canvas has nothing in it — so an auto-height column gave
-   the stage whatever was left of nothing, which on a 390x844 phone was a
-   186px-tall game under 300px of chrome. It takes the overlay's height up to a
-   ceiling, and the stage takes what the four fixed rows leave.
-   Against the OVERLAY, not the viewport: under mobile browser chrome a vh is
-   taller than the page you can actually see. */
+/* The height is declared (up to a ceiling, against the overlay not the
+   viewport), so the stage gets what the four fixed rows leave. Auto height
+   gave the canvas almost nothing, since a canvas has no content height. */
 .mg{width:min(560px,100%);height:min(720px,100%);max-height:100%;
   display:flex;flex-direction:column;overflow:hidden}
 
@@ -33,9 +24,8 @@
 .mg-hud span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #mgHudR{color:var(--hold);flex:0 0 auto}
 
-/* The canvas is the game and gets everything left over. `min-height:0` because
-   a flex child will not shrink below its content otherwise, and a canvas that
-   refuses to shrink pushes the pads off the bottom of a phone. */
+/* The canvas takes the rest; `min-height:0` lets it shrink so the pads stay
+   on screen. */
 .mg-stage{position:relative;flex:1 1 auto;min-height:0;background:var(--ink)}
 #mgView{display:block;width:100%;height:100%;touch-action:none}
 
@@ -65,9 +55,8 @@
 
 .mg-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 
-/* The touch half of the key contract. A pad press IS the key press, so a game
-   is written once against key codes and never learns that a thumb exists.
-   Hidden on a fine pointer, where the keyboard is the control. */
+/* The touch half of the key contract: a pad press is the key press. Hidden on
+   a fine pointer. */
 .mg-pads{display:none;gap:6px;padding:8px;border-top:1px solid var(--line);background:rgba(0,0,0,.22)}
 .mg-pads.none{display:none!important}
 .mg-pads button{flex:1 1 0;min-width:0;min-height:52px;
@@ -88,9 +77,8 @@
 .mg-foot .btn{flex:0 0 auto}
 
 /* ---- phones ----
-   Every row above the canvas costs canvas, which is the same arithmetic the
-   call card is built on. The hint line is the first thing to go: it is a
-   restatement of the pads, which are right there under a thumb. */
+   Every row above the canvas costs canvas. The hint line goes first; the pads
+   restate it. */
 @media (max-width:820px),(max-height:520px){
   #arcade{padding:8px}
   .mg{width:100%}
@@ -103,11 +91,8 @@
 }
 /* Landscape spends width to buy height back, exactly as the HUD bar does: the
    card lays out in a row so a 342px-high screen is not all chrome. */
-/* Landscape spends width to buy height back, exactly as the HUD bar does — and
-   here every pixel of chrome is a pixel of playfield. A phone on its side gives
-   the shell about 374px and the four fixed rows were taking 162 of them, which
-   left a four-lane rhythm game a hundred pixels to fall through. Trimmed, they
-   take about a hundred. */
+/* Landscape: the fixed rows trimmed from about 162px to 100 of the ~374
+   available. */
 @media (max-height:460px) and (orientation:landscape){
   #arcade{padding:5px}
   .mg .sign-title{padding:5px 10px;font-size:10px}

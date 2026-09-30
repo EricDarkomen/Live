@@ -1,20 +1,11 @@
 /* ============================================================
-   BUBBLE — the look.
-   Hot, but cute as a bubble: a sunset gradient (hot pink, coral, mango)
-   over frosted plum glass, big soft radii, glossy highlights, warm glows,
-   and motion with a bit of spring in it.
-
-   Loaded LAST, after every other stylesheet, and it only restyles: layout,
-   sizes on a phone and what shows where are still decided by the files
-   before it (responsive.css above all). Pull this one <link> and the game is
-   exactly the game it was. Every animation stands down under
-   prefers-reduced-motion and the game's own Reduced motion setting.
+   BUBBLE: the look. A sunset gradient (pink, coral, mango) over frosted plum
+   glass, big radii, glossy highlights, warm glows, springy motion. Loaded
+   last and only restyles; layout and phone sizing stay with the files before
+   it (responsive.css above all). Animations stand down under reduced motion.
    ============================================================ */
-/* The faces, shipped with the game rather than fetched: it opens off disk
-   and on a phone with no signal, and a font that arrives two seconds late
-   is a whole interface that jumps. Fredoka for anything read at a glance,
-   Nunito for anything read properly. Both variable (every weight in one
-   file), Latin subset, SIL Open Font License 1.1 — see art/fonts/. */
+/* Fonts shipped, not fetched (offline, no layout jump): Fredoka for glances,
+   Nunito for reading. Variable, Latin subset, SIL OFL 1.1 (art/fonts/). */
 @font-face{font-family:"Fredoka";src:url("../art/fonts/fredoka.woff2") format("woff2");
   font-weight:300 700;font-style:normal;font-display:swap}
 @font-face{font-family:"Nunito";src:url("../art/fonts/nunito.woff2") format("woff2");
@@ -193,10 +184,8 @@ body{font-family:var(--ui);background:var(--ink);font-variant-numeric:tabular-nu
 @keyframes promptBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 
 /* ---------- the dock (desktop key hints) ----------
-   Was a wall of twelve labelled buttons wrapping onto two rows and over the
-   message chips. Now one row of round bubbles: an icon, its key in a little
-   badge, and the name as a tooltip. engine/juice.js reads the key and the
-   name off each button's own text, so the markup did not change. */
+   One row of round buttons: icon, key badge, name as tooltip. engine/juice.js
+   reads key and name off each button's text. */
 #keyhints.dock{flex-wrap:nowrap;gap:6px;padding:6px 8px;border-radius:var(--pill);
   background:var(--glass);border:1px solid rgba(255,255,255,.14);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--lift),var(--gloss)}
@@ -351,9 +340,7 @@ body{font-family:var(--ui);background:var(--ink);font-variant-numeric:tabular-nu
 body.calm *,body.calm *::before,body.calm *::after{animation-duration:.001ms!important;animation-iteration-count:1!important}
 
 /* ---------- no more dashed lines ----------
-   The dashed rule was the office's: a form, a ledger, a laminated sign. Every
-   one of them is a soft solid line now, side by side — setting all four
-   sides at once would draw the three that were never there. */
+   Soft solid rules, one side each. */
 .dlg-head,.cb-top,.tabs,.cm-tabs,.cm-mail,.cm-call,.l-hour,.setting,.board-head,
 #cutscene.plain .cut-label,.sign-title,.h2{border-bottom-style:solid!important;border-bottom-color:var(--line-soft)!important}
 .cb-log,.cb-tell,.cm-foot,.tk-list,.board-note{border-top-style:solid!important;border-top-color:var(--line-soft)!important}
@@ -367,11 +354,9 @@ body.calm *,body.calm *::before,body.calm *::after{animation-duration:.001ms!imp
 .cm-row.new::before{background:var(--hot)!important}
 
 /* ---------- phones: glass without the blur ----------
-   A backdrop blur is a second render of whatever is behind it, every frame,
-   and behind the HUD is a map being redrawn sixty times a second. On a phone
-   that is battery and dropped frames for a soft edge, so the always-on pieces
-   are a richer, more opaque glass there instead. The modals keep their blur:
-   the world stops drawing while one is open. */
+   A backdrop blur re-renders the map behind it every frame, so always-on
+   pieces use richer, more opaque glass. Modals keep the blur: the world stops
+   drawing under them. */
 @media (pointer:coarse){
   .hud .card,.alert,.chip,#cmOne,#prompt,#minimapBtn{
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
@@ -480,19 +465,11 @@ canvas.portrait{display:block;image-rendering:pixelated;image-rendering:crisp-ed
   background-size:150px,90px,auto,auto!important}
 
 /* ---------- the guide ----------
-   The job tracker was a card: a header, the objective, a list of every open
-   job with a step under each, parked under the clock over the top-right of
-   the world all shift. It said everything, all the time, which is the same as
-   getting in the way.
-
-   Now it is one line. An arrow that turns to point where you are going, the
-   job's name with a dot for each step (filled, current, still to come), the
-   one thing to do next, and how far away that is. Everything else — the other
-   jobs, switching between them, the full Jobs tab — is one tap on that line
-   away, in a small list that drops out of it and goes again when you tap
-   anywhere else. While you are walking and nothing has changed for a while it
-   fades back to a whisper; a step done or a new job lights it up again
-   (engine/progress.js, Track.point/flash). */
+   The tracker as one line: an arrow to where you are going, the job's name
+   with a dot per step, the next thing to do, and the distance. The other jobs
+   and the Jobs tab are one tap away in a drop-down list. It fades while
+   nothing changes and lights up on progress (Track.point/flash in
+   engine/progress.js). */
 #tracker{width:auto!important;max-width:320px;max-height:none!important;
   display:flex;flex-direction:column;align-items:flex-end}
 #tracker.none .gd-far,#tracker.none .gd-ic{display:none}

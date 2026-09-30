@@ -1,18 +1,12 @@
 /* ============================================================
    The title screen
-
-   A wallboard, a switchboard behind it, and the noticeboard by the lift
-   scrolling along the bottom. Four layers, back to front:
-
-     #titleFx      the switchboard — a canvas, drawn by engine/title.js
-     #titleGrade   the grade over it: scanlines, a vignette, a screen
-     .hero         the lettering, the menu and the live wallboard
-     #titleFoot    the ticker and the small print
-
-   The first two are position:fixed rather than absolute on purpose. .screen
-   scrolls on a short viewport — a phone in landscape — and a backdrop that
-   scrolls with the content is a backdrop that slides off the top of its own
-   screen the moment somebody flicks it.
+   Four layers, back to front:
+     #titleFx     the backdrop: a canvas drawn by engine/title.js
+     #titleGrade  the grade over it
+     .hero        the lettering, the menu and the live board
+     #titleFoot   the ticker and the small print
+   The first two are position:fixed: .screen scrolls on short viewports, and
+   the backdrop must not scroll with it.
    ============================================================ */
 
 #titleScreen{
@@ -22,11 +16,8 @@
     radial-gradient(1100px 620px at 50% 8%,rgba(255,111,145,.10),transparent 62%),
     radial-gradient(900px 700px at 50% 100%,rgba(180,140,255,.06),transparent 70%),
     linear-gradient(180deg,#0f1620,var(--ink) 55%,#080b10);
-  /* Deliberately NOT setting justify-content here. .screen centres, and the
-     short-viewport block in responsive.css switches that to flex-start so a
-     phone in landscape can scroll instead of losing the top of the hero off
-     the top of its own screen. An id beats a class, so repeating the centre
-     here — which is what this rule did first — quietly undid that fix. */
+  /* No justify-content here: responsive.css switches .screen to flex-start on
+     short viewports, and an id selector would override it. */
 }
 #titleFx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 
@@ -88,10 +79,7 @@
 @keyframes ringout{0%,85%{transform:scale(.4);opacity:0}88%{opacity:.55}100%{transform:scale(2.6);opacity:0}}
 
 /* ---------- the lettering ----------
-   Laminated, and printed slightly out of register: a blue plate a couple of
-   pixels one way and an amber one the other. It is the same trick every sign in
-   this building was made with, and it is why the title now reads as an object
-   in the world rather than a heading on a page. */
+   Printed slightly out of register: a blue plate one way, an amber the other. */
 .title-line1{
   font-family:var(--mono);font-size:clamp(30px,7.6vw,68px);font-weight:700;
   letter-spacing:.035em;line-height:.95;color:var(--text);
@@ -211,10 +199,8 @@
 .legal a:hover{color:var(--brand)}
 
 /* ---------- calm ----------
-   Everything above that moves, stopped. The canvas is handled in engine/title.js
-   — it draws one frame and stops ticking, because a stylesheet cannot turn off a
-   loop. What is left is the same screen with the same information on it, which
-   is the test: nothing here is only conveyed by movement. */
+   Everything that moves, stopped. The canvas stops itself (engine/title.js).
+   Nothing is conveyed only by movement. */
 @media (prefers-reduced-motion:reduce){
   .phone-icon,.phone-icon i,.title-line2,.title-rule::after,.hero-live i,.ticker-run{animation:none}
   #titleFlicker{display:none}
@@ -225,8 +211,8 @@ body.calm-title .title-rule::after,body.calm-title .hero-live i,body.calm-title 
 body.calm-title #titleFlicker{display:none}
 
 /* ============================================================
-   Tan Lines — the sunset. The canvas behind is the whole backdrop now, so the
-   CRT grade and the strip-light flicker come off, and the lettering is warm.
+   Tan Lines: the sunset. The canvas is the whole backdrop, so the CRT grade
+   and flicker come off and the lettering is warm.
    ============================================================ */
 #titleScreen{background:#2a1446}
 #titleGrade{background:radial-gradient(120% 90% at 50% 40%,transparent 45%,rgba(20,6,30,.55) 100%);mix-blend-mode:normal;opacity:1}

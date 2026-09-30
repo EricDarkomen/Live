@@ -37,19 +37,14 @@
 .rar.rare{color:var(--brand);border:1px solid var(--brand)}
 .rar.epic{color:var(--hold);border:1px solid var(--hold);box-shadow:0 0 14px -6px var(--hold)}
 /* ---- the map ----
-   The canvas takes whatever is left of the panel after the heading and the
-   legend, and it is the CSS size only: Atlas.panel() sets the pixel size from
-   the screen's own ratio, because a map laid out in CSS pixels and drawn in
-   device pixels is a map with soft edges on every phone there is. `min-height`
-   rather than a ratio — the shape of the map is the shape of the level, and
-   the canvas is the window it is fitted into rather than a frame round it. */
+   The canvas takes what the heading and legend leave; Atlas.panel() sets its
+   pixel size from the device ratio so edges stay crisp. `min-height`, since
+   the map's shape is the level's. */
 .mp-wrap{flex:1;min-height:min(58vh,520px);display:flex}
 #mapCv{flex:1;width:100%;height:100%;border-radius:10px;border:1px solid var(--line);
   background:rgba(8,11,17,.6)}
-/* The legend. One row that wraps, in the same monospace the rest of the HUD
-   labels itself in, and every swatch is the colour the map actually draws —
-   see Atlas.pins(). A legend whose colours are copied by hand is a legend that
-   goes wrong the first time anybody changes one. */
+/* The legend: one wrapping row; swatch colours come from what the map draws
+   (Atlas.pins()). */
 .mp-key{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 2px 0;
   font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--dim)}
 .mp-key span{display:inline-flex;align-items:center;gap:6px}
