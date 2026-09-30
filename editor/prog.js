@@ -1,35 +1,20 @@
 'use strict';
 /* ---------------- What you get for it ----------------
-   The other half of a game: what the player earns, carries, buys and unlocks.
-   Four tables, all in data/items.js except the ranks, and all of them pure
-   data — so unlike a level or a move, every one of these round-trips exactly.
-
-     ITEMS   what you can carry, wear and drink.
-     SHOP    what the vending machine and the Greggs downstairs will sell you.
-     SKILLS  the tree, in branches.
-     ACHS    the achievements.
-
-   Which makes the interesting part the joins, and they are the usual shape —
-   a string in one file that has to exist somewhere else, checked by nobody:
-
-     SHOP.stock[]      names an ITEMS key, and one that has gone is a shelf
-                       with a hole in it
-     ITEMS[].use       names a handler in `Uses`, and a missing one is an item
-                       you drink and nothing happens
-     ITEMS[].slot      has to be a key of P.equipment or the item can never be
-                       worn — there is no slot to put it in
-     ITEMS[].eff       is read key by key in Player.recalc(), which knows six
-                       names and silently ignores everything else
-     ACHS[id]          is handed out by Ach.get(id) somewhere in the writing,
-                       and one nothing hands out is an achievement no player
-                       can ever earn
-     SKILLS[..].list   is read by Sk.rank(id), and a skill nothing reads is
-                       three points the player spends on nothing at all
-
-   The last two are the ones worth having. Both are completely invisible in
-   play: the achievement simply never appears, and the skill quietly does
-   nothing. `Writing` is what can answer them, by reading the source of the acts
-   and the dialogue that are already loaded. */
+   What the player earns, carries, buys and unlocks. Four data tables, mostly
+   in data/items.js, all round-tripping exactly:
+     ITEMS   what you carry, wear and drink
+     SHOP    what the machines and shops sell
+     SKILLS  the tree, in branches
+     ACHS    the achievements
+   The joins, each checked by nobody else:
+     SHOP.stock[]    names an ITEMS key
+     ITEMS[].use     names a `Uses` handler
+     ITEMS[].slot    a key of P.equipment (GAME.slots)
+     ITEMS[].eff     keys Player.recalc() reads; others are ignored
+     ACHS[id]        granted by Ach.get(id) somewhere, or unearnable
+     SKILLS[..]      read by Sk.rank(id) or carrying `eff`, or dead
+   The last two are invisible in play; Writing answers them by reading the
+   loaded source. */
 
 const Prog = {
   KINDS: [
@@ -84,9 +69,7 @@ const Prog = {
     if (!e) return false;
     this.kind = kind; this.id = id;
     this.it = clone(e);
-    /* A shelf written as a getter — Rosie's and Nico's change with the catch —
-       is code, and clone() would freeze it into whatever it returned just now.
-       Carried as its source instead, and written back exactly. */
+    /* A getter shelf (it changes with the catch) is code: carried as source. */
     const src = Prog.stockSrc(e);
     if (src) { delete this.it.stock; this.it.stockSrc = src; }
     this.rebase();
@@ -255,13 +238,8 @@ const ProgCheck = {
     return this;
   },
 
-  /* The FOUR ways an item can reach the player. Two of them cannot be read out
-     of the writing at all, because both hand the item over by VARIABLE — a
-     quest reward is `Item.give(q.rw.item)` and an arcade cabinet is
-     `Item.give(this.cab.item)`. Both tables have to be asked directly, which
-     is the same rule and the same reason: a call built out of a variable is
-     invisible to a regular expression over source, and a table that grants
-     things is a root whether or not anybody remembered to say so. */
+  /* The ways an item reaches the player. Quest rewards and cabinets hand over by
+     variable, invisible to a regex, so those tables are asked directly. */
   reachable(id) {
     const stocked = Object.keys(SHOP).some(s => Prog.shelf(SHOP[s]).indexOf(id) >= 0);
     if (stocked) return true;
@@ -274,10 +252,7 @@ const ProgCheck = {
     /* Starting kit and anything the engine hands over by name. */
     return this.engineReads(id);
   },
-  /* A minigame's cabinet hands its item over on the first win. Read off the
-     EDITOR's copy where there is one, so an item you have just wired to a game
-     stops being reported the moment you wire it — same rule every other check
-     here follows about the open subject. */
+  /* A cabinet's item on first win, from the editor's copy where open. */
   cabinetGives(id) {
     const live = typeof Games !== 'undefined' && Games.id && Games.cabs
       ? Games.table().filter(c => c.game !== Games.id).concat(Games.cabs)
@@ -285,11 +260,8 @@ const ProgCheck = {
     return live.some(c => c && c.item === id);
   },
 
-  /* The island's production tables, which hand over by variable too —
-     `Item.give(r.out)` — and so are roots for the same reason QUESTS and the
-     cabinets are: a harvest from CROPS, what a node on the beach or in the
-     rock gives, and whatever the blender, bench, kiln, oven and drying rack
-     make. Read fresh each time: they are the game's, and cheap. */
+  /* Production tables (CROPS, nodes, crafting stations) also give by variable:
+     roots, read fresh. */
   tableGives() {
     const out = new Set();
     const outs = list => (Array.isArray(list) ? list : []).forEach(r => { if (r && r.out) out.add(r.out); });
@@ -352,11 +324,8 @@ const ProgCheck = {
         fault('error', '`use: ' + Emit.str(e.use) + '` has no handler in `Uses`, so drinking or '
           + 'eating this does nothing at all.', { field: 'use' });
       }
-      /* Can anything actually put this in your hands? Three ways in, and the
-         third is why the first version of this check cried wolf on six items
-         that were perfectly reachable: a quest reward is handed over by
-         `Item.give(q.rw.item)`, which is a call built out of a VARIABLE and so
-         invisible to Writing's regex. The table has to be asked directly. */
+      /* Can anything put this in your hands? Tables that give by variable are asked
+         directly. */
       if (!this.reachable(id)) {
         fault('warn', 'Nothing can put this in your hands: no shop stocks it, no line of writing '
           + 'calls Item.give(' + Emit.str(id) + '), it is not a job’s reward, and no arcade '
@@ -421,10 +390,8 @@ const ProgCheck = {
     return out;
   },
 
-  /* AN ACHIEVEMENT GRANTED BY A TABLE rather than a call: a BOSSES row's `ach`,
-     a level's `drives`, an item's declarative `use.ach`. Data the engine reads,
-     so a regular expression over source cannot see it — asked directly, the
-     same way a quest reward is. */
+  /* Achievements granted by tables (a BOSSES `ach`, a level's `drives`, an
+     item's `use.ach`), asked directly. */
   declaredGrant(id) {
     const B = typeof BOSSES !== 'undefined' ? BOSSES : {};
     if (Object.values(B).some(b => b && b.ach === id)) return true;
@@ -434,18 +401,11 @@ const ProgCheck = {
     return Object.values(I).some(it => it && it.use && typeof it.use === 'object' && it.use.ach === id);
   },
 
-  /* The engine grants a good deal of this itself — a shift survived, a call
-     resolved well, a rank reached — and those call sites are not among
-     `Writing`'s roots because they are not writing. Same method, different
-     roots: read the source of what is already loaded. DECLARED rather than
-     crawled, for the reason Writing gives — there is no way to enumerate the
-     global lexical scope a classic script writes into, so a list is the honest
-     way to say what has been looked at. */
+  /* The engine grants some itself; its call sites are roots too. Declared,
+     since the global lexical scope cannot be enumerated. */
   engineRoots() {
-    /* Everything in engine/ that hands something out or reads a rank. Getting
-       this list short is how three achievements came back as unearnable when
-       they are granted from office.js and input.js — so it is deliberately the
-       whole surface rather than the parts that seemed likely. */
+    /* Everything in engine/ that grants something or reads a rank: the whole
+       surface, not the likely parts. */
     return [
       typeof Combat !== 'undefined' && Combat,
       typeof Player !== 'undefined' && Player,
@@ -473,24 +433,15 @@ const ProgCheck = {
       typeof Chat !== 'undefined' && Chat,
       typeof Mail !== 'undefined' && Mail,
       typeof Arcade !== 'undefined' && Arcade,
-      /* The street, which hands out five of these on its own: four for driving
-         and one for hitting five colleagues with something out of the box.
-         Missing here, all five read as unearnable — the same blind spot MOVES
-         and the minigames were, one file further out. */
+      /* The street grants driving and weapon achievements. */
       typeof Cars !== 'undefined' && Cars,
       typeof Guns !== 'undefined' && Guns,
     ].filter(Boolean).concat(
-      /* The minigames themselves. Each names its achievement literally inside
-         its own reward(), so this is the only list that has to know they exist
-         — and it asks the host for it rather than repeating it. */
+      /* Each minigame names its achievement in its own reward(); asked of the host. */
       (typeof Arcade !== 'undefined' && Arcade.catalogue ? (Arcade.catalogue() || []) : []).filter(Boolean)
     );
   },
-  /* Top-level FUNCTIONS, which no amount of enumerating object methods will
-     ever reach: `a_allthree` is granted inside zoneCheck(), and until this
-     list existed the reward editor called it unearnable. Declared, like every
-     other root here, because the global lexical scope a classic script writes
-     into cannot be enumerated at all. */
+  /* Top-level functions (zoneCheck() grants `a_allthree`), declared. */
   engineFns() {
     return [
       typeof movePlayer !== 'undefined' && movePlayer,
@@ -514,12 +465,7 @@ const ProgCheck = {
     return this._eng.indexOf("'" + id + "'") >= 0 || this._eng.indexOf('"' + id + '"') >= 0;
   },
 
-  /* The OTHER way a skill is read, and the one a regular expression over
-     source can never see: a move carries `need: 'blame'`, which is a STRING on
-     a table rather than a call in a function, and Writing's index only holds
-     functions. So the table is asked directly — the same rule, and the same
-     reason, as the quest and cabinet tables in reachable() above. Without it
-     two skills that unlock two moves read as dead. */
+  /* A move's `need:` is a skill read from a table, not a call: asked directly. */
   gatesAMove(id) {
     return typeof MOVES !== 'undefined' && Array.isArray(MOVES)
       && MOVES.some(m => m && m.need === id);

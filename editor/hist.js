@@ -1,23 +1,13 @@
 'use strict';
-/* ---------------- What every document here shares ----------------
-   Three mixins now. All of them exist for the same reason: this page edits ten
-   things — a level, a job, a person's dialogue, a kind of object, a kind of
-   room, the day, the rewards, the calls, a sheet of art, a minigame — and the
-   shell asks all ten the same questions, so the answers are written once and
-   mixed in rather than copied ten times and left to drift.
+/* ---------------- What every document shares ----------------
+   Three mixins, so the shell's questions are answered once for all ten
+   documents.
 
    ---- Undo ----
-   All ten want the same undo: snapshot the whole document before each edit,
-   because a few hundred objects (or forty nodes) is small enough that copying
-   the lot per edit is cheaper to reason about than a journal of reversible
-   operations, and cannot drift out of step with one.
-
-   So it is written once and mixed in. A document supplies three things and gets
-   the rest: `state()` (everything it is, as plain data), `restore(s)` (put that
-   back) and `rebuild()` (make the preview and the checks current again).
-
-   Mixed in rather than wrapped, so `Doc.undo()` is still `Doc.undo()` — the
-   suite calls it by that name and so does every tool. */
+   Snapshot the whole document before each edit: small enough to copy, and
+   cannot drift like a journal of operations. A document supplies `state()`,
+   `restore(s)` and `rebuild()`; the rest is mixed in, so `Doc.undo()` stays
+   `Doc.undo()`. */
 
 const HIST = {
   /* Bounded: an unbounded undo stack on a document this size is a slow leak
@@ -54,40 +44,24 @@ const HIST = {
     this.base = this.state();
     this.undoStack = []; this.redoStack = [];
   },
-  /* No base means nothing has been loaded into this document — which is the
-     art importer's whole life until somebody brings a sheet in. That is not
-     "changed": `state()` is `{}` and `base` is null, and comparing the two said
-     the empty importer had unexported work in it for as long as the page was
-     open. */
+  /* No base means nothing loaded (the art importer until a sheet comes in),
+     which is not "changed". */
   changed() {
     return this.base !== null && this.base !== undefined
       && JSON.stringify(this.state()) !== JSON.stringify(this.base);
   },
 
   /* ---- the bench ----
-     A document holds ONE subject at a time — the job you are editing, the
-     person, the level — because that is what the panel inspects and what undo
-     is about. That used to mean the subject you had edited was a dead end:
-     the only way to look at another job was "Discard and leave", so you could
-     not sketch a job, go and add the person who gives it, and come back. With
-     ten documents and three hundred and fifty subjects between them, that is
-     not a creative process, it is a queue of one.
-
-     So leaving a subject KEEPS it. `stash()` puts the working copy on the
-     bench with its own undo stack; `resume()` takes it back off when you
-     return, and rebases against the FILE's version rather than the working
-     one, so "changed" still means "not exported yet" rather than "not touched
-     since I came back". Nothing is written to disk by any of this — the bench
-     is this tab's memory until something writes it out, which is exactly why
-     what is on it has to be visible: see Project, and `settle()` below. */
+     A document holds one subject at a time. Leaving one keeps it: `stash()`
+     puts the working copy on the bench with its undo stack, `resume()` takes it
+     back and rebases on the file's version, so "changed" means "not exported".
+     Nothing is written to disk; Project shows what is on the bench. */
   bench: null,
   /* Prog, Calls and Office key themselves by `kind:id`; everything else by a
      bare id. One question, asked in one place. */
   subjectKey() { return this.key ? this.key() : this.id; },
 
-  /* Call BEFORE load() moves off the current subject. An unedited one is taken
-     back off the bench rather than left on it, or reverting something and
-     walking away would put the edits back next time you looked. */
+  /* Before load() leaves the subject. Unedited ones come off the bench. */
   stash() {
     const k = this.subjectKey();
     if (k === null || k === undefined) return;
@@ -98,16 +72,8 @@ const HIST = {
       delete this.bench[k];
     }
   },
-  /* Call AFTER load() has read the file's version and rebased on it.
-
-     Two documents — the objects and the rooms — write their working copy back
-     into the live table, because the preview is built from FURN and ZONES and
-     there is nowhere else for the builder to read it from. So `load()` rebases
-     them against a table they had already written, and `changed()` read false
-     the moment you looked away and back: the edit was still there, still not
-     in any file, and the bench quietly dropped it the next time you left. They
-     supply `pristineState()` — the FILE's version — and that is what "changed"
-     is measured against. */
+  /* After load(). Objects and rooms write into the live FURN and ZONES, so they
+     supply `pristineState()` (the file's version) to measure against. */
   resume() {
     if (this.pristineState) {
       const p = this.pristineState();
@@ -133,34 +99,19 @@ const HIST = {
     if (this.bench) delete this.bench[k];
   },
   /* ---- when the files catch up ----
-     The mirror image of `resume()`. Everything above is written on the
-     assumption that data/ never moves — the export was the only way out, so a
-     document could only ever be ahead of the files. Sync writes them, which
-     makes "ahead" a thing that stops being true, and nothing here could say so:
-     the bench would still hold working copies of what had just been saved, and
-     the next `stash()` would put them back as unexported work.
-
-     So this is the other end of it. Every bench is empty because its contents
-     are in the files now, and `base` is the version just written — which for
-     the two documents that write back into a live table (FURN, ZONES) means
-     re-taking the snapshot they measure "the file's version" against, or they
-     would report the save itself as an unsaved edit for ever. */
+     Sync writes the files, so every bench empties and `base` becomes what was
+     written. FURN and ZONES documents re-take their file snapshot, or the save
+     itself would read as an edit. */
   settle() {
     this.bench = {};
     if (this.keep) { this.pristine = null; this.keep(); }
     const p = this.pristineState ? this.pristineState() : null;
     this.base = p || clone(this.state());
-    /* The undo stack is deliberately left alone. Saving is not a reason to
-       lose the afternoon's history, and an undo past a save is honest: it
-       makes the document differ from the files again, which is exactly what
-       has happened and exactly what `changed()` should then say. */
+    /* The undo stack is kept: undoing past a save makes the document differ
+       again, which is true. */
   },
-  /* Some of what this document had is in the files now and the rest is not,
-     which settle() cannot say — it empties the bench. Given the subjects that
-     actually landed, forget those and leave every other one exactly where it
-     was. Used by the two documents written a subject at a time (a level, a
-     minigame); the eight whose table goes in whole have nothing partial to
-     say and still settle(). */
+  /* Settle only the subjects that landed; for documents written a subject at
+     a time (a level, a minigame). */
   settleSome(keys) {
     if (!keys || !keys.length) return;
     if (this.bench) keys.forEach(k => { delete this.bench[k]; });
@@ -180,15 +131,9 @@ const HIST = {
 };
 
 /* ---- Counting what is wrong ----
-   Each document has a checker beside it, and the shell asks every one of them
-   the same three questions: how bad is it (the badge on the Check tab), how
-   many faults has one subject got, and which is the worst of them (the dot
-   beside a name in a list). A checker supplies `faults` — the open subject's —
-   and, where it has a list of subjects to badge, `per`: a Map of subject id to
-   that subject's faults.
-
-   Written here rather than ten times over because ten copies of a one-line
-   filter is exactly how one of them ends up counting something else. */
+   The shell asks every checker: how bad (the Check badge), how many faults a
+   subject has, and the worst (a list dot). A checker supplies `faults` for
+   the open subject and, where it badges a list, `per`: subject id to faults. */
 const FAULTS = {
   errors() { return this.faults.filter(f => f.level === 'error').length; },
   countFor(id) { return (this.per.get(id) || []).length; },
@@ -199,19 +144,13 @@ const FAULTS = {
   }
 };
 
-/* Structured clone by hand: every document here is JSON-shaped by construction,
-   and this works on every browser without asking whether structuredClone
-   exists. Lives with the history because the history is what needs it. */
+/* A JSON clone: every document is JSON-shaped. */
 function clone(v) {
   return v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 }
 
-/* The same copy for a value that may have CODE in it — a person's `onGift()`,
-   the `if:` on one of their extra replies. clone() cannot take those: a bare
-   function is `undefined` to JSON and throws, and one inside an object simply
-   vanishes, which is worse. So each function becomes `{ __src }`, its source,
-   which is JSON like everything else in a document and which Emit.prop() writes
-   back as the code it was. */
+/* The same for values holding code (`onGift()`, an `if:`): each function
+   becomes `{ __src }`, written back by Emit.prop() as code. */
 function capture(v) {
   if (typeof v === 'function') return { __src: String(v) };
   if (Array.isArray(v)) return v.map(capture);

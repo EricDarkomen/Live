@@ -1,36 +1,19 @@
 'use strict';
 /* ---------------- The whole game ----------------
-   Nine documents, three hundred and fifty subjects, and every check in this
-   tool scoped to the one subject in front of you. So the two questions anybody
-   actually has — what have I changed, and what is broken — could only be
-   answered by visiting ten modes and, in several of them, seventy subjects one
-   at a time. The tool knew all of it and never once added it up.
-
-   This is the adding up. It is not a tenth document: it has no subject, no undo
-   and no export, and every row in it is a way somewhere else. Two lists:
-
-     THE BENCH   every subject with work on it that is not in a file yet, and
-                 which file each one belongs in. Nothing here autosaves, so
-                 this is the whole of what closing the tab would cost — and
-                 it is what the save button writes.
-     THE FAULTS  every checker's whole table at once, errors before warnings,
-                 each one a jump to the mode and subject that owns it.
-
-   It is taken on demand rather than kept current. A sweep is ~30ms, which is
-   nothing to press a button for and far too much to do on every keystroke. */
+   Every check is scoped to the open subject; this adds them up. Not a
+   document: no subject, undo or export, and every row goes somewhere.
+     The bench   every subject with work not yet in a file, and its file.
+                 This is what closing the tab would cost, and what Save writes.
+     The faults  every checker's whole table, errors first, each a jump to the
+                 mode and subject that owns it.
+   Taken on demand: a sweep is ~30ms. */
 
 const Project = {
   /* ---- borrowing a document ----
-     Seven of the ten checkers already hold a `per` map covering their whole
-     table, because their subjects are small and cheap to check. The level and
-     dialogue checkers only ever know the open subject — a level has to be BUILT
-     to be checked, and a conversation walked — so the only way to ask them
-     about the rest is to load each one in turn and hand the document back
-     afterwards exactly as it was.
-
-     The same call Levels.build() makes about borrowing World. Get it wrong and
-     the sweep leaves you standing on a different level with somebody else's
-     undo stack, which is a far worse bug than the one it is reporting. */
+     Most checkers keep a `per` map of their whole table. Levels and dialogue
+     only know the open subject (a level must be built, a conversation walked),
+     so each subject is loaded in turn and the document handed back exactly as
+     it was, as Levels.build() does with World. */
   sweep(doc, ids, run, collect) {
     const keep = {
       key: doc.subjectKey(), s: doc.state(), base: doc.base,
@@ -129,10 +112,7 @@ const Project = {
   },
 
   /* ---- going to one ----
-     A fault row is only worth having if it is a way to the thing. Every one of
-     them names a mode and a subject, so this is the same two calls every time
-     — and it lands on the tab the row is about, because arriving at a fault
-     with the Inspect tab open is arriving one tap short. */
+     Every fault names a mode and subject; land on the tab it is about. */
   goTo(mode, key, tab) {
     Ask.close();
     this.mark();
@@ -146,11 +126,7 @@ const Project = {
   },
 
   /* ---- and back again ----
-     A jump across documents used to be one-way: you pressed a fault, arrived
-     somewhere else entirely, and finding your way back was the picker and a
-     memory. One step is enough — this is a jump, not a browser — and it is
-     announced on arrival, because a shortcut nobody is told about is a
-     shortcut nobody has. */
+     One step back, announced on arrival. */
   from: null,
   mark() {
     this.from = { mode: Mode.id, key: Mode.current(), tab: Side.tab,
@@ -167,12 +143,8 @@ const Project = {
   },
 
   /* ---- the sheet ----
-     Three things about the whole game, and a box at the top that turns it into
-     the fourth. Empty, it is the state of the place: what is on the bench and
-     what every check found. Typed into, it is find-in-project — which is the
-     one thing every comparable tool has and this had ten separate copies of,
-     each filtering its own list and none of them able to answer "where does
-     anybody mention the kettle". */
+     Empty, the state of the project: bench and faults. Typed into, a search
+     across all ten documents. */
   show(seed) {
     Find.q = seed === undefined ? '' : seed;
     Find.rows = null;
@@ -230,20 +202,8 @@ const Project = {
   },
 
   /* ---- the level graph ----
-     Which levels there are and how you get between them. `links` is a table per
-     level and `route()` walks it, but nothing has ever DRAWN it — so "is there
-     a way to the car park" was three Level tabs and a memory. An outline rather
-     than a node graph, for the same reason the dialogue flow is one: a graph
-     wants a canvas and a layout pass, and the nesting is the fact.
-
-     The fact worth having is at the bottom of it: a level nothing links to is
-     a level nobody can reach, and no per-level check can see that — each one
-     only knows its own way out. */
-  /* Which levels nothing leads to. No per-level check can see this — each one
-     only knows its own way out — so it is the one fault in the building that
-     had to wait for something that looks at every level at once. A level you
-     have just made is the usual answer, and it stays an answer until you give
-     it a door. */
+     Levels and their links, as an outline (route() walks the same table). */
+  /* Levels nothing leads to: no per-level check can see this. */
   linksOf(id) { return (id === Doc.id ? Doc.links : (LEVELS[id] || {}).links) || []; },
   hub() {
     const ids = Levels.ids();
@@ -288,9 +248,8 @@ const Project = {
         : '');
   },
 
-  /* What you have edited and not yet pasted anywhere, grouped by the file it
-     goes into rather than by the document — because pasting is done a file at
-     a time, and two documents share data/items.js and two more data/world.js. */
+  /* Unexported edits grouped by destination file, since several documents
+     share one. */
   bench() {
     const rows = Mode.changes();
     if (!rows.length) {
@@ -327,9 +286,7 @@ const Project = {
           + 'phone is the only way there is. It asks for a fine-grained token once.') + '</div>'
       + Object.keys(byFile).sort().map(file => '<div class="pfile"><code>' + esc(file) + '</code></div>'
         + '<ul class="list pickitems">' + byFile[file].map(x =>
-          /* A deleted subject has nowhere to go, so it is a line rather than a
-             way somewhere — and it still has to be on the list, because taking
-             it out of the file is a thing you have to remember to do. */
+          /* A deleted subject is a line, not a link: remove it from the file yourself. */
           '<li' + (x.how === 'gone' ? ' class="dead"'
             : ' data-go="' + esc(x.mode) + '|export|' + esc(x.key) + '"') + '>'
           + '<b>' + esc(x.label) + '</b>'
@@ -358,17 +315,8 @@ const Project = {
 };
 
 /* ---------------- Find, across all ten ----------------
-   Every comparable tool has one box that searches the project. This one had
-   ten, each filtering its own list by name and id — so "who mentions the
-   kettle", "which caller says that line", "where is that email" could only be
-   answered by opening things until you found it. The tool has all of it in
-   memory and could never be asked.
-
-   It searches what the EDITOR has rather than what the files have: the sweep
-   resumes each subject off the bench first, so a line you typed ten minutes
-   ago and walked away from is findable. That is the same call Project.survey()
-   makes, and for the same reason — a tool that reports on a version of the
-   game that exists nowhere is worse than one that reports nothing. */
+   Searches what the editor has, not the files: bench copies are resumed
+   first, as Project.survey() does. */
 
 const Find = {
   q: '',
@@ -396,17 +344,11 @@ const Find = {
     return rows;
   },
 
-  /* Every string in a document's state, which is every word the export would
-     write. Walked rather than declared per document: ten bespoke collectors
-     would be ten chances to leave a field out, and an eleventh document would be
-     unsearchable until somebody remembered. Keys come too — `use: 'kettle'`
-     is exactly the sort of thing you are looking for. */
+  /* Every string in a document's state, walked generically so no field is
+     missed; keys included (`use: 'kettle'`). */
   strings(v, out, depth) {
-    /* A Set, and a cap high enough for the biggest document there is. The
-       office is three hundred objects and a low cap truncated it long before
-       the kettle — a search that silently cannot see the largest level is
-       worse than one that says it found nothing. Deduping is what makes that
-       affordable: thirty-two workstations contribute one string, not thirty-two. */
+    /* A Set with a cap high enough for the largest document; deduping keeps it
+       cheap. */
     out = out || new Set();
     if (out.size > 3000 || (depth || 0) > 8) return out;
     if (typeof v === 'string') {
