@@ -205,7 +205,7 @@ const JobCheck = {
 
     track.forEach((t, i) => {
       if (!t) return;                        /* deliberate: see the note above */
-      if (t.npc && !(typeof NPCS !== 'undefined' && NPCS.some(p => p.id === t.npc))) {
+      if (t.npc && !NPCS.some(p => p.id === t.npc)) {
         fault('error', 'Step ' + (i + 1) + ' points at a colleague called “' + t.npc
           + '”, and there is nobody by that id.', { step: i });
       }
@@ -214,14 +214,14 @@ const JobCheck = {
           + '`, and no level has one. Guide.aim() returns false and the step simply has no pin, '
           + 'which looks exactly like a step that never had one.', { step: i });
       }
-      if (t.wp && !(typeof WP !== 'undefined' && WP[t.wp])) {
+      if (t.wp && !WP[t.wp]) {
         fault('error', 'Step ' + (i + 1) + ' points at waypoint “' + t.wp + '”, which is not in WP.',
           { step: i });
       }
     });
 
     const rw = q.rw || {};
-    if (rw.item && !(typeof ITEMS !== 'undefined' && ITEMS[rw.item])) {
+    if (rw.item && !ITEMS[rw.item]) {
       fault('error', 'The reward is an item called “' + rw.item + '”, which is not in ITEMS. '
         + 'Item.give() would hand over nothing, quietly.');
     }

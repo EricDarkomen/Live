@@ -217,7 +217,7 @@ const GamesUI = {
         return '<option value="' + esc(id) + '"' + (id === cur ? ' selected' : '') + '>'
           + esc(label) + '</option>';
       }).join('');
-    const bad = typeof Acts !== 'undefined' && c.use && typeof Acts[c.use] !== 'function';
+    const bad = c.use && typeof Acts[c.use] !== 'function';
     return '<div class="step">'
       + '<div class="step-h"><span class="step-n">' + esc(c.use || 'nowhere') + '</span>'
       + '<button data-cabact="drop" data-i="' + i + '" class="warn" title="Take it off">✕</button></div>'

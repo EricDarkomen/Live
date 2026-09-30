@@ -343,7 +343,7 @@ const Mode = {
         { id: to, name: name });
       Object.keys(Games.code).forEach(k => { copy[k] = A.def(Games.id)[k]; });
       A.register(copy);
-      if (typeof Writing !== 'undefined') Writing._index = null;
+      Writing._index = null;
     },
     office: (to, name) => {
       if (Office.kind === 'event') EVENTS.push(Object.assign(clone(Office.it), { id: to, t: name }));

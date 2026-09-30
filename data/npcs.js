@@ -42,7 +42,7 @@ function islander(id, who, o) {
   /* A flirt lands on the day they are having — see data/minds.js — and goes
      one further when they are glowing. Looked up when it is used rather than
      now: this file loads before the engine does. */
-  const mind = () => (typeof Mind !== 'undefined' ? Mind : null);
+  const mind = () => Mind;
   o.nodes.flirt = {
     text: () => (mind() && mind().flirtLine(id)) || pick(o.flirt),
     do() { G.flags['flirt_' + id] = G.day; Rel.add(id, 1 + (mind() ? mind().charm(id) : 0)); Player.xp(3); if (mind()) mind().event(id, 'flirted'); },
@@ -295,7 +295,7 @@ islander('luca', 'Luca', {
         { t: 'Let me see what you’ve got.', to: null, do() { Shop.open('coco'); } },
         /* She buys what you grew and cannot use before it turns — see Larder
            in data/farm.js. */
-        { t: 'Want to buy some fruit?', to: 'buyFruit', if: () => typeof Larder !== 'undefined' && Larder.sellable().length > 0 },
+        { t: 'Want to buy some fruit?', to: 'buyFruit', if: () => Larder.sellable().length > 0 },
         { t: 'Just saying hello.', to: null }
       ]
     }
@@ -590,8 +590,8 @@ islander('amara', 'Amara', {
       ]
     },
     practise: {
-      text: () => (typeof Mind !== 'undefined' && Mind.teachLine('tito')) || '“Again. From the top.”',
-      do() { G.flags.prac_tito = G.day; Rel.add('tito', 1); Player.xp(4); if (typeof Mind !== 'undefined') Mind.event('tito', 'practise'); },
+      text: () => Mind.teachLine('tito') || '“Again. From the top.”',
+      do() { G.flags.prac_tito = G.day; Rel.add('tito', 1); Player.xp(4); Mind.event('tito', 'practise'); },
       choices: [{ t: 'Better. Much better.', to: null }]
     },
     star: {
@@ -631,7 +631,7 @@ islander('amara', 'Amara', {
     hello: {
       text: () => pick(['“He asked me to find out if the sea could be made quieter.” She does not blink. “I’m looking into it.”', '“Mari gave me a free mojito yesterday. I nearly cried. Nobody gives me anything.”',
         '“Dr. Osei keeps leaving pamphlets in his briefcase. I keep not taking them out.”']),
-      choices: [{ t: 'Hang in there.', to: null }, { t: 'Take five. He won’t notice.', to: null, do() { if (typeof Mind !== 'undefined') Mind.event('val', 'talked'); Rel.add('val', 1); } }]
+      choices: [{ t: 'Hang in there.', to: null }, { t: 'Take five. He won’t notice.', to: null, do() { Mind.event('val', 'talked'); Rel.add('val', 1); } }]
     },
     secret: {
       text: ['She checks Blake is out of earshot, then steps closer. “Off the record. The board has approved him to go up to four million for The Driftwood. Not two. Four.”',

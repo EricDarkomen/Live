@@ -28,7 +28,7 @@ const Zones = {
      Atlas rects that tile: square at tile size, anchored flat, not an object or
      door. Names with `wall` as a word are walls; everything else is a floor. */
   tileable(n) {
-    if (typeof Tiles === 'undefined' || !Tiles.rects) return false;
+    if (!Tiles.rects) return false;
     const r = Tiles.rects[n];
     if (!r || r[2] !== r[3] || r[2] !== TILE) return false;
     if ((Tiles.anchors || {})[n] !== 'flat') return false;
@@ -38,7 +38,7 @@ const Zones = {
   /* The rects on offer for a surface; the zone's current value is always
      included so it can be put back. */
   materials(where) {
-    if (typeof Tiles === 'undefined' || !Tiles.rects) return [];
+    if (!Tiles.rects) return [];
     const wall = where === 'wall';
     const out = Object.keys(Tiles.rects)
       .filter(n => this.tileable(n) && this.isWall(n) === wall).sort();
@@ -52,7 +52,7 @@ const Zones = {
      candidate and removed in `finally` (exports walk ZONES). rebuild() clears
      the bake cache on every edit. */
   swatch(where, patch, key) {
-    if (typeof R === 'undefined' || !this.z) return null;
+    if (!this.z) return null;
     const id = '__swatch:' + where + ':' + key;
     ZONES[id] = Object.assign({}, this.z, patch);
     try {
@@ -67,7 +67,7 @@ const Zones = {
      inspector over in the level editor shows. No scratch entry: the renderer
      is being asked about a room the game has. */
   tileOf(where, id) {
-    if (typeof R === 'undefined' || !ZONES[id]) return null;
+    if (!ZONES[id]) return null;
     try { return where === 'wall' ? R.wallTile(id, 1) : R.floorTile(id, 1); } catch (_) { return null; }
   },
 
@@ -267,7 +267,7 @@ const ZoneCheck = {
        not in it falls back to the procedural surface, silently. */
     [['tile', 'floor'], ['wtile', 'wall']].forEach(([k, what]) => {
       if (z[k] === undefined) return;
-      if (typeof Tiles === 'undefined' || !Tiles.rects) return;   /* opened without art/ */
+      if (!Tiles.rects) return;   /* opened without art/ */
       if (!Tiles.rects[z[k]]) {
         fault('error', '`' + k + ': ' + JSON.stringify(z[k]) + '` is not a rect in the atlas, so '
           + 'the ' + what + ' quietly falls back to the drawn one.', { field: k });

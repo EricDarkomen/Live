@@ -124,7 +124,7 @@ const Prog = {
     if (!src) return (e && e.stock) || [];
     const out = [];
     src.replace(/['"]([A-Za-z_$][\w$]*)['"]/g, (_, id) => {
-      if (typeof ITEMS !== 'undefined' && ITEMS[id] && out.indexOf(id) < 0) out.push(id);
+      if (ITEMS[id] && out.indexOf(id) < 0) out.push(id);
     });
     return out;
   },
@@ -243,20 +243,18 @@ const ProgCheck = {
   reachable(id) {
     const stocked = Object.keys(SHOP).some(s => Prog.shelf(SHOP[s]).indexOf(id) >= 0);
     if (stocked) return true;
-    if (typeof QUESTS !== 'undefined'
-      && Object.keys(QUESTS).some(q => ((QUESTS[q] || {}).rw || {}).item === id)) return true;
+    if (Object.keys(QUESTS).some(q => ((QUESTS[q] || {}).rw || {}).item === id)) return true;
     if (this.cabinetGives(id)) return true;
     if (this.tableGives().has(id)) return true;
-    if (typeof Writing !== 'undefined'
-      && Writing.calls('Item', 'give').some(c => c.id === id)) return true;
+    if (Writing.calls('Item', 'give').some(c => c.id === id)) return true;
     /* Starting kit and anything the engine hands over by name. */
     return this.engineReads(id);
   },
   /* A cabinet's item on first win, from the editor's copy where open. */
   cabinetGives(id) {
-    const live = typeof Games !== 'undefined' && Games.id && Games.cabs
+    const live = Games.id && Games.cabs
       ? Games.table().filter(c => c.game !== Games.id).concat(Games.cabs)
-      : (typeof CABINETS !== 'undefined' && Array.isArray(CABINETS) ? CABINETS : []);
+      : (Array.isArray(CABINETS) ? CABINETS : []);
     return live.some(c => c && c.item === id);
   },
 
@@ -265,15 +263,15 @@ const ProgCheck = {
   tableGives() {
     const out = new Set();
     const outs = list => (Array.isArray(list) ? list : []).forEach(r => { if (r && r.out) out.add(r.out); });
-    if (typeof CROPS !== 'undefined') Object.keys(CROPS).forEach(k => out.add(k));
-    if (typeof NODES !== 'undefined') Object.keys(NODES).forEach(k => {
+    Object.keys(CROPS).forEach(k => out.add(k));
+    Object.keys(NODES).forEach(k => {
       ((NODES[k] || {}).gives || []).concat((NODES[k] || {}).extra || []).forEach(g => out.add(g[0]));
     });
-    if (typeof RECIPES !== 'undefined') outs(RECIPES);
-    if (typeof WORKBENCH !== 'undefined') outs(WORKBENCH);
-    if (typeof KILN !== 'undefined') outs(KILN.recipes);
-    if (typeof OVEN !== 'undefined') outs(OVEN);
-    if (typeof RACK !== 'undefined') outs(RACK.recipes);
+    outs(RECIPES);
+    outs(WORKBENCH);
+    outs(KILN.recipes);
+    outs(OVEN);
+    outs(RACK.recipes);
     return out;
   },
 
@@ -281,14 +279,12 @@ const ProgCheck = {
   usedBy(kind, id) {
     const out = [];
     if (kind === 'item') {
-      (typeof CABINETS !== 'undefined' && Array.isArray(CABINETS) ? CABINETS : [])
+      (Array.isArray(CABINETS) ? CABINETS : [])
         .forEach(c => { if (c.item === id) out.push('the ' + c.game + ' cabinet on ' + c.use); });
       Object.keys(SHOP).forEach(s => {
         if (Prog.shelf(SHOP[s]).indexOf(id) >= 0) out.push('the ' + (SHOP[s].title || s));
       });
-      if (typeof Writing !== 'undefined') {
-        Writing.calls('Item', 'give').filter(c => c.id === id).forEach(c => out.push(c.where));
-      }
+      Writing.calls('Item', 'give').filter(c => c.id === id).forEach(c => out.push(c.where));
     }
     return out;
   },
@@ -320,7 +316,7 @@ const ProgCheck = {
       });
       /* A `use` is either a table of what it does (see Item.consume()) or the
          name of a function in `Uses`. Only the second can be missing. */
-      if (typeof e.use === 'string' && !(typeof Uses !== 'undefined' && typeof Uses[e.use] === 'function')) {
+      if (typeof e.use === 'string' && !(typeof Uses[e.use] === 'function')) {
         fault('error', '`use: ' + Emit.str(e.use) + '` has no handler in `Uses`, so drinking or '
           + 'eating this does nothing at all.', { field: 'use' });
       }
@@ -378,7 +374,7 @@ const ProgCheck = {
       if (!String(e.d || '').trim()) fault('warn', 'No description, so the list says what it is called and nothing else.', { field: 'd' });
       /* The one that matters. An achievement nothing hands out is one no player
          can ever earn, and there is no way to tell from the table. */
-      if (typeof Writing !== 'undefined') {
+      {
         const given = Writing.calls('Ach', 'get').filter(c => c.id === id);
         if (!given.length && !this.engineReads(id) && !this.declaredGrant(id)) {
           fault('warn', 'Nothing hands this out. No Ach.get(' + Emit.str(id) + ') anywhere in the '
@@ -393,11 +389,11 @@ const ProgCheck = {
   /* Achievements granted by tables (a BOSSES `ach`, a level's `drives`, an
      item's `use.ach`), asked directly. */
   declaredGrant(id) {
-    const B = typeof BOSSES !== 'undefined' ? BOSSES : {};
+    const B = BOSSES;
     if (Object.values(B).some(b => b && b.ach === id)) return true;
-    const L = typeof LEVELS !== 'undefined' ? LEVELS : {};
+    const L = LEVELS;
     if (Object.values(L).some(l => l && (l.drives || []).some(d => d.ach === id))) return true;
-    const I = typeof ITEMS !== 'undefined' ? ITEMS : {};
+    const I = ITEMS;
     return Object.values(I).some(it => it && it.use && typeof it.use === 'object' && it.use.ach === id);
   },
 
@@ -407,38 +403,38 @@ const ProgCheck = {
     /* Everything in engine/ that grants something or reads a rank: the whole
        surface, not the likely parts. */
     return [
-      typeof Combat !== 'undefined' && Combat,
-      typeof Player !== 'undefined' && Player,
+      Combat,
+      Player,
       typeof Game !== 'undefined' && Game,
-      typeof Report !== 'undefined' && Report,
-      typeof Phones !== 'undefined' && Phones,
-      typeof Interact !== 'undefined' && Interact,
-      typeof Panels !== 'undefined' && Panels,
-      typeof Menu !== 'undefined' && Menu,
+      Report,
+      Phones,
+      Interact,
+      Panels,
+      Menu,
       typeof Boot !== 'undefined' && Boot,
-      typeof Shop !== 'undefined' && Shop,
-      typeof Item !== 'undefined' && Item,
-      typeof Sk !== 'undefined' && Sk,
-      typeof Q !== 'undefined' && Q,
-      typeof Track !== 'undefined' && Track,
-      typeof Uses !== 'undefined' && Uses,
-      typeof Ach !== 'undefined' && Ach,
-      typeof Rel !== 'undefined' && Rel,
-      typeof Save !== 'undefined' && Save,
-      typeof Settings !== 'undefined' && Settings,
-      typeof UI !== 'undefined' && UI,
+      Shop,
+      Item,
+      Sk,
+      Q,
+      Track,
+      Uses,
+      Ach,
+      Rel,
+      Save,
+      Settings,
+      UI,
       typeof Cut !== 'undefined' && Cut,
-      typeof Endings !== 'undefined' && Endings,
-      typeof EventSys !== 'undefined' && EventSys,
-      typeof Chat !== 'undefined' && Chat,
-      typeof Mail !== 'undefined' && Mail,
-      typeof Arcade !== 'undefined' && Arcade,
+      Endings,
+      EventSys,
+      Chat,
+      Mail,
+      Arcade,
       /* The street grants driving and weapon achievements. */
-      typeof Cars !== 'undefined' && Cars,
-      typeof Guns !== 'undefined' && Guns,
+      Cars,
+      Guns,
     ].filter(Boolean).concat(
       /* Each minigame names its achievement in its own reward(); asked of the host. */
-      (typeof Arcade !== 'undefined' && Arcade.catalogue ? (Arcade.catalogue() || []) : []).filter(Boolean)
+      (Arcade.catalogue ? (Arcade.catalogue() || []) : []).filter(Boolean)
     );
   },
   /* Top-level functions (zoneCheck() grants `a_allthree`), declared. */
@@ -448,9 +444,9 @@ const ProgCheck = {
       typeof zoneCheck !== 'undefined' && zoneCheck,
       typeof resetRun !== 'undefined' && resetRun,
       typeof count !== 'undefined' && count,
-      typeof HOOKS !== 'undefined' && HOOKS,
-      typeof Uses !== 'undefined' && Uses,
-      typeof BaseActs !== 'undefined' && BaseActs,
+      HOOKS,
+      Uses,
+      BaseActs,
     ].filter(f => typeof f === 'function');
   },
   engineReads(id) {
@@ -467,7 +463,7 @@ const ProgCheck = {
 
   /* A move's `need:` is a skill read from a table, not a call: asked directly. */
   gatesAMove(id) {
-    return typeof MOVES !== 'undefined' && Array.isArray(MOVES)
+    return Array.isArray(MOVES)
       && MOVES.some(m => m && m.need === id);
   },
 
@@ -475,7 +471,6 @@ const ProgCheck = {
      Ach.get() on an unknown id THROWS, mid-sentence, in front of the player. */
   dangling() {
     const out = [];
-    if (typeof Writing === 'undefined') return out;
     Writing.byId('Ach', 'get').forEach((wheres, id) => {
       if (ACHS[id]) return;
       out.push({ level: 'error', key: null,

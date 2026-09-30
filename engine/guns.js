@@ -746,12 +746,12 @@ const Guns = {
      them: the twenty colleagues, then whoever is walking past outside. */
   whoIsThere(s) {
     const r = TILE * 0.42;
-    if (typeof NPCM !== 'undefined' && NPCM.list) {
+    if (NPCM.list) {
       for (const n of NPCM.list) {
         if (Math.abs(n.x - s.x) < r && Math.abs(n.y - s.y) < r) return { o: n, kind: 'npc' };
       }
     }
-    if (typeof Peds !== 'undefined') {
+    {
       for (const p of Peds.list()) {
         if (Math.abs(p.x - s.x) < r && Math.abs(p.y - s.y) < r) return { o: p, kind: 'ped' };
       }

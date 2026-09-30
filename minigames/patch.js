@@ -462,7 +462,7 @@ const MG_PATCH = {
         toast: 'You put the knot back roughly as you found it. Mari sighs.' };
     }
     Ach.get('a_patched');
-    if (typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
+    if (Arcade.clearedAll()) Ach.get('a_arcade');
     return {
       xp: 45 + Math.round(60 * share),
       money: Math.round(share * 150) / 100,

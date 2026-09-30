@@ -378,7 +378,7 @@ const MG_INBOX = {
     }
     Ach.get('a_inboxzero');
     if (this.wrong === 0 && this.timedOut === 0) Ach.get('a_nothingread');
-    if (typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
+    if (Arcade.clearedAll()) Ach.get('a_arcade');
     return {
       xp: 35 + Math.round(65 * share),
       money: Math.round(share * 180) / 100,

@@ -33,21 +33,21 @@ const Office = {
   def(k) { return this.KINDS.find(x => x.k === (k || this.kind)); },
 
   channels() {
-    return Array.from(new Set((typeof CHAT_SCRIPT !== 'undefined' ? CHAT_SCRIPT : []).map(c => c.c)));
+    return Array.from(new Set(CHAT_SCRIPT.map(c => c.c)));
   },
   /* A text thread is grouped by WHO, exactly as a chat channel is grouped by
      which channel — one conversation, edited whole, because a single text out
      of a thread is not a thing anybody edits either. */
   people() {
-    return Array.from(new Set((typeof TEXT_SCRIPT !== 'undefined' ? TEXT_SCRIPT : []).map(c => c.who)));
+    return Array.from(new Set(TEXT_SCRIPT.map(c => c.who)));
   },
   ids() {
     const out = [];
-    (typeof EVENTS !== 'undefined' ? EVENTS : []).forEach(e => out.push('event:' + e.id));
+    EVENTS.forEach(e => out.push('event:' + e.id));
     this.channels().forEach(c => out.push('chat:' + c));
-    (typeof MAIL_SCRIPT !== 'undefined' ? MAIL_SCRIPT : []).forEach((m, i) => out.push('mail:' + i));
+    MAIL_SCRIPT.forEach((m, i) => out.push('mail:' + i));
     this.people().forEach(w => out.push('text:' + w));
-    Object.keys(typeof ENDINGS !== 'undefined' ? ENDINGS : {}).forEach(k => out.push('ending:' + k));
+    Object.keys(ENDINGS).forEach(k => out.push('ending:' + k));
     out.push('cut:opening');
     return out;
   },
@@ -105,7 +105,7 @@ const Office = {
       /* capture(), not clone(): `when` is code, and clone() drops it. */
       this.it = capture(ENDINGS[id]);
     } else {
-      this.it = { beats: clone(typeof CUT !== 'undefined' ? CUT : []) };
+      this.it = { beats: clone(CUT) };
     }
     this.kind = kind; this.id = id;
     this.rebase();
@@ -396,12 +396,12 @@ const OfficeCheck = {
     }
 
     if (kind === 'cut') {
-      const beats = live ? Office.list() : (typeof CUT !== 'undefined' ? CUT : []);
+      const beats = live ? Office.list() : CUT;
       if (!beats.length) fault('error', 'No opening at all.', { field: 'beats' });
       /* The office is the level the shift starts on, and a camera is read in
          tiles on it. One off the edge is a shot the bounds silently pull back,
          which reads as the beat simply not moving. */
-      const off = (typeof LEVELS !== 'undefined' && LEVELS.office) || {};
+      const off = LEVELS.office || {};
       let seen = false;
       beats.forEach((b, i) => {
         if (!String(b.t || '').trim()) fault('error', 'Beat ' + (i + 1) + ' has no text.', { row: i });
@@ -436,7 +436,6 @@ const OfficeCheck = {
   /* Endings.available() walks ENDINGS and keeps rows whose `when()` passes, so
      every row is offerable by construction. */
   pushed() {
-    if (typeof ENDINGS === 'undefined') return null;
     return new Set(Object.keys(ENDINGS));
   },
   unreachable() {

@@ -94,7 +94,7 @@ const OfficeUI = {
       const off = OfficeCheck.offered();
       return off && !off.has(id) ? 'never offered' : 'reachable';
     }
-    return (typeof CUT !== 'undefined' ? CUT.length : 0) + ' beats';
+    return CUT.length + ' beats';
   },
 
   inspect() {

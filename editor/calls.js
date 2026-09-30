@@ -259,10 +259,10 @@ const CallCheck = {
 
   /* Which needs any move claims to serve, and which the tells actually offer.
      The two are matched by string and by nobody else. */
-  needs() { return Object.keys(typeof TELLS !== 'undefined' ? TELLS : {}); },
+  needs() { return Object.keys(TELLS); },
   served() {
     const out = new Set();
-    (typeof MOVES !== 'undefined' ? MOVES : []).forEach(m => {
+    MOVES.forEach(m => {
       const s = (Calls.kind === 'move' && m.id === Calls.id) ? Calls.it.serves : m.serves;
       (s || []).forEach(n => out.add(n));
     });
@@ -272,7 +272,7 @@ const CallCheck = {
   usedBy(kind, id) {
     const out = [];
     if (kind === 'tell') {
-      (typeof MOVES !== 'undefined' ? MOVES : []).forEach(m => {
+      MOVES.forEach(m => {
         if ((m.serves || []).indexOf(id) >= 0) out.push('move ' + (m.n || m.id));
       });
     }
@@ -358,7 +358,7 @@ const CallCheck = {
       /* The flag is the whole consequence of winning, and nothing declares who
          reads it. Writing is the index that can answer. */
       if (!e.win) fault('warn', 'Winning sets no flag, so beating this changes nothing anywhere.', { field: 'win' });
-      else if (typeof Writing !== 'undefined') {
+      else {
         const reads = Writing.index().filter(x => x.src.indexOf(e.win) >= 0);
         if (!reads.length) {
           fault('warn', 'Nothing in the writing reads `' + e.win + '`, so beating this is a flag '
@@ -400,7 +400,7 @@ const CallCheck = {
   orphans() {
     const out = [];
     const have = new Set(this.needs());
-    (typeof MOVES !== 'undefined' ? MOVES : []).forEach(m => {
+    MOVES.forEach(m => {
       const serves = (Calls.kind === 'move' && m.id === Calls.id) ? (Calls.it.serves || []) : (m.serves || []);
       serves.forEach(n => {
         if (have.has(n)) return;

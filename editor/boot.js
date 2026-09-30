@@ -33,7 +33,7 @@ const Ed = {
        renderer falls back to emoji until they do, and so does the game. */
     Sprites.load(); Tiles.load();
     /* Nobody is baked: the preview composes the cast from the same components the game does. */
-    if (typeof Look !== 'undefined') Look.dressCast();
+    Look.dressCast();
 
     Ask.init();
     View.init();

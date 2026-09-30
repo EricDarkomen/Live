@@ -39,9 +39,9 @@ const JobsUI = {
 
   /* ---- the panel: one job, all of it ---- */
   OPTS: {
-    npc: () => (typeof NPCS !== 'undefined' ? NPCS : []).map(p => [p.id, p.name || p.id]),
+    npc: () => NPCS.map(p => [p.id, p.name || p.id]),
     obj: () => Palette.uses.map(u => [u, u + '  (' + (Palette.useLevel.get(u) || '?') + ')']),
-    wp: () => Object.keys(typeof WP !== 'undefined' ? WP : {}).map(k => [k, k]),
+    wp: () => Object.keys(WP).map(k => [k, k]),
   },
   sel(name, value, pairs, blank) {
     return '<select ' + name + '>'
@@ -72,7 +72,7 @@ const JobsUI = {
       + Side.row('xp', '<input type="number" data-r="xp" value="' + (Jobs.rw.xp || 0) + '" min="0">')
       + Side.row('money', '<input type="number" data-r="money" value="' + (Jobs.rw.money || 0) + '" min="0">')
       + Side.row('item', this.sel('data-r="item"', Jobs.rw.item || '',
-        Object.keys(typeof ITEMS !== 'undefined' ? ITEMS : {}).map(k => [k, (ITEMS[k].e || '') + ' ' + ITEMS[k].n]),
+        Object.keys(ITEMS).map(k => [k, (ITEMS[k].e || '') + ' ' + ITEMS[k].n]),
         'nothing'))
       + '<h4>Where the writing touches it</h4>'
       + this.wiring(w)

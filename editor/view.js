@@ -85,10 +85,10 @@ const View = {
   frame(dt) {
     /* No drawing while another mode's workspace covers the canvas; the loop keeps
        running to catch resizes. */
-    if (typeof Mode !== 'undefined' && Mode.id !== 'levels') {
+    if (Mode.id !== 'levels') {
       /* Except the art importer, which has a sheet of its own to draw and a
          walk cycle that has to actually walk. */
-      if (typeof Mode !== 'undefined' && Mode.id === 'art') ArtUI.frame(dt);
+      if (Mode.id === 'art') ArtUI.frame(dt);
       return;
     }
     const d = this.dpr();

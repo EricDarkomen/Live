@@ -92,10 +92,10 @@ const ITEMS = {
   polaroid: { n: 'A Polaroid', e: '📸', d: 'The two of you at the cove, lit by the lantern, laughing at something you have already forgotten.', v: 0, r: 'epic', quest: true },
 };
 
-/* ---------------- Skills ----------------
-   The ids are the engine's (engine/progress.js reads empathy, product, system,
-   corp, sarcasm, stress, caffeine, deesc and persuade by name); everything a
-   player reads is here. */
+/* Scripted uses: an ITEMS entry whose `use` is a string names a function here,
+   called with the item after it is taken from the bag (Item.use()). */
+const Uses = {};
+
 /* ---------------- Skills ----------------
    `eff` is what each rank adds: the stats a move reads (empathy, knowledge,
    bullshit, chaos), the maxima (patMax, eneMax), the share of a guest's

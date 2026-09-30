@@ -157,7 +157,7 @@ const TalkUI = {
      each failing silently, bound together here. */
   inspectPerson(p) {
     const sp = Talk.sprite();
-    const wps = Object.keys(typeof WP !== 'undefined' ? WP : {}).sort();
+    const wps = Object.keys(WP).sort();
 
     p.innerHTML = '<h3><span class="h-e">' + esc(Talk.face || '🧑') + '</span>' + esc(Talk.name) + '</h3>'
       + Side.row('id', '<code>' + esc(Talk.id) + '</code>')

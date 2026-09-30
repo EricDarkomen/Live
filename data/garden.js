@@ -73,7 +73,7 @@ const Garden = {
   /* Keep the plots on the ground looking like what is in them. Cheap: fifteen
      objects, only while you are on the island. */
   refresh() {
-    if (typeof World === 'undefined' || World.level !== 'island' || !World.objects) return;
+    if (World.level !== 'island' || !World.objects) return;
     for (const o of World.objects) {
       if (o.kind !== 'plot') continue;
       const l = this.look(o);

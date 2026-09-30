@@ -18,8 +18,8 @@ const Talk = {
   nodes: {},
   base: null, undoStack: [], redoStack: [],
 
-  ids() { return (typeof NPCS !== 'undefined' ? NPCS : []).map(p => p.id); },
-  person(id) { return (typeof NPCS !== 'undefined' ? NPCS : []).find(p => p.id === (id || this.id)); },
+  ids() { return NPCS.map(p => p.id); },
+  person(id) { return NPCS.find(p => p.id === (id || this.id)); },
 
   /* ---- capture ---- */
   load(id) {
@@ -185,7 +185,7 @@ const Talk = {
   },
   /* Which sheet draws them, from the game's tables. */
   sprite() {
-    const r = typeof Sprites !== 'undefined' && Sprites.rows.get(this.id);
+    const r = Sprites.rows.get(this.id);
     return r ? { sheet: r.sheet.id, row: r.row, ok: r.sheet.ok } : null;
   },
   setLines(list) {
@@ -459,7 +459,7 @@ const TalkCheck = {
         }
         last = at;
       }
-      if (where !== 'desk' && !(typeof WP !== 'undefined' && WP[where])) {
+      if (where !== 'desk' && !(WP[where])) {
         fault('error', 'Stop ' + (i + 1) + ' sends them to “' + where + '”, which is not in WP — '
           + 'so they go to their desk instead, silently, for that whole part of the day.', { stop: i });
       }
@@ -481,18 +481,18 @@ const TalkCheck = {
 
   /* Every call whose first argument must name something that exists. */
   NAMES: [
-    { call: 'Q.start', what: 'there is no such job', has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
+    { call: 'Q.start', what: 'there is no such job', has: id => !!QUESTS[id] },
     { call: 'Q.step', what: 'there is no such job — Q.step returns early, so the line does nothing at all',
-      has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
-    { call: 'Q.complete', what: 'there is no such job', has: id => typeof QUESTS !== 'undefined' && !!QUESTS[id] },
+      has: id => !!QUESTS[id] },
+    { call: 'Q.complete', what: 'there is no such job', has: id => !!QUESTS[id] },
     { call: 'Ach.get', what: 'there is no such achievement — this throws mid-sentence',
-      has: id => typeof ACHS !== 'undefined' && !!ACHS[id] },
+      has: id => !!ACHS[id] },
     { call: 'Item.give', what: 'there is no such item, so it hands over nothing',
-      has: id => typeof ITEMS !== 'undefined' && !!ITEMS[id] },
+      has: id => !!ITEMS[id] },
     { call: 'Rel.add', what: 'there is nobody by that id',
-      has: id => typeof NPCS !== 'undefined' && NPCS.some(p => p.id === id) },
+      has: id => NPCS.some(p => p.id === id) },
     { call: 'Shop.open', what: 'there is no such shop',
-      has: id => typeof SHOP !== 'undefined' && !!SHOP[id] },
+      has: id => !!SHOP[id] },
   ],
 
   levelFor(id) { return this.perNode.get(id) || ''; }

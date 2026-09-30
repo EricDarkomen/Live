@@ -108,7 +108,7 @@ const ProgUI = {
 
   item() {
     const eff = Prog.it.eff || {};
-    const uses = typeof Uses !== 'undefined' ? Object.keys(Uses) : [];
+    const uses = Object.keys(Uses);
     return this.f('name', 'n') + this.f('emoji', 'e') + this.f('description', 'd')
       + this.f('value', 'v', 'num')
       + this.sel('rarity', 'r', Prog.RARITY, '—')
@@ -187,8 +187,7 @@ const ProgUI = {
   },
 
   ach() {
-    const given = typeof Writing !== 'undefined'
-      ? Writing.calls('Ach', 'get').filter(c => c.id === Prog.id) : [];
+    const given = Writing.calls('Ach', 'get').filter(c => c.id === Prog.id);
     return this.f('name', 'n') + this.f('emoji', 'e') + this.f('description', 'd')
       + '<h4>Handed out by <span class="pill">' + given.length + '</span></h4>'
       + (given.length
@@ -246,7 +245,7 @@ const ProgUI = {
     const table = Prog.ids().reduce((n, k) => n + ProgCheck.countFor(k), 0);
     /* The two questions worth asking across the whole table. */
     const unreachable = Object.keys(ACHS).filter(id =>
-      !(typeof Writing !== 'undefined' && Writing.calls('Ach', 'get').some(c => c.id === id))
+      !(Writing.calls('Ach', 'get').some(c => c.id === id))
       && !ProgCheck.engineReads(id));
     const group = (list, title, cls) => !list.length ? '' : '<h4>' + esc(title) + '</h4>'
       + '<ul class="faults">' + list.map(x => '<li class="' + cls + '">' + esc(x.msg) + '</li>').join('')

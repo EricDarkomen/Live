@@ -29,7 +29,7 @@ const Games = {
 
   /* ---- the catalogue ----
      Arcade's own list, as Arcade.init() reads it. */
-  live() { return typeof Arcade !== 'undefined' ? Arcade : null; },
+  live() { return Arcade; },
   ids() {
     const A = this.live();
     return A ? A.list() : [];
@@ -68,7 +68,7 @@ const Games = {
   },
   /* The live table, guarded: a page without data/items.js has no cabinets
      rather than a broken mode. */
-  table() { return typeof CABINETS !== 'undefined' && Array.isArray(CABINETS) ? CABINETS : []; },
+  table() { return Array.isArray(CABINETS) ? CABINETS : []; },
   state() { return clone({ id: this.id, it: this.it, code: this.code, cabs: this.cabs }); },
   restore(s) {
     this.id = s.id; this.it = clone(s.it); this.code = clone(s.code);
@@ -179,27 +179,24 @@ const Games = {
   /* Every `use:` handler in the building, which is what a game can be installed
      ON. Asked of the object editor's one walk rather than walked again here. */
   objects() {
-    if (typeof Things !== 'undefined' && Things.uses && Things.uses.size) {
+    if (Things.uses && Things.uses.size) {
       return Array.from(Things.uses.keys()).sort();
     }
-    return typeof Acts !== 'undefined' ? Object.keys(Acts).filter(k => k[0] !== '_').sort() : [];
+    return Object.keys(Acts).filter(k => k[0] !== '_').sort();
   },
   /* Every skill id, flattened out of the four branches — a skill id is unique
      across all of them, which is what lets a cabinet name one with no branch. */
   skills() {
-    if (typeof SKILLS === 'undefined') return [];
     const out = [];
     Object.keys(SKILLS).forEach(b => Object.keys(SKILLS[b].list || {}).forEach(k =>
       out.push([k, SKILLS[b].list[k].n])));
     return out.sort((x, y) => x[1].localeCompare(y[1]));
   },
   jobs() {
-    return typeof QUESTS === 'undefined' ? []
-      : Object.keys(QUESTS).map(id => [id, QUESTS[id].n || id]);
+    return Object.keys(QUESTS).map(id => [id, QUESTS[id].n || id]);
   },
   items() {
-    return typeof ITEMS === 'undefined' ? []
-      : Object.keys(ITEMS).map(id => [id, (ITEMS[id].e ? ITEMS[id].e + ' ' : '') + (ITEMS[id].n || id)]);
+    return Object.keys(ITEMS).map(id => [id, (ITEMS[id].e ? ITEMS[id].e + ' ' : '') + (ITEMS[id].n || id)]);
   },
 
   /* ---- reading the code ----
@@ -237,7 +234,6 @@ const Games = {
   },
   /* Who opens it, via Writing.calls(). */
   openedBy(id) {
-    if (typeof Writing === 'undefined') return [];
     return Writing.calls('Arcade', 'open')
       .filter(c => c.id === (id === undefined ? this.id : id))
       .map(c => c.where);
@@ -362,7 +358,7 @@ const GameCheck = {
       const at = 'Cabinet ' + (i + 1) + ' (' + (c.use || '—') + ')';
       if (!c.use) {
         fault('error', at + ' names no object, so nothing offers it.', { cab: i });
-      } else if (typeof Acts !== 'undefined' && typeof Acts[c.use] !== 'function') {
+      } else if (typeof Acts[c.use] !== 'function') {
         fault('error', at + ': there is no `Acts.' + c.use + '`, so no object opens that '
           + 'dialogue and the reply is never offered to anybody.', { cab: i });
       } else if (objects.length && objects.indexOf(c.use) < 0) {
@@ -372,18 +368,18 @@ const GameCheck = {
       if (!c.t) {
         fault('error', at + ' has no reply text, so the choice is a blank button.', { cab: i });
       }
-      if (c.skill && typeof SKILLS !== 'undefined'
+      if (c.skill
         && !Games.skills().some(x => x[0] === c.skill)) {
         fault('error', at + ' draws on the skill `' + c.skill + '` and SKILLS has no such id. '
           + 'Sk.rank() returns 0 for an id it does not know, so the game is handed a rank of '
           + 'zero for ever and buying anything changes nothing.', { cab: i });
       }
-      if (c.job && typeof QUESTS !== 'undefined' && !QUESTS[c.job]) {
+      if (c.job && !QUESTS[c.job]) {
         fault('error', at + ' steps the job `' + c.job + '` and QUESTS has no such id. Q.step '
           + 'returns early on a job that is not active, so nothing happens and nothing says '
           + 'so.', { cab: i });
       }
-      if (c.item && typeof ITEMS !== 'undefined' && !ITEMS[c.item]) {
+      if (c.item && !ITEMS[c.item]) {
         fault('error', at + ' hands over the item `' + c.item + '` and ITEMS has no such id. '
           + 'Item.give() gives nothing, quietly.', { cab: i });
       }
@@ -397,7 +393,7 @@ const GameCheck = {
        Ach.get on an id that is not in ACHS returns without a word, so the
        reward simply never arrives and nothing says so. */
     Games.grants(src).forEach(a => {
-      if (typeof ACHS !== 'undefined' && !ACHS[a]) {
+      if (!ACHS[a]) {
         fault('error', 'It grants the achievement `' + a + '` and there is no such entry in '
           + 'ACHS. Ach.get() returns early on an id it does not know, so nothing at all '
           + 'happens and nothing says so.', { ach: a });
@@ -463,11 +459,9 @@ const GameCheck = {
     const have = Games.ids();
     const out = [];
     const add = (id, where) => { if (!out.some(x => x.id === id)) out.push({ id: id, where: where }); };
-    if (typeof Writing !== 'undefined') {
-      Writing.calls('Arcade', 'open').forEach(c => {
-        if (have.indexOf(c.id) < 0) add(c.id, c.where);
-      });
-    }
+    Writing.calls('Arcade', 'open').forEach(c => {
+      if (have.indexOf(c.id) < 0) add(c.id, c.where);
+    });
     /* A cabinet for an unregistered game (Arcade.cabinets() drops it silently). */
     Games.table().forEach(c => {
       if (have.indexOf(c.game) < 0) add(c.game, 'CABINETS on ' + c.use);
@@ -494,7 +488,7 @@ const GamesMake = {
       const A = Games.live();
       if (!A) { Side.say('engine/arcade.js is not loaded on this page.'); return; }
       A.register(this.template(id, v.name || id, v.icon || '🕹️'));
-      if (typeof Writing !== 'undefined') Writing._index = null;
+      Writing._index = null;
       Mode.openSubject(id);
       Side.say('Created ' + id + ' in this tab. Its body is a template — the export is a whole '
         + 'file for minigames/' + id + '.js, and the game is written there.');
@@ -552,7 +546,7 @@ const GamesMake = {
       const t = Games.table();
       for (let i = t.length - 1; i >= 0; i--) if (t[i].game === id) t.splice(i, 1);
       Games.forget(id);
-      if (typeof Writing !== 'undefined') Writing._index = null;
+      Writing._index = null;
       if (others.length) Mode.openSubject(others[0]);
       else { Games.id = null; Games.it = null; Games.code = null; Side.refresh(); }
       Side.say('Deleted ' + id + ' from this tab.');

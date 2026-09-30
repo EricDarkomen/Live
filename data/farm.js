@@ -39,9 +39,9 @@ const PEST_RATE = .0009;
 /* The stations. */
 /* `slots` grows when you build a second bay, and the rack's when you build a
    second rack — see PROJECTS in data/craft.js. */
-const COMPOST = { in: 3, t: 90, get slots() { return 3 + (typeof Build !== 'undefined' && Build.has('bay') ? 2 : 0); } };
+const COMPOST = { in: 3, t: 90, get slots() { return 3 + (Build.has('bay') ? 2 : 0); } };
 const RACK = {
-  get slots() { return 3 + (typeof Build !== 'undefined' && Build.has('rack2') ? 3 : 0); },
+  get slots() { return 3 + (Build.has('rack2') ? 3 : 0); },
   recipes: [
     { in: 'mango', out: 'dried_mango', t: 120 },
     { in: 'pineapple', out: 'dried_pineapple', t: 150 },
@@ -58,7 +58,7 @@ const HUNGER_RATE = 100 / 1440;
 const Farm = {
   /* ---- the clock ---- */
   update() {
-    if (typeof G === 'undefined' || !G.flags || typeof Sky === 'undefined' || G.state === 'title' || G.state === 'name') return;
+    if (!G.flags || G.state === 'title' || G.state === 'name') return;
     const now = islandNow(), last = G.flags.farmAt;
     G.flags.farmAt = now;
     /* The first minute of a new game: Rafa's can is full, and Mari has left
@@ -118,7 +118,7 @@ const Farm = {
     G.flags.butt = Math.min(cap, b + dt * (raining ? .2 * (cap > 30 ? 2 : 1) : 1 / 60));
   },
   /* Thirty cans' worth, or sixty once the rain catcher is up (data/craft.js). */
-  buttCap() { return 30 + (typeof Build !== 'undefined' && Build.has('catcher') ? 30 : 0); },
+  buttCap() { return 30 + (Build.has('catcher') ? 30 : 0); },
   canLeft() { return G.flags.can || 0; },
   canWords() { const n = this.canLeft(); return n ? n + ' left in the can' : 'the can is empty'; },
   useCan() {
@@ -162,7 +162,7 @@ const Farm = {
     /* Row by row, as they lie in the ground: `p` + column + row. */
     for (let j = 0; j < 3; j++) for (let i = 0; i < 5; i++) ids.push('p' + i + j);
     /* And the fourth row, the plots you build yourself — data/craft.js. */
-    for (let i = 0; i < 5; i++) if (typeof Build !== 'undefined' && Build.has('plot' + i)) ids.push('p' + i + '3');
+    for (let i = 0; i < 5; i++) if (Build.has('plot' + i)) ids.push('p' + i + '3');
     ids.forEach(id => {
       const p = Garden.plots()[id], s = Garden.stage(p);
       const l = Garden.look({ plot: id });
@@ -295,7 +295,7 @@ const Larder = {
     list.forEach(x => Item.take(x));
     Player.mod({ money: pay, rep: 1 });
     UI.toast('👵', 'Mama Coco weighs it all, tuts, and pays you <b>' + cash(pay) + '</b>.', 'gold');
-    if (typeof Mind !== 'undefined') { Mind.train('coco', 'business', 3); Mind.event('coco', 'talked'); }
+    Mind.train('coco', 'business', 3); Mind.event('coco', 'talked');
   }
 };
 
@@ -395,7 +395,7 @@ const NPC_ACTS = {
     G.flags.stocked = ok ? G.day : -G.day;
     G.flags.stockRun = ok ? G.flags.stockRun + 1 : 0;
     if (G.flags.stockRun >= 3) Ach.get('a_stocked');
-    if (typeof Mind !== 'undefined') Mind.add('mari', ok ? 'stocked' : 'nostock');
+    Mind.add('mari', ok ? 'stocked' : 'nostock');
     const here = n && n.level === World.level && Cam.visible(n.x, n.y);
     if (here) { n.say = ok ? pick(['Fridge is FULL. I could kiss you.', 'Limes! Actual limes!']) : pick(['No limes. NO LIMES.', 'Who emptied my fridge? Nobody. Nobody filled it.']); n.sayT = 3.6; }
     else if (G.rel.mari !== undefined) UI.toast('💃', ok ? 'Mari stocked the bar from your fridge. Tips will be better today.' : 'Mari opened up to an empty fridge. No fruit for the bar today.', ok ? 'good' : 'bad');
@@ -410,7 +410,6 @@ NPC_ACTS.landCatch = n => {
 /* Rosie's lunch rush: everybody on the island within a walk of the plaza has
    had a taco, and is the better for it. */
 NPC_ACTS.lunchRush = n => {
-  if (typeof Mind === 'undefined') return;
   for (const o of NPCM.all) {
     if (o.level !== 'island' || o.id === 'rosie' || o.away) continue;
     const m = Mind.of(o.id);

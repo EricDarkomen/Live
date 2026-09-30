@@ -25,69 +25,65 @@ const Writing = {
     };
 
     /* One entry per `use:` handler, which is where most of the acts live. */
-    if (typeof Acts !== 'undefined') {
-      Object.keys(Acts).forEach(k => add('Acts.' + k, Acts[k]));
-    }
+    Object.keys(Acts).forEach(k => add('Acts.' + k, Acts[k]));
     /* The engine drives some of it too — finishing a boss call completes a job,
        and signing the biscuit rota is a panel button. */
     /* EVENTS' go() is writing too (free pizza hands out an item). */
-    if (typeof EVENTS !== 'undefined' && Array.isArray(EVENTS)) {
+    if (Array.isArray(EVENTS)) {
       EVENTS.forEach(e => {
         if (!e) return;
         Object.keys(e).forEach(k => add('event ' + (e.id || e.t || '?') + '.' + k, e[k]));
       });
     }
-    [['Combat', typeof Combat !== 'undefined' && Combat],
-     ['Panels', typeof Panels !== 'undefined' && Panels],
-     ['Shop', typeof Shop !== 'undefined' && Shop],
-     ['Endings', typeof Endings !== 'undefined' && Endings],
-     ['Chat', typeof Chat !== 'undefined' && Chat],
-     ['Mail', typeof Mail !== 'undefined' && Mail],
-     ['EventSys', typeof EventSys !== 'undefined' && EventSys],
+    [['Combat', Combat],
+     ['Panels', Panels],
+     ['Shop', Shop],
+     ['Endings', Endings],
+     ['Chat', Chat],
+     ['Mail', Mail],
+     ['EventSys', EventSys],
      /* The game's own code on engine events, its bespoke item uses, and the
         engine's default acts — each as much writing as an act. */
-     ['HOOKS', typeof HOOKS !== 'undefined' && HOOKS],
-     ['Uses', typeof Uses !== 'undefined' && Uses],
-     ['BaseActs', typeof BaseActs !== 'undefined' && BaseActs],
+     ['HOOKS', HOOKS],
+     ['Uses', Uses],
+     ['BaseActs', BaseActs],
      /* The island's systems: data/garden.js, data/farm.js, data/craft.js and
         engine/mind.js. */
-     ['Garden', typeof Garden !== 'undefined' && Garden],
-     ['Blender', typeof Blender !== 'undefined' && Blender],
-     ['Orders', typeof Orders !== 'undefined' && Orders],
-     ['Dates', typeof Dates !== 'undefined' && Dates],
-     ['Farm', typeof Farm !== 'undefined' && Farm],
-     ['Larder', typeof Larder !== 'undefined' && Larder],
-     ['Stations', typeof Stations !== 'undefined' && Stations],
-     ['Hunger', typeof Hunger !== 'undefined' && Hunger],
-     ['NPC_ACTS', typeof NPC_ACTS !== 'undefined' && NPC_ACTS],
-     ['Gear', typeof Gear !== 'undefined' && Gear],
-     ['Craft', typeof Craft !== 'undefined' && Craft],
-     ['Build', typeof Build !== 'undefined' && Build],
-     ['Mind', typeof Mind !== 'undefined' && Mind]].forEach(([label, obj]) => {
+     ['Garden', Garden],
+     ['Blender', Blender],
+     ['Orders', Orders],
+     ['Dates', Dates],
+     ['Farm', Farm],
+     ['Larder', Larder],
+     ['Stations', Stations],
+     ['Hunger', Hunger],
+     ['NPC_ACTS', NPC_ACTS],
+     ['Gear', Gear],
+     ['Craft', Craft],
+     ['Build', Build],
+     ['Mind', Mind]].forEach(([label, obj]) => {
       if (!obj) return;
       Object.keys(obj).forEach(k => add(label + '.' + k, obj[k]));
     });
 
     /* MOVES' run() grants achievements, counts, and reads skills. */
-    if (typeof MOVES !== 'undefined' && Array.isArray(MOVES)) {
+    if (Array.isArray(MOVES)) {
       MOVES.forEach(m => {
         if (!m) return;
         Object.keys(m).forEach(k => add('move ' + (m.id || m.n || '?') + '.' + k, m[k]));
       });
     }
     /* Minigames' reward() and the arcade host, via Arcade.catalogue(). */
-    if (typeof Arcade !== 'undefined') {
-      Object.keys(Arcade).forEach(k => add('Arcade.' + k, Arcade[k]));
-      let games = [];
-      try { games = Arcade.catalogue() || []; } catch (_) { games = []; }
-      games.forEach(g => {
-        if (!g) return;
-        Object.keys(g).forEach(k => add('minigame ' + (g.id || g.name || '?') + '.' + k, g[k]));
-      });
-    }
+    Object.keys(Arcade).forEach(k => add('Arcade.' + k, Arcade[k]));
+    let games = [];
+    try { games = Arcade.catalogue() || []; } catch (_) { games = []; }
+    games.forEach(g => {
+      if (!g) return;
+      Object.keys(g).forEach(k => add('minigame ' + (g.id || g.name || '?') + '.' + k, g[k]));
+    });
     /* And the people, which is where the rest of it lives. Every place a node
        can carry code, named so the answer to "where" is somewhere you can go. */
-    if (typeof NPCS !== 'undefined') NPCS.forEach(p => {
+    NPCS.forEach(p => {
       add(p.id + ' · entry()', p.entry);
       /* And the code a person carries outside their tree — `onGift()`, the
          `if:` on a reply in `more` — which islander() calls on their behalf. */
@@ -104,19 +100,15 @@ const Writing = {
         });
       });
     });
-    if (typeof CALLERS !== 'undefined') {
-      const list = Array.isArray(CALLERS) ? CALLERS : Object.values(CALLERS);
-      list.forEach((c, i) => {
-        const label = 'caller ' + (c.name || c.id || i);
-        Object.keys(c).forEach(k => add(label + '.' + k, c[k]));
-      });
-    }
+    const list = Array.isArray(CALLERS) ? CALLERS : Object.values(CALLERS);
+    list.forEach((c, i) => {
+      const label = 'caller ' + (c.name || c.id || i);
+      Object.keys(c).forEach(k => add(label + '.' + k, c[k]));
+    });
 
     /* What the islanders run on their own — a routine's onUnlock() and onDone()
        are where Tito's job moves, several levels down in data/minds.js. */
-    if (typeof MINDS !== 'undefined') {
-      Object.keys(MINDS).forEach(id => this.deep('mind ' + id, MINDS[id], add));
-    }
+    Object.keys(MINDS).forEach(id => this.deep('mind ' + id, MINDS[id], add));
 
     this._index = out;
     return out;

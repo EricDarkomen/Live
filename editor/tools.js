@@ -398,7 +398,7 @@ const Tools = {
       if (Mode.id === 'levels') this.select(null);
       return;
     }
-    if (typeof Mode !== 'undefined' && Mode.id !== 'levels') return;
+    if (Mode.id !== 'levels') return;
 
     if (e.code === 'Space') { this.spaceDown = true; e.preventDefault(); return; }
 

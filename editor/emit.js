@@ -447,10 +447,10 @@ const Emit = {
     /* The hooks, in the order a round runs them. Anything captured that is not
        on that list still goes out — after them, so a game with a helper method
        of its own keeps it. */
-    const order = (typeof Games !== 'undefined' ? Games.HOOKS : [])
+    const order = Games.HOOKS
       .filter(k => code[k])
       .concat(Object.keys(code).filter(k =>
-        (typeof Games === 'undefined' ? [] : Games.HOOKS).indexOf(k) < 0));
+        Games.HOOKS.indexOf(k) < 0));
     order.forEach((k, i) => {
       L.push('');
       L.push('  ' + this.codeProp(k, code[k]) + (i === order.length - 1 ? '' : ','));
@@ -473,7 +473,6 @@ const Emit = {
       + '    ' + bits[bits.length - 1] + ' },\n';
   },
   cabinetTable() {
-    if (typeof Games === 'undefined') return 'const CABINETS = [];\n';
     const rows = [];
     Games.ids().forEach(id => {
       const h = this.held(Games, id);
@@ -772,7 +771,7 @@ const Emit = {
     const close = d.arr ? '];\n' : '};\n';
     /* Not the engine's base moves (engine/acts.js adds `land` where the game has
        none). */
-    const engine = e => kind === 'move' && typeof BaseMoves !== 'undefined' && BaseMoves.indexOf(e) >= 0;
+    const engine = e => kind === 'move' && BaseMoves.indexOf(e) >= 0;
     const ids = d.arr ? t.filter(e => !engine(e)).map(e => e.id) : Object.keys(t);
     return open + ids.map(id => {
       const h = this.held(Calls, kind + ':' + id);
@@ -902,7 +901,7 @@ const Emit = {
      table all of them. */
   officeEntry(kind, id, it, code) {
     if (kind === 'event') {
-      const live = (typeof EVENTS !== 'undefined' ? EVENTS : []).find(e => e.id === id);
+      const live = EVENTS.find(e => e.id === id);
       const body = it !== undefined ? it : live;
       if (!body) return '';
       const src = code || (live ? { go: live.go && String(live.go) } : {});
@@ -943,7 +942,7 @@ const Emit = {
         + ', f: ' + this.lit(c.f) + ', m: ' + this.lit(c.m) + ' },\n').join('');
     }
     /* Every field, known ones first. */
-    const beats = it !== undefined ? (it.beats || []) : (typeof CUT !== 'undefined' ? CUT : []);
+    const beats = it !== undefined ? (it.beats || []) : CUT;
     const HEAD = ['k', 'f', 'l', 'cam', 'len', 't'];
     return beats.map(b => {
       const parts = HEAD.filter(k => b[k] !== undefined).map(k => k + ': ' + this.lit(b[k]));

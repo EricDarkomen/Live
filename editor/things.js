@@ -131,7 +131,7 @@ const Things = {
   /* Which act is behind a `use`, and its source. Acts is loaded, so this is the
      function itself rather than a guess about a file. */
   act(use) {
-    const fn = typeof Acts !== 'undefined' && Acts[use];
+    const fn = Acts[use];
     return typeof fn === 'function' ? String(fn) : null;
   }
 };
@@ -160,7 +160,7 @@ const ThingCheck = {
     /* THE ACT. A `use` with no handler is a thing you walk up to, are offered,
        press — and nothing happens. Interact.go() looks it up by name. */
     Array.from(e.uses).forEach(u => {
-      if (typeof Acts === 'undefined' || typeof Acts[u] !== 'function') {
+      if (typeof Acts[u] !== 'function') {
         fault('error', 'Objects of this kind have `use: ' + Emit.str(u) + '` and there is no '
           + 'Acts.' + u + '. Pressing E on one does nothing at all — Interact.go() looks the '
           + 'handler up by name and finds nothing to call.', { use: u });
@@ -169,7 +169,7 @@ const ThingCheck = {
 
     /* THE FURNISHING. */
     if (furn) {
-      if (furn.sprite && !(typeof Tiles !== 'undefined' && Tiles.rects && Tiles.rects[furn.sprite])) {
+      if (furn.sprite && !(Tiles.rects && Tiles.rects[furn.sprite])) {
         fault('error', 'It draws the sprite “' + furn.sprite + '”, and no sheet in the atlas has '
           + 'a rectangle by that name. Tiles.draw() returns false and it falls back to the emoji, '
           + 'which looks exactly like a decision.', { field: 'sprite' });
@@ -208,7 +208,6 @@ const ThingCheck = {
 
   /* Acts no object names: unreachable writing. */
   orphanActs() {
-    if (typeof Acts === 'undefined') return [];
     const used = new Set();
     Things.index.forEach(e => e.uses.forEach(u => used.add(u)));
     /* Excluding `generic` (Interact's fallback) and `_helpers` called by other

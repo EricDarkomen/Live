@@ -221,10 +221,9 @@ const Check = {
       /* Three ways a link is taken: an object whose handler is the link, an object
          naming it with `via:`, or an act calling Levels.take() (the Greggs). */
       if (Doc.objects.some(o => o.use === l.via || o.via === l.via)) return;
-      if (typeof Writing !== 'undefined'
-        && Writing.calls('Levels', 'take').some(c => c.id === l.via)) return;
+      if (Writing.calls('Levels', 'take').some(c => c.id === l.via)) return;
       /* And the lift, whose act takes links listed in FLOORS (data/world.js). */
-      if (typeof FLOORS !== 'undefined' && FLOORS.some(f => f.via === l.via)
+      if (FLOORS.some(f => f.via === l.via)
         && Doc.objects.some(o => o.use === 'lift')) return;
       this.fault('warn', 'Link “' + l.via + '” has no object on this level with that `use` or '
         + '`via`, and nothing in the writing calls Levels.take(' + Emit.str(l.via) + '), '

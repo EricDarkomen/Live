@@ -488,7 +488,7 @@ const MG_HOLD = {
        it: a grant built out of a variable is invisible to a regex over source,
        which is exactly the blind spot editor/prog.js documents. */
     Ach.get('a_holdmusic');
-    if (share >= 1 && typeof Arcade !== 'undefined' && Arcade.clearedAll()) Ach.get('a_arcade');
+    if (share >= 1 && Arcade.clearedAll()) Ach.get('a_arcade');
     return {
       xp: 40 + Math.round(70 * share),
       money: Math.round(share * 240) / 100,
