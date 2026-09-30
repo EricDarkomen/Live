@@ -1,58 +1,30 @@
 'use strict';
 /* ---------------- The guns ----------------
+   The office's own arsenal, from the 2019 away-day box: a foam dart blaster,
+   a water pistol and an elastic-band post tray. Nothing hurts anybody; it
+   makes people turn round.
+   Drawn, not fetched: each gun is a character grid plus a palette, like the
+   cars. The LPC kit has no guns, and twin-stick aim needs art that rotates:
+   a bitmap baked once at 1:1 and turned about its grip. Moving the trigger
+   guard is moving a `g`.
 
-   The game is called Call of Duty: Customer Service and for eleven months the
-   only thing in it you could point at anybody was a policy. This is the rest of
-   the joke: there ARE guns in this building, and they are the guns an office
-   actually has — a foam dart blaster, a water pistol and a thing somebody made
-   out of a post tray and four elastic bands — all three of them from the box
-   Marketing brought back from the 2019 away day and nobody has opened since.
-   Nothing in here hurts anybody. What it does is make twenty adults turn round,
-   which is the only ammunition this game has ever had.
-
-   ---- THEY ARE DRAWN, NOT FETCHED ----
-
-   Every gun below is a picture written out in the source: a grid of characters
-   and a palette to look them up in. That is the same decision the cars made and
-   it is made for the same two reasons. The first is the licence — every pixel
-   in art/ is third-party, fetched and licence-checked by the sprite build, and
-   the kit this game pins is mediaeval-through-Victorian: there is no blaster in
-   it and there was never going to be one. The second is rotation. A twin-stick
-   game aims through every angle, not through the eight a sprite sheet would
-   give it, so the art has to be something that can be turned — and a bitmap
-   baked once at 1:1 and rotated about its grip is exactly that.
-
-   Read the arrays. They are pictures. That is the point of writing them this
-   way: moving the trigger guard is moving a `g`.
-
-   ---- WHAT A GUN IS ----
-
-     n, e, d       what it is called, its emoji, and what it is when you look
-                   at it in the inventory.
-     mag, reload   how many, and how long the fumbling takes.
+   A gun:
+     n, e, d       name, emoji, inventory description.
+     mag, reload   rounds, and reload seconds.
      rate          shots per second, held down.
-     speed, range  tiles per second, and how many tiles before it is spent.
-     spread        radians of inaccuracy per shot. A water pistol has a lot.
+     speed, range  tiles per second, and tiles before it is spent.
+     spread        radians of inaccuracy per shot.
      kick          pixels of screen shake.
-     shot          how the thing in the air is drawn.
-     hands         2 for the one you hold like you mean it. The second arm goes
-                   to `fore` on the art, the way every two-handed LPC shooting
-                   sheet has the off hand under the barrel.
-     art           the picture, facing right, with its grip and muzzle marked.
+     shot          how the projectile is drawn.
+     hands         2 puts the off hand on the art's `fore`, under the barrel.
+     art           the picture, facing right, grip and muzzle marked.
 
-   The binding to the thing in your pocket runs the OTHER way, from data: an
-   entry in ITEMS carries a `gun:` naming its key here, and that is the whole
-   of it — see Item.give(). Nothing in this file has to keep a second list of
-   what the player is carrying.
-
-   Everything else — the aiming, the firing, the flying and the reacting — is
-   one object below, because there is exactly one of these in the world at a
-   time and it is in the player's hands. */
+   Items bind to guns from data: an ITEMS entry's `gun:` names a key here
+   (Item.give()). Aiming, firing, flight and reactions are one object below:
+   there is one gun in the world, in the player's hands. */
 
 const GUNS = {
-  /* Orange, enormous, and the only one of the three that came out of a box
-     with a brand on it. Six darts, a proper clunk, and slow enough across a
-     room that you can watch one go. */
+  /* Six darts, a proper clunk, slow enough to watch. */
   dart: {
     n: 'Foam Dart Blaster', e: '🔫',
     d: 'Six foam darts. Four of them match.',
@@ -103,8 +75,7 @@ const GUNS = {
       ]
     }
   },
-  /* From the same box, still with a 2019 price sticker on the tank. It holds
-     forty and it carries about three tiles, which is the whole personality. */
+  /* Holds forty, carries about three tiles. */
   water: {
     n: 'Water Pistol', e: '💦',
     d: 'Translucent pink. Fill it at a sink.',
@@ -132,17 +103,13 @@ const GUNS = {
   }
 };
 
-/* ---- and the two things you swing ----
-   Melee is in the same table, on the same controls, drawn by the same code,
-   because it is the same thing: something in your hands, pointed where the
-   right stick is pointed. A `melee` block instead of a magazine is the whole
-   of the difference — no ammo, no reload, and an ARC swept through the aim
-   rather than a thing sent down it.
+/* ---- the two things you swing ----
+   Melee shares the table, controls and drawing: a `melee` block instead of a
+   magazine means no ammo, no reload, and an arc swept through the aim.
 
      arc      radians swept, centred on the aim.
-     reach    tiles, from the middle of you to the middle of them.
-     swing    seconds the sweep takes. The pose is two frames; this is how
-              long they last.
+     reach    tiles, centre to centre.
+     swing    seconds the sweep (two pose frames) takes.
      rate     swings per second, held down. */
 GUNS.noodle = {
   n: 'Foam Sword', e: '🗡️',
@@ -187,100 +154,46 @@ const Guns = {
   ORDER: ['dart', 'band', 'water', 'noodle', 'pack'],
 
   /* ---- state ----
-     What is OWNED is in G.guns and is saved: which ones you have, which is in
-     your hand, how much is left in each, and who you have already hit today.
-     What is HAPPENING is here and is not saved — coming back to a shift with
-     the gun still up and the trigger still held would be a strange way to
-     rejoin an office. */
+     Ownership is in G.guns and saved (what you have, what is in hand, ammo, who
+     you hit today). What is happening is here and unsaved. */
   shots: [],
   armed: false,      /* is it out */
   a: 0,              /* where it is pointing, radians, screen space */
   want: false,       /* is the trigger held */
   cool: 0, reloadT: 0, flash: 0, holster: 0, hint: 0,
-  /* A swing in progress: how much of it is left, how long it was, which
-     bearing it started from, and who it has already caught. A swing hits
-     each person once however long the arc dwells on them. */
+  /* A swing in progress: time left, duration, starting bearing, who it caught
+     (each person once per swing). */
   swingT: 0, swingFor: 0.3, swingA: 0, swingHit: null,
-  /* Which way round the next swing goes. Flipped by every swing, so holding
-     the trigger is a forehand, then a backhand, then a forehand — which is
-     what the mirrored columns of the pose sheet are for. */
+  /* Alternates every swing: forehand, backhand (the pose sheet's mirrored columns). */
   swingDir: 1,
-  /* How long after a shot the arm is still coming back.
-     an eighth of a second: long enough to see at sixty frames and short enough
-     that the third dart of a magazine is not fired out of a pose left over
-     from the first. */
+  /* Seconds the arm takes to come back after a shot. */
   KICK_S: 0.13, kickT: 0,
-  /* The eased lean, and how fast it catches up. A fraction per frame rather
-     than a rate per second on purpose: it is a smoothing filter on something
-     that is only ever drawn, not a thing in the world with a speed. */
+  /* The eased lean: a per-frame smoothing fraction, since it is only drawn. */
   smooth: 0, EASE: 0.28,
 
-  /* How far the shoulders may turn past the direction the sprite is drawn
-     facing before the sprite gives up and faces the other way. Four rows of
-     art and any angle of aim: the difference between the two is taken up at
-     the waist, and this is the cap on it. The head is twenty-five pixels above
-     the hip, so every tenth of a radian moves it two and a half pixels
-     sideways — which on a body fourteen pixels wide is a great deal further
-     than it sounds, and past about a third of a radian a person stops reading
-     as twisting and starts reading as falling over. */
+  /* How far the shoulders may turn past the drawn row before the sprite faces
+     the next one. The head is 25px above the hip, so beyond about a third of a
+     radian a twist reads as falling over. */
   TWIST: 0.30,
-  /* ---- THE ARM ----
+  /* ---- the arm ----
+     Every frame in the kit has both arms at the sides, and LPC's gun-holding
+     rows are ShareAlike (not mixable with OGA-BY, LICENSE part 2). So the arm
+     already drawn is cut out and turned at the shoulder: the player's own
+     sleeve and hand, whatever they wear. Two canvas operations (a clip with a
+     hole, and the same blit rotated), nothing read back. Coordinates are in the
+     64x56 cell.
 
-     THE PROBLEM. Four rows of art, and in every frame of every one of them
-     both arms hang at the sides. There is no pose in this kit where anybody
-     is holding a GUN up. LPC Revised's combat set — squared up, a forehand, a
-     backhand — is in the people now (see HANDS below, which is what the two
-     things you SWING use), and it is a set for a sword: the one frame with
-     the arm held straight out is the middle of a lunging punch. The universal
-     spritesheet's `shoot` row — the bow draw most LPC games with guns put a
-     rifle over — is on a different body under a ShareAlike licence this
-     project will not mix into OGA-BY art (see LICENSE part 2). So a blaster drawn at the end of the arm
-     the kit gives you is a blaster floating beside a man standing to
-     attention, and facing away it is a blaster nothing on the screen is
-     holding.
+     Each entry is one arm:
 
-     THE ANSWER IS THE ARM THE KIT ALREADY DREW, TURNED AT THE SHOULDER. Cut
-     the arm out of the frame — it is a rectangle, seven pixels by twelve, and
-     the kit separates it from the torso with a line of its own shading — and
-     blit that same rectangle back rotated about the shoulder joint. It is the
-     player's OWN sleeve and the player's OWN hand, because it is their own
-     frame: whatever shirt they chose, whatever skin they chose, at whatever
-     moment of the walk cycle they are on. Nothing is recoloured, nothing is
-     invented, and a shirt added to the creator tomorrow gets an arm for free.
+       rect    the arm in the cell, [x0, y0, x1, y1] inclusive, along the seam
+               the kit shades between sleeve and ribs.
+       from    the shoulder joint inside it: the pivot.
+       to      where the joint goes. Same as `from` front and back; side on,
+               the only visible arm is the far one, carried to the near shoulder.
+       hand    the fist's middle in the rect, where the grip goes.
+       base    screen direction of the arm when the aim lies along the row.
 
-     That is paper-doll animation and it is as old as animation. What makes it
-     affordable here is that it is two canvas operations: a clip with a hole in
-     it so the arm does not also hang where it used to, and the same blit again
-     inside a rotation. No pixel is ever read back, which matters because this
-     game opens from file:// and a canvas that has had a sprite drawn on it
-     cannot be read from there at all.
-
-     Every coordinate below is in the 64x56 cell the people are drawn in —
-     thirteen pixels right of where they were when the cell was 38 wide, which
-     is the whole of that change as far as this table is concerned.
-
-     EACH ENTRY IS ONE ARM:
-
-       rect    the arm in the cell, [x0, y0, x1, y1] inclusive. Measured off
-               the composed frame: the kit shades a seam between the sleeve
-               and the ribs, so the cut follows a line that is already drawn.
-       from    the shoulder joint inside that rectangle — what it turns about.
-       to      where that joint goes. The same point for the front and back
-               rows, where the arm is already on the shoulder it belongs to.
-               NOT the same for the side rows, where the only arm the kit
-               leaves visible is the FAR one, swung out behind the back: it is
-               carried across to the near shoulder on the way, which is the
-               difference between an arm reaching forward and a hand stuck to
-               somebody's chest.
-       hand    the middle of the fist in that rectangle. Where the grip goes,
-               once the rotation has taken it wherever it takes it.
-       base    where the arm points, on the screen, when the aim is straight
-               along the row. Down and out on the front row, up and out on the
-               back one, forward on the two side rows.
-
-     Two arms on the front and back rows and the aim picks which — front on, a
-     blaster held out to the right is in the right hand. One on the side rows,
-     because there is only one arm to have. */
+     Front and back rows have two arms and the aim picks one; side rows have one. */
   ARM: [
     /* up    */ [
       { rect: [18, 31, 24, 42], from: [21, 32], to: [21, 32], hand: [21, 39], base: -Math.PI + 0.55 },
@@ -297,23 +210,13 @@ const Guns = {
      ARM is a rotation away from this. */
   ARM_REST: Math.PI / 2,
 
-  /* ---- THE HANDS IN THE COMBAT FRAMES ----
-     The foam sword and the compliance pack are not held on a turned arm: they
-     are held in LPC Revised's own one-handed combat set, which the people are
-     built with — squared up while it is out, a forehand, a backhand. That is
-     how every LPC game with a sword does it: the body plays the swing and the
-     weapon is a layer in the hand. The frames draw the arm; all this has to
-     know is where the hand IS in each of them.
-
-     Measured, not placed: in a composed person the only body pixels left
-     showing below the head are the hands, so each entry is the middle of one
-     patch of exposed skin in that frame, in the 64x56 cell. Both builds agree
-     to the pixel. Where both hands show, both are listed and the one that
-     points most nearly along the weapon at that instant is the one holding it
-     — a forehand swaps hands across the body and a backhand swaps them back,
-     and choosing by bearing gets that right without anybody labelling it.
-     Facing away, the backhand's middle frame has its hand behind the body
-     entirely; that one is the midpoint of its neighbours. */
+  /* ---- the hands in the combat frames ----
+     The foam sword and compliance pack are held in LPC Revised's one-handed
+     combat set (ready, forehand, backhand): the body plays the swing and the
+     weapon is a layer in the hand. Each entry is the middle of an exposed-hand
+     patch in that frame, measured in the 64x56 cell. Where both hands show, the
+     one pointing most nearly along the weapon holds it. Facing away, the
+     backhand's hidden middle frame uses the midpoint of its neighbours. */
   HANDS: [
     /* up    */ {
       ready: [[[42, 36]], [[43, 38]]],
@@ -335,9 +238,7 @@ const Guns = {
   /* The middle of a person, in the cell: where "which hand is further along
      the weapon" is measured from. */
   CHEST: [32, 30],
-  /* How long a squared-up stance holds each of its two frames: a breath, a
-     little quicker than a standing one, because somebody holding a foam sword
-     at a colleague is not relaxed. */
+  /* Seconds per frame of the squared-up stance: quicker than a resting breath. */
   READY_S: 0.45,
   gripFor(dir, cycle, k, bearing) {
     const row = this.HANDS[dir] && this.HANDS[dir][cycle];
@@ -352,31 +253,17 @@ const Guns = {
     }
     return best;
   },
-  /* HOW MUCH OF THE LEFTOVER ANGLE THE ARM TAKES. The row is chosen first and
-     takes the cardinal; the lean takes a third of a radian of what is left;
-     this takes half of it again, and the rest is simply the difference between
-     a shoulder and a wrist. A whole shoulder is more than one: swing the arm
-     through the full residual and aiming at the near corner of the room folds
-     it across the chest. */
+  /* The arm's share of the angle left after the row and the lean; the full
+     residual would fold the arm across the chest. */
   ARM_K: 0.5,
 
-  /* A couple of pixels of reach along the aim, on top of the hand: a wrist,
-     on the end of the arm the shoulder has just moved. Two, and not more —
-     every pixel of this is a pixel of daylight between a grip and the fist
-     holding it. */
+  /* Pixels of wrist along the aim, past the hand. */
   REACH: 1,
 
-  /* How high a shot is drawn. It travels on the GROUND plane like everything
-     else in this game — that is what lets it be tested against people and
-     walls with the same arithmetic everything else uses — and is drawn eleven
-     pixels up, which is where a chest is. Where it is born is not a constant
-     any more: it is the muzzle, wherever the pose has put that. */
+  /* Shots travel on the ground plane (hit-tested like everything else) and are
+     drawn this high. They start at the muzzle. */
   SHOT_Z: -11,
-  /* Taller than a desk. A dart goes over a desk, a worktop, a bin and a chair,
-     because it is thrown at chest height and those are not chest height; it
-     stops at a wall, a cabinet, a vending machine and a shut door. The drawn
-     size is the only height this game has ever had, and it turns out to be
-     enough to answer the question. */
+  /* Solids taller than this stop shots; desks, bins and chairs do not. */
   STOP_H: 24,
 
   /* ---- what you own ---- */
@@ -403,11 +290,7 @@ const Guns = {
     const g = this.state();
     if (g.have.indexOf(id) < 0) g.have.push(id);
     g.ammo[id] = GUNS[id].mag;
-    /* The first one you pick up is the one in your hand, and the second and
-       third do not take it off you. Taking all three out of the away-day box
-       is three calls to this in one line, and the last of them used to win —
-       so opening the box left you holding the water pistol, which is the
-       third-funniest of the three and not the one anybody reached for. */
+    /* The first gun picked up stays in hand; later pickups do not replace it. */
     if (!g.gun || !GUNS[g.gun] || g.have.indexOf(g.gun) < 0) g.gun = id;
     return true;
   },
@@ -419,8 +302,7 @@ const Guns = {
     this.reloadT = 0; this.cool = 0.15;
     return true;
   },
-  /* Walk the ones you actually have, in catalogue order, so Q is the same
-     three in the same order every time rather than the order you found them. */
+  /* Q cycles the guns you have, in catalogue order. */
   next() {
     const list = this.ORDER.filter(k => this.have().indexOf(k) >= 0);
     if (list.length < 2) return false;
@@ -434,11 +316,8 @@ const Guns = {
   },
 
   /* ---- may it be out at all ----
-     One question, asked by everything: the keyboard, the stick, the update and
-     the renderer. A gun is a thing you are holding in the world, so anything
-     that takes the world away takes it with them — and that includes being
-     behind a wheel, where both hands are already spoken for and where the
-     right-hand stick is the throttle. */
+     One answer for keyboard, stick, update and renderer: not while anything
+     takes the world away, and not while driving (the right stick is throttle). */
   can() {
     return G.state === 'play' && this.any()
       && !Cars.driving
@@ -456,15 +335,10 @@ const Guns = {
     if (on) { this._dir = null; this.smooth = this.twist(this.a).lean; }
     if (on) {
       this.cool = Math.max(this.cool, 0.12);
-      /* Out with nothing in it is out with nothing in it: start the fumbling
-         now rather than on a trigger pull that cannot happen. Without this, a
-         gun put away halfway through a reload — which is what letting go of
-         the stick with an empty magazine does — came back out empty for ever,
-         because reloading is only ever started by firing. */
+      /* Drawn empty: start reloading now, since only firing would start it. */
       if (!this.melee() && this.ammo() <= 0) this.reload();
       Sfx.draw();
-      /* Said once, the first time, and said in whichever words this device
-         deserves — the same rule every other instruction in this game follows. */
+      /* Said once, in words for this device. */
       if (!G.flags.gunHint) {
         G.flags.gunHint = true;
         UI.toast(this.def().e, TOUCH
@@ -477,19 +351,14 @@ const Guns = {
       this.reloadT = 0;
     }
   },
-  /* Seconds of nobody touching the aim before it goes back in your pocket. It
-     exists for the thumb: on a phone there is no "holster" button and there
-     should not be one — you let go of the stick, and a moment later you are
-     somebody walking through an office again. */
+  /* Seconds without aim before it is put away. Phones have no holster button:
+     you let go of the stick. */
   HOLSTER: 2.6,
   toggle() { this.arm(!this.armed); },
 
   /* ---- pointing it ----
-     Two ways in, and they mean slightly different things. `point` is a vector
-     from a stick or a pair of arrow keys: it aims AND it pulls the trigger,
-     which is what a twin-stick right hand does. `at` is a place on the map —
-     the mouse — which aims and nothing else, because a mouse has its own
-     button and taking the click away from it would be rude. */
+     `point` is a stick or arrow vector: aims and fires, twin-stick style.
+     `at` is a map position (the mouse): aims only; the mouse has its own button. */
   point(dx, dy) {
     const m = Math.hypot(dx, dy);
     if (m < 0.001) { this.want = false; return; }
@@ -497,9 +366,7 @@ const Guns = {
     if (!this.armed) return;
     this.a = Math.atan2(dy, dx);
     this.holster = this.HOLSTER;
-    /* Past half a push is a shot. Below it you are turning to face something,
-       which is a thing people do with a gun in their hand and which should not
-       cost a dart. */
+    /* Past half a push fires; below that it only turns you. */
     this.want = m > 0.52;
   },
   at(wx, wy) {
@@ -514,39 +381,22 @@ const Guns = {
   },
 
   /* ---- the twist ----
-     The one piece of this that everybody in the building gets and not just the
-     person holding the gun. A sprite sheet has four directions; an aim has
-     every angle; a person resolves the difference by turning their shoulders
-     and leaving their feet where they are. So the renderer is told two things
-     rather than one — which row the LEGS are drawn from, and which row the
-     TORSO is — and the leftover angle between the aim and the row it picked is
-     handed over as a lean. Sprites.draw() takes it and Sprites.twisted() does
-     the cutting.
-
-     Anyone can be handed one. The player twists because they are aiming;
-     a colleague twists because somebody has just hit them with a foam dart and
-     they are turning round to find out who, which is the same movement and the
-     same three lines of code. */
+     The renderer is told which row the legs use and which the torso uses, and
+     the leftover angle becomes a lean (Sprites.twisted()). Anybody can be
+     handed one: the player aims, and a colleague turns to see who hit them. */
   CARD: [-Math.PI / 2, Math.PI, Math.PI / 2, 0],
-  /* How far past the halfway line the aim has to go before the shoulders give
-     up the row they are on. Without it, an aim sitting exactly on a diagonal —
-     which is where a thumb naturally rests — flickers between two rows every
-     frame, and a person who cannot decide which way they are facing is worse
-     than one facing slightly the wrong way. Eight degrees of stickiness. */
+  /* Hysteresis before the shoulders change row, so an aim on a diagonal does not
+     flicker (about eight degrees). */
   HYST: 0.14,
   twist(angle, sticky) {
     let dir = Sprites.dirOf(Math.cos(angle), Math.sin(angle));
-    /* Keep the row we are on while the aim is still anywhere near it. Only the
-       player asks for this — a colleague turning to see who hit them is
-       answering once and has no row to keep. */
+    /* Keep the current row while the aim stays near it. Player only. */
     if (sticky && this._dir !== null && this._dir !== undefined && this._dir !== dir
         && Math.abs(this.off(angle, this._dir)) < Math.PI / 4 + this.HYST) dir = this._dir;
     if (sticky) this._dir = dir;
     let d = this.off(angle, dir);
-    /* Facing the camera, a turn to the aimer's right is a lean to the screen's
-       right; facing away it is the other way round. Left and right take the
-       residual as it comes, because there it is simply the barrel rising and
-       falling and the shoulders go with it. */
+    /* Facing the camera, a turn to the aimer's right leans to screen right; facing
+       away it is reversed. Side rows take the residual as it comes. */
     if (dir === 2) d = -d;
     return { dir, lean: clamp(d, -this.TWIST, this.TWIST) };
   },
@@ -558,65 +408,31 @@ const Guns = {
     return d;
   },
   _dir: null,
-  /* ---- and how far the feet are allowed to disagree with it ----
-     A waist is not a swivel. The first version of this let the legs take the
-     direction of travel whatever the shoulders were doing, and walking west
-     while aiming east drew somebody whose top half was turned through a
-     hundred and eighty degrees — which is not a pose, it is an injury.
-
-     So the legs may be a QUARTER TURN from the shoulders and no more, which
-     with four directions means they may be the row either side of the torso's
-     and never the one opposite it. Ask for the opposite — walk away from what
-     you are pointing at — and the feet give up the argument rather than the
-     spine: they take the aim's own row and the walk cycle plays in reverse.
-     You back up facing the thing, which is exactly what a person does and is
-     one flag to the frame lookup.
-
-     Standing still, the feet simply come round to the aim, because somebody
-     who has stopped to point at something is facing it. */
+  /* ---- how far the feet may disagree ----
+     The legs may be at most a quarter turn from the shoulders. Walking away
+     from the aim, the feet take the aim's row and the walk plays in reverse:
+     backing up while facing it. Standing still, the feet face the aim. */
   legs(tdir) {
     if (!P.moving) return { dir: tdir, back: false };
     const mv = P.dir ?? 2;
     if ((mv + 2) % 4 === tdir) return { dir: tdir, back: true };
     return { dir: mv, back: false };
   },
-  /* ---- which arm is holding it, and how far round ----
-     The row has already been chosen and the lean already taken off; this is
-     the last of the angle, and it goes into the shoulder.
-
-     `armAim` is the AIM most of the time and the SWEEP while a swing is
-     running, so the arm goes round with the thing in it instead of holding
-     still while a sword describes an arc on its own. Which arm it is comes
-     from the aim either way: a forehand that crosses the body is still thrown
-     by the shoulder it started on, and an arm that changed sides halfway
-     through a swing would be a second person's.
-
-     `turn` is what Sprites.twisted() rotates the cut rectangle by, and it has
-     the lean SUBTRACTED out of it, because that blit happens inside the twist:
-     the torso has already turned by that much and the arm went with it. */
+  /* ---- which arm, and how far round ----
+     The last of the angle goes into the shoulder. `armAim` is the aim, or the
+     sweep during a swing, so the arm carries the weapon round. The arm is picked
+     by the aim either way, so it never switches sides mid-swing. `turn` has the
+     lean subtracted, since that blit already happens inside the twist. */
   armAim() {
     const d = this.def();
     const base = (d && d.melee && this.swingT > 0) ? this.sweep() : this.a;
     return base + this.tilt(base);
   },
-  /* ---- THE ARM DOES THE KICK AND THE RELOAD, NOT THE GUN ----
-     Every LPC sheet that ships a gun — the shotgun cut for Warlordocracy, the
-     two-handed pistol and rifle in Skorpio's sci-fi pack, the bow `shoot` row
-     half the tile-RPGs on OpenGameArt put a rifle over — does the recoil in
-     the ARMS: a frame where the hands come up and the barrel goes with them.
-     A gun that rises on its own out of a still fist reads as the gun coming
-     loose. So it is an angle added to the aim before the shoulder is turned,
-     and the picture follows the hand because it is drawn at the same angle.
-
-     The reload is the same move the other way: every one of those sheets
-     drops the muzzle to the floor while the hands are busy, and a gun that
-     stays levelled at Marjorie while you fumble with its darts is still
-     pointed at Marjorie. Down fast, held, up again — sin(πp) clipped flat at
-     the bottom.
-
-     Both are a turn TOWARDS a screen direction rather than a fixed sign, so
-     they read the same aimed left, right, up or down: the kick lifts the
-     muzzle up the screen and the reload lowers it down it. */
+  /* ---- the arm does the kick and the reload ----
+     As in LPC gun sheets, recoil lifts the arms and the gun with them; a gun
+     rising alone from a still fist looks loose. The reload drops the muzzle:
+     down fast, held, up again (sin(πp) clipped flat). Both turn towards a
+     screen direction, so they read the same whichever way you aim. */
   RELOAD_DIP: 0.75,
   tilt(base) {
     const d = this.def();
@@ -648,27 +464,15 @@ const Guns = {
       - this.ARM_REST - lean;
     const co = Math.cos(turn), si = Math.sin(turn);
     const hx = s.hand[0] - s.from[0], hy = s.hand[1] - s.from[1];
-    /* Where the fist ended up, in the cell, once its own rectangle has been
-       turned about the shoulder and carried to wherever `to` puts it. The
-       grip goes here — see hand(), which takes it the rest of the way out
-       of the cell and onto the screen. */
+    /* The fist's position in the cell after the turn; hand() takes it to screen. */
     const hand = [s.to[0] + hx * co - hy * si, s.to[1] + hx * si + hy * co];
     return { rect: s.rect, from: s.from, to: s.to, turn, hand, support: this.supportFor(row, s, hand, aim, lean) };
   },
-  /* ---- THE OTHER HAND ----
-     The two-handed hold every LPC shooting sheet draws: the off hand forward
-     under the barrel. Only where the kit has a second arm to give — the front
-     and back rows; side on, the far arm is behind the body and there is only
-     one to have — and only for a gun that declares `hands: 2`.
-
-     It is the same cut-and-turn as the first arm, pointed at the gun's `fore`
-     rather than along the aim. Worked out in the CELL, before the lean, which
-     is the space the main hand is already in: the barrel's direction there is
-     the aim with the lean taken off, because the cell is about to be turned
-     by the lean and the barrel with it. The arm is seven pixels long and the
-     shoulders are further apart than two of them, so across the body it
-     reaches TOWARDS the grip rather than onto it — which from the front is
-     what a two-handed hold looks like anyway: a forearm across the belt. */
+  /* ---- the other hand ----
+     The off hand under the barrel, for `hands: 2`, on front and back rows only
+     (side on, the far arm is hidden). The same cut-and-turn, pointed at the
+     gun's `fore`, in cell space before the lean. Across the body it reaches
+     towards the grip rather than onto it: a forearm across the belt. */
   supportFor(row, s, hand, aim, lean) {
     const d = this.def();
     if (row.length < 2 || !d || d.hands !== 2 || !d.art || !d.art.fore || this.reloadT > 0) return null;
@@ -685,43 +489,22 @@ const Guns = {
     };
   },
 
-  /* The player's own pose: which row the shoulders are, how far the lean
-     goes, where the arm has got to — and, as a side effect, where the feet
-     end up. Null when there is nothing in your hands, which is the single
-     blit everybody has always been.
-
-     P.dir is WRITTEN here rather than returned, so that everything downstream
-     that has ever asked which way the player is facing — the renderer, and
-     whatever asks next — gets one answer. movePlayer sets it from the
-     direction of travel a moment earlier in the same frame; this is the part
-     that knows travel is no longer the only thing pointing it. */
+  /* The player's pose: shoulder row, lean, arm, and the feet as a side effect.
+     Null with nothing in hand (a single blit). Writes P.dir, so everything
+     asking which way the player faces gets one answer. */
   pose() {
     if (!this.armed) return null;
     const t = this.twist(this.a, true);
     t.lean = this.smooth = this.smooth + (t.lean - this.smooth) * this.EASE;
-    /* THE STANDING FRAME, in the direction the SHOULDERS are facing, whatever
-       the feet are doing. There is no second drawing of this person anywhere
-       and there does not need to be one: the pose is this frame with one arm
-       turned at the shoulder.
-
-       It is FROZEN on the stand while the legs walk and run underneath, for a
-       reason that is about the arm and not about taste. The rectangle the arm
-       is cut from is measured on this frame; the kit's own walk shifts it a
-       pixel or two and its RUN — which pitches the whole body forward over a
-       leading leg and tucks both elbows in — moves it halfway across the cell.
-       Cut that rectangle out of a run frame and you take a piece of ribs and
-       blit back a stub. So the top half braces, which is what a top half
-       carrying something does, and the shins do the walking. The breath below
-       keeps it from reading as furniture. */
+    /* The standing frame in the shoulders' direction, frozen while the legs move:
+       the arm rect is measured on this frame, and the run pose moves the arm
+       halfway across the cell. The breath keeps it alive. */
     t.frame = 0;
     t.arm = this.armFor(t.dir, t.lean);
-    /* ---- THE THINGS YOU SWING ----
-       Squared up while it is out, and the kit's own forehand or backhand while
-       it is going round — swingDir is flipped by every swing, so holding the
-       trigger alternates the two exactly as it always alternated the arc. The
-       frame draws the arm, so nothing is cut; the weapon goes in whichever
-       hand of that frame is leading. A sheet without the combat frames — a
-       copy opened with an old manifest — falls through to the turned arm. */
+    /* ---- the things you swing ----
+       Squared up while out, the kit's forehand or backhand while swinging
+       (swingDir alternates). The frame draws the arm; the weapon goes in the
+       leading hand. A sheet without combat frames uses the turned arm. */
     const r = Sprites.at('player'), m = r && r.sheet, d = this.def();
     if (d && d.melee && m && m.ready && m.slash && m.backslash) {
       let cycle, k;
@@ -740,17 +523,12 @@ const Guns = {
          frame, feet apart. Walking, the walk carries on underneath. */
       t.legFrame = t.frame;
     }
-    /* A BRACED TOP HALF IS NOT A FROZEN ONE. One pixel, on the rhythm every
-       seated person in the building breathes on, and only while nothing else
-       is moving it. */
+    /* One pixel of breath while nothing else moves the top half. */
     t.lift = (t.grip || this.swingT > 0 || this.kickT > 0 || !R.animate)
       ? 0 : Sprites.breathLift('player');
     const l = this.legs(t.dir);
     P.dir = l.dir; this.back = l.back;
-    /* WHEN BOTH HALVES WANT THE SAME THING they are one drawing and not two.
-       Standing still, or walking the way you are pointing, there is nothing to
-       cut: the same frame, the same hips, the same legs, and a lean at the
-       waist over the top of it. */
+    /* Both halves the same drawing (standing, or walking where you aim): no cut. */
     t.whole = l.dir === t.dir;
     this._pose = t;
     return t;
@@ -760,13 +538,8 @@ const Guns = {
   back: false,
 
   /* ---- where the hand is, in the world ----
-     The arm says where the fist has got to in the cell; this says where that
-     pixel has ended up on the screen, which is not the same question once the
-     torso has been turned about the hip. It applies the SAME transform
-     Sprites.twisted() applies to the pixels — rotate about the waist, then the
-     shoulder shift — so the grip stays in the hand at every lean instead of
-     drifting out of it by a couple of pixels at the extremes, which is exactly
-     the amount that reads as a gun somebody is not quite holding. */
+     The same transform Sprites.twisted() applies (rotate about the waist, then
+     the shoulder shift), so the grip stays in the hand at every lean. */
   hand(x, y, ang) {
     const t = this._pose;
     const r = Sprites.at('player');
@@ -828,20 +601,9 @@ const Guns = {
     this.kickT = this.KICK_S;
     const a = this.a + rnd(-d.spread, d.spread);
     const sp = d.speed * TILE;
-    /* OUT OF THE BARREL, not out of the middle of the chest. It used to be a
-       flat fifteen pixels along the aim from the body, which was near enough
-       while the gun was drawn at one height for every direction and plainly
-       wrong the moment it was not: aimed down, the gun is at the hip and the
-       dart appeared from the collarbone.
-
-       Two numbers come out of the muzzle and they are different questions. HOW
-       FAR IN FRONT is a distance in the ground plane, and it is the muzzle's
-       offset from the chest projected onto the aim — take the drawn y at face
-       value instead and a shot fired dead level starts eight pixels north of
-       the person firing it, which is most of the margin the hit test has. HOW
-       HIGH is what is left over, and it is carried on the shot, so the dart
-       leaves the barrel it is drawn coming out of instead of appearing at a
-       standard chest height an inch below it. */
+    /* Out of the barrel. The muzzle's offset splits into distance ahead (projected
+       onto the aim, on the ground plane) and height (carried on the shot), so the
+       shot leaves the barrel it is drawn from. */
     const m = this.muzzleAt(a);
     const reach = clamp((m.x - P.x) * Math.cos(a) + (m.y - (P.y + this.SHOT_Z)) * Math.sin(a), 12, 22);
     const sx = P.x + Math.cos(a) * reach, sy = P.y + Math.sin(a) * reach;
@@ -851,10 +613,8 @@ const Guns = {
       left: d.range * TILE, gun: id, t: 0
     });
     if (d.kick) FX.shake(d.kick);
-    /* The second frame of every LPC muzzle flash: after the flash, a puff.
-       A dart blaster has no powder in it, so it is the spring's breath rather
-       than smoke — pale, two pixels of it, gone in a third of a second. Not
-       for the water pistol, whose shot IS the puff. */
+    /* A puff after the flash: the spring's breath. Not for water, whose shot is a
+       puff. */
     if (id !== 'water' && FX.motion) {
       for (let i = 0; i < 2; i++) {
         FX.parts.push({ x: m.x + Math.cos(a) * 3, y: m.y + Math.sin(a) * 3,
@@ -863,21 +623,15 @@ const Guns = {
       }
     }
     Sfx.gun(id);
-    /* Empty is not a failure state to be announced, it is a click and then the
-       fumbling. Reloading itself is automatic because the alternative on a
-       phone is a fourth control for a thing that has exactly one answer. */
+    /* Empty is a click, then an automatic reload: no fourth control on a phone. */
     if (!g.ammo[id]) this.reload();
     UI.hudDirty();
   },
 
   /* ---- the swing ----
-     A sweep rather than a thing in the air, and everything about it is one
-     angle moving: the weapon is drawn at the sweep's bearing rather than the
-     aim's, and anybody the sweep passes over within reach gets caught by it
-     as it goes. That is why the hit test is per frame and not at the moment
-     the button went down — the swing arrives at the person on the left of the
-     arc before the person on the right, which is the whole reason a swing
-     feels different from a shot. */
+     A sweep: the weapon follows the sweep's bearing and anybody it passes within
+     reach is caught as it goes, tested per frame, so the arc reaches one side
+     before the other. */
   swing() {
     const d = this.def(); if (!d || !d.melee) return;
     this.swingT = this.swingFor = d.swing;
@@ -889,19 +643,15 @@ const Guns = {
     Sfx.swing(this.id());
     UI.hudDirty();
   },
-  /* Where the weapon is pointing this instant: the arc is swept from one side
-     to the other over the life of the swing, so t runs 0 → 1 and the bearing
-     runs from a − arc/2 to a + arc/2. */
+  /* The bearing this instant: from a − arc/2 to a + arc/2 as t runs 0 → 1. */
   sweep() {
     const d = this.def();
     if (!d || !d.melee || this.swingT <= 0) return this.a;
     const t = 1 - this.swingT / (this.swingFor || 1);
     return this.swingA + (t - 0.5) * d.arc * this.swingDir;
   },
-  /* Who the blade is on top of this frame. Reach is measured centre to centre
-     and the blade is given a width of its own — a sweep that only caught what
-     was exactly on the line would pass through somebody between two frames at
-     any speed worth swinging at. */
+  /* Who the blade covers this frame. It has a width, or a fast sweep would pass
+     between frames. */
   BLADE: 0.42,
   swept(dt) {
     const d = this.def(); if (!d || !d.melee || this.swingT <= 0) return;
@@ -914,10 +664,7 @@ const Guns = {
       while (df > Math.PI) df -= Math.PI * 2;
       while (df < -Math.PI) df += Math.PI * 2;
       if (Math.abs(df) > this.BLADE) return;
-      /* Through a wall is not through a wall. The same question a dart asks
-         at the tile it is in, asked at the halfway point of the reach — you
-         cannot hit somebody round a corner with a rolled-up compliance pack,
-         however much you would like to. */
+      /* No hitting through walls: the dart's test, at mid-reach. */
       if (this.stopped(P.x + Math.cos(sa) * r * 0.6, P.y + Math.sin(sa) * r * 0.6)) return;
       this.swingHit.add(o);
       this.land(this.id(), o, kind, o.x, o.y - 6);
@@ -926,10 +673,8 @@ const Guns = {
     Peds.list().forEach(q => test(q, 'ped'));
   },
 
-  /* Where the end of the barrel is, in drawn pixels: the hand, plus the muzzle
-     offset from the grip turned through the aim. The same arithmetic paint()
-     does, which is the point — a dart that leaves from anywhere else is a dart
-     that leaves from somewhere you can see it did not. */
+  /* The barrel's end in drawn pixels: the hand plus the muzzle offset turned
+     through the aim, as paint() draws it. */
   muzzleAt(ang, id) {
     const art = this.art(id || this.id());
     const h = this.hand(P.x, P.y, ang);
@@ -942,10 +687,8 @@ const Guns = {
   },
 
   /* ---- what is in the way ----
-     Walls, and anything solid that is drawn taller than a desk. Deliberately
-     NOT Collide.free(): that is the question a pair of feet asks, and a foot
-     box is stopped by every bin, chair and worktop in the building — none of
-     which is at chest height, and all of which a dart sails over. */
+     Walls and solids taller than a desk. Not Collide.free(), which is a foot
+     box stopped by bins and chairs that a dart sails over. */
   stopped(x, y) {
     const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
     if (tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH) return true;
@@ -970,22 +713,17 @@ const Guns = {
       if (this.reloadT > 0 && (this.reloadT -= dt) <= 0) { this.reloadT = 0; this.fill(); }
       if (this.cool > 0) this.cool -= dt;
       if (this.want && this.ready()) this.pull();
-      /* A swing is a moving thing for a quarter of a second, so it is stepped
-         like one: the arc advances, and anybody it reaches is reached now. */
+      /* A swing is stepped: the arc advances, and whoever it reaches is hit now. */
       if (this.swingT > 0) { this.swept(dt); this.swingT = Math.max(0, this.swingT - dt); }
-      /* Nothing has touched the aim for a while: put it away. The keyboard
-         refreshes this on every aim and the stick on every frame it is held,
-         so this only ever runs out when somebody has genuinely stopped. */
+      /* No aim for a while: put it away. Only runs out when truly idle. */
       if ((this.holster -= dt) <= 0) this.arm(false);
     }
     this.step(dt);
     this.hud();
   },
 
-  /* The things in the air. Stepped in pieces no longer than a third of a tile:
-     a dart at thirteen tiles a second covers most of a person in one frame,
-     and a hit test that only looks at where it ENDED UP is a dart that goes
-     through people and walls at exactly the speeds that matter. */
+  /* Projectiles, stepped in pieces no longer than a third of a tile so fast
+     darts cannot pass through people or walls. */
   step(dt) {
     for (let i = this.shots.length - 1; i >= 0; i--) {
       const s = this.shots[i];
@@ -1026,17 +764,13 @@ const Guns = {
   get NPC_LINES() { const o = {}; Object.keys(GUNS).forEach(k => { o[k] = says('hit.' + k); }); return o; },
   get PED_LINES() { return says('hit.ped'); },
 
-  /* One person, hit by one of the five. Everything below this line is the same
-     whether it arrived through the air or on the end of a swing, which is why
-     it takes an id and a place rather than a shot. */
+  /* One person hit by any weapon; the same whether thrown or swung. */
   land(id, who, kind, x, y) {
     const d = GUNS[id] || GUNS.dart;
     FX.parts.push(...this.spray(x, y, d.melee ? 4 : 3, d.melee ? '#ffe27a' : d.shot.body));
     if (d.melee) Sfx.bonk(); 
     FX.burst(who.x, who.y - 18, d.e, 3, d.melee ? '#ffd166' : d.shot.body);
-    /* They turn to look at whoever did it, upper body first, feet later, which
-       is the same twist the player is using to aim and the reason it lives in
-       one place. */
+    /* They turn to face the attacker, torso first (the same twist). */
     this.watch(who, P.x, P.y, 2.6);
     if (kind === 'ped') {
       if (who.sayT <= 0) { who.say = pick(this.PED_LINES); who.sayT = 2.4; }
@@ -1045,14 +779,10 @@ const Guns = {
     who.stunTimer = Math.max(who.stunTimer || 0, 0.9);
     if (who.sayT <= 0) { who.say = pick(this.NPC_LINES[id] || this.NPC_LINES.dart); who.sayT = 3.2; }
     Faces.flash(who.id, id === 'band' || id === 'pack' ? 'anger' : 'shock', 1.6);
-    /* Every hit, not only the first: the grudge below is once a shift, but how
-       their afternoon is going is not — and Kai, for one, is having a great
-       time. See `soaked` in data/minds.js. */
+    /* Every hit moves their mood (`soaked` in data/minds.js); the grudge below is
+       once a shift. */
     Mind.event(who.id, 'soaked');
-    /* It costs you something, once per person per shift. A second dart at the
-       same person is the same joke and should not be a second grudge — and
-       forty darts at Marjorie should not put her below anything a conversation
-       can recover. */
+    /* A cost once per person per shift, so repeated hits are one grudge. */
     const hit = this.state().hit;
     if (!hit[who.id]) {
       hit[who.id] = true;
@@ -1069,15 +799,12 @@ const Guns = {
     const x = s.x, y = s.y + (s.z === undefined ? this.SHOT_Z : s.z);
     if (s.gun === 'water') { FX.parts.push(...this.spray(x, y, 5, d.shot.body)); Sfx.splat(); }
     else { FX.parts.push(...this.spray(x, y, 3, d.shot.body)); Sfx.plink(); }
-    /* What it did to the person it hit is land()'s: a dart that stops at a
-       wall and a dart that stops at Marjorie make the same puff, and only one
-       of them is an event. */
+    /* A shot stopping at a wall or at a person makes the same puff; land() does the
+       rest. */
   },
   spray(x, y, n, colour) {
     const out = [];
-    /* Nothing at all when Motion is off. Every other particle in the game is
-       gated on that setting inside FX.burst(); these are pushed straight into
-       the list, so they have to ask for themselves. */
+    /* These bypass FX.burst(), so they check Motion themselves. */
     if (!FX.motion) return out;
     for (let i = 0; i < n; i++) {
       out.push({ x, y, vx: rnd(-40, 40), vy: rnd(-50, 10), t: 0, life: rnd(.25, .5), c: colour, sz: 3 });
@@ -1086,9 +813,8 @@ const Guns = {
   },
 
   /* ---- the picture ----
-     Baked once per gun at 1:1 and kept. A grid of characters into a canvas of
-     pixels: nothing here is clever, and the only rule is that `.` is nothing
-     and every other character must be in the palette, or it is nothing too. */
+     Baked once per gun at 1:1: a character grid to pixels. `.` and any character
+     not in the palette are transparent. */
   art(id) {
     this._art = this._art || new Map();
     const had = this._art.get(id);
@@ -1113,13 +839,8 @@ const Guns = {
     return out;
   },
 
-  /* One gun, in one pair of hands, pointing wherever it is pointing. `x, y` is
-     the point the person stands on; everything else is worked out from there.
-
-     Mirrored rather than rotated past the vertical: a gun turned 170 degrees is
-     a gun lying on its back, which is not how anybody holds one. Flipping it
-     about the barrel instead keeps the grip under the hand and the sights on
-     top, which is what a side-on gun does when its owner turns round. */
+  /* One gun, in one pair of hands; `x, y` is where the person stands. Mirrored
+     rather than rotated past vertical, so the grip stays under the hand. */
   paint(c, x, y, ang, id, out) {
     const art = this.art(id || this.id());
     if (!art) return;
@@ -1130,15 +851,11 @@ const Guns = {
     const ax = h.x + (out || 0) * Math.cos(ang);
     const ay = h.y + (out || 0) * Math.sin(ang);
     /* ---- the kick ----
-       A couple of pixels back down its own line, decaying over an eighth of a
-       second. The RISE is not here: it is in tilt(), added to the aim before
-       the shoulder turns, so the arm lifts and the gun goes with the hand
-       rather than jumping out of it. */
+       A couple of pixels back along the barrel, over an eighth of a second. The
+       rise is in tilt(), on the arm. */
     const d = GUNS[id || this.id()] || {};
     const k = this.kickT > 0 ? this.kickT / this.KICK_S : 0;
-    /* `kick` is already the number that says how hard this one goes off — it
-       is what shakes the screen — so it is what moves the gun as well, rather
-       than a second number saying the same thing in other units. */
+    /* `kick` scales both the shake and this. */
     const back = k * (d.kick || 1) * 2.2;
     const sm = c.imageSmoothingEnabled;
     c.imageSmoothingEnabled = false;
@@ -1147,8 +864,7 @@ const Guns = {
     c.rotate(ang);
     if (flip) c.scale(1, -1);
     c.drawImage(art.cv, -art.pivot[0], -art.pivot[1]);
-    /* The flash, at the muzzle, in the muzzle's own frame — which is why it is
-       inside the transform rather than worked out in world coordinates. */
+    /* The flash, drawn in the muzzle's own frame. */
     if (this.flash > 0 && this.armed) {
       c.globalAlpha = clamp(this.flash / 0.06, 0, 1);
       c.fillStyle = d && d.shot ? d.shot.tip : '#ffe27a';
@@ -1159,31 +875,21 @@ const Guns = {
     c.restore();
     c.imageSmoothingEnabled = sm;
   },
-  /* What is in the player's hands, wherever it is pointing this instant: the
-     aim, or the sweep of a swing in progress. The renderer calls this rather
-     than paint() so that the swing is the same one line as the gun.
-
-     A swung thing goes out to arm's length and comes back, because an arm
-     that stays bent through a swing is somebody waving. Eased on the sine of
-     the swing so it is furthest out at the middle of the arc, which is where
-     it hits. */
+  /* Whatever is in hand, at the aim or the swing's sweep. The renderer calls
+     this, so a swing is the same one line as a gun. */
   held(c, x, y) {
     if (!this.armed) return;
     const d = this.def();
     if (d && d.melee && this.swingT > 0) {
       const t = 1 - this.swingT / (this.swingFor || 1);
-      /* A LITTLE further out at the middle of the arc, and only a little. The
-         first version pushed it nine pixels and the sword left the hand
-         entirely — the arm in the art does not straighten, so nothing the
-         weapon does can pretend it has. The swing is in the ARC; this is the
-         two pixels of follow-through on top of it. */
+      /* A two-pixel follow-through at mid-arc; the arm in the art does not
+         straighten, so the swing lives in the arc. */
       this.paint(c, x, y, this.armAim(), null, Math.sin(t * Math.PI) * 2);
       return;
     }
     this.paint(c, x, y, this.armAim());
   },
-  /* Everything in the air. Drawn as pixels rather than as sprites — a dart is
-     seven pixels by three and a rectangle at an angle is exactly that. */
+  /* Projectiles as pixels: a dart is a small angled rectangle. */
   paintShots(c) {
     for (const s of this.shots) {
       const d = GUNS[s.gun] || GUNS.dart, sh = d.shot;
@@ -1205,26 +911,19 @@ const Guns = {
   },
 
   /* ---- the readout ----
-     What is in your hand and what is left in it, as one line. Only while it is
-     out: a magazine count on the screen of an office simulator the rest of the
-     time would be the game telling you what it thinks it is about. */
+     What is in hand and what is left, while it is out. */
   hud() {
     const el = $('#gunHud');
     if (!el) return;
     const on = this.armed && this.can();
-    /* Called every frame from update(), so it is written as a comparison and
-       not as a DOM write: the readout changes about six times a magazine and
-       rewriting it sixty times a second would be innerHTML churn under the one
-       thing in this game that has to stay at sixty. */
+    /* Rewritten only on change: it runs every frame. */
     const d = on ? this.def() : null;
     const sig = on ? this.id() + ':' + (d.melee ? '' : this.ammo()) + ':' + (this.reloadT > 0 ? 'r' : '') : '';
     if (sig === this._hudSig) return;
     this._hudSig = sig;
     el.hidden = !on;
     if (!on) return;
-    /* A thing you swing has nothing to count, and a row of pips that never
-       moves is a row of pips that means nothing. It says what it is and stops
-       there. */
+    /* A swung thing has nothing to count. */
     let right = 'swing';
     if (!d.melee) {
       const n = this.ammo();
