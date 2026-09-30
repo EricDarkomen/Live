@@ -1,25 +1,10 @@
 'use strict';
 /* ---------------- Inbox Zero ----------------
-   Your own workstation, and the folder that has never once been empty.
-
-   The SECOND shape: a decision game. There is no dexterity in it at all — every
-   press is one of three, and the difficulty is entirely in reading a subject
-   line faster than the timer under it drains. It shares the interface with a
-   four-lane rhythm game and a grid puzzle, which is the claim the library
-   exists to make.
-
-   The rule the player has to work out for themselves is the joke: nothing here
-   is ever ANSWERED, it is sorted. Three verbs, and only one of them involves
-   doing any work.
-
-   AND IT TEACHES, which it did not. A round is thirty cards and two wrong ones
-   cost four of the twelve escalations, so somebody who has not yet worked the
-   rule out loses in about seven cards — having been told nothing at any point
-   about why. That is a game you can only learn by losing at it repeatedly and
-   guessing what changed. So a wrong sort now HOLDS the card: it names the verb
-   it wanted and the tell that gave it away, for three quarters of a second,
-   which is long enough to read six words and not long enough to be a
-   punishment on top of the punishment. */
+   Your workstation's never-empty folder. The decision shape: no dexterity,
+   just reading a subject line before its timer drains. Nothing is answered,
+   only sorted, with three verbs.
+   A wrong sort holds the card for three quarters of a second, naming the verb
+   it wanted and the tell, so the rule can be learned rather than guessed. */
 
 const MG_INBOX = {
   id: 'inbox',
@@ -46,9 +31,7 @@ const MG_INBOX = {
   ACT: { ArrowLeft: 'bin', ArrowUp: 'reply', ArrowRight: 'dave' },
   LABEL: { bin: 'BINNED', reply: 'BOOKED', dave: 'TO MARI' },
   VERB: { bin: 'BIN', reply: 'BOOK', dave: 'MARI' },
-  /* One line per kind, shown on the card when you get one wrong. The rules of
-     the game, given a card at a time and only when they are wanted — which is
-     the only moment anybody reads a rule. */
+  /* One line per kind, shown on a wrong answer. */
   WHY: {
     reply: 'a real guest who wants a table',
     dave: 'somebody on the island — Mari will deal with it',
@@ -57,17 +40,9 @@ const MG_INBOX = {
   TARGET: 30,
   CEILING: 12,           /* escalations you can carry before somebody notices */
 
-  /* The deck. Each kind carries its own tell, and the tells are the whole
-     tutorial: a customer says what they bought, a phish says click here, and
-     internal post says "all staff" and means nothing to anybody. */
-  /* The deck. Each kind carries its own tell, and the tells are the whole
-     tutorial: a customer says what they bought, a phish says click here, and
-     internal post says "all staff" and means nothing to anybody.
-
-     Thirty are sorted in a round and each kind is drawn about ten times, so a
-     seven-line list showed the same subject three times a game and the round
-     became a memory test rather than a reading one. Eighteen each, and a
-     subject already used this round is not offered again. */
+  /* The deck. Each kind has its tell (a customer names a purchase, a phish says
+     click here, internal post says "all staff"). Eighteen subjects each, and
+     none repeats in a round. */
   DECK: {
     reply: {
       from: ['priya.and.tom@', 'the.okafors@', 'honeymoon.2026@', 'j.mcbride@', 'sunseekers.club@',
@@ -155,20 +130,12 @@ const MG_INBOX = {
     this.sameRun = k === this.lastKind ? (this.sameRun || 0) + 1 : 1;
     this.lastKind = k;
     const d = this.DECK[k];
-    /* Never the same subject twice in one round: thirty cards out of three
-       lists is enough draws that a repeat is likely, and a repeat turns a
-       reading game into a memory game. The pool cannot run dry — eighteen each
-       against about ten draws each — but the fallback is there because a
-       shorter deck one day would otherwise loop for ever. */
+    /* No repeats within a round; the fallback only matters for a shorter deck. */
     const fresh = d.subj.filter(x => !this.seen[x]);
     const subj = pick(fresh.length ? fresh : d.subj);
     this.seen[subj] = 1;
-    /* The limit shortens as the pile goes down, which is the only thing that
-       makes the last ten different from the first ten — and the cabinet's
-       skill adds a third of a second per rank on top, which at rank 3 is
-       nearly a whole card's worth of reading back. Weaponised Email is the one
-       it is wired to, which is the joke: the skill for writing them turns out
-       to be the skill for not having to. */
+    /* The time limit shortens as the pile goes down; Weaponised Email adds a third
+       of a second per rank. */
     const limit = Math.max(1.55, 4.4 - this.done * 0.095) + (a.skill || 0) * 0.33;
     this.card = { kind: k, from: pick(d.from), subj: subj, limit: limit, left: limit };
     this.shownAt = a.t;
@@ -207,9 +174,7 @@ const MG_INBOX = {
       a.shake(5); a.sfx.bad();
       a.pop(a.w / 2, a.h * .30, 'ESCALATED', a.paint.bad);
     }
-    /* A right answer flies out at once; a wrong one is HELD, with what it
-       wanted written on it. The card is the only place that can say so — by
-       the time it has gone you are reading the next one. */
+    /* A right answer flies out; a wrong one is held with what it wanted. */
     this.fly = { verb: verb, ok: ok, t: 0, hold: ok ? 0 : this.TEACH,
       want: c.kind, why: this.WHY[c.kind] };
   },
@@ -264,10 +229,8 @@ const MG_INBOX = {
 
   /* ---- the three targets, measured once so drawing and hit-testing can never
      disagree about where they are ---- */
-  /* Empty on a coarse pointer: the declared pads are already under the thumb,
-     and drawing the same three verbs on the canvas as well cost the card sixty
-     pixels to say a thing that was said directly below it. A mouse has no pads,
-     so there they are the control and they carry the arrow keys with them. */
+  /* No on-canvas verbs on a coarse pointer: the pads already carry them. With a
+     mouse they are the control. */
   targets(a) {
     if (a.touch) return [];
     const pad = 8, n = 3;

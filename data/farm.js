@@ -93,7 +93,7 @@ const Farm = {
   plots(now, dt, raining, rate) {
     const scare = 1 - .35;   /* the scarecrow, who is cool rather than scary */
     for (const id in Garden.plots()) {
-      const p = Garden.fix(Garden.plots()[id]);
+      const p = Garden.plots()[id];
       if (!p || p.dead) continue;
       const T = CROPS[p.c].t;
       let wet;

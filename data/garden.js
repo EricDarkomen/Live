@@ -43,16 +43,10 @@ const Garden = {
      the crop, when it went in, how many minutes of GROWING it has had (only
      wet minutes count — see Farm.update()), how wet it is, how long it has
      been bone dry, whether it was composted, whether something is eating it,
-     when it ripened, and whether it is past saving. A plot from an older
-     save is only { c, at } and is read as having grown the whole time. */
-  fix(p) {
-    if (p && p.g === undefined) { p.g = Math.min(CROPS[p.c].t, islandNow() - p.at); p.w = 1; p.dry = 0; if (p.g >= CROPS[p.c].t) p.ripeAt = islandNow(); }
-    return p;
-  },
+     when it ripened, and whether it is past saving. */
   /* 0 bare · 1 seedling · 2 growing · 3 ripe · 4 dead */
   stage(p) {
     if (!p) return 0;
-    this.fix(p);
     if (p.dead) return 4;
     const f = p.g / CROPS[p.c].t;
     return f >= 1 ? 3 : f >= .5 ? 2 : 1;
