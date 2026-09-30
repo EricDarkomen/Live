@@ -130,6 +130,23 @@ const Island = {
     /* Where the garden's leftovers go, and where its surplus keeps. */
     put({ x: 51, y: 40, e: '🪱', name: 'The compost bin', kind: 'barrels', solid: true, use: 'compostBin' });
     put({ x: 44, y: 40, e: '🌞', name: 'The drying rack', kind: 'misc', solid: true, use: 'dryingRack' });
+    /* RAFA'S YARD, behind the garden: his workbench, his kiln, his plans, and
+       the building sites he pegged out and never got to — data/craft.js. A
+       site is `site` (its own id, which is what the save remembers) and
+       `proj` (what it becomes, from PROJECTS). */
+    room('yard', 34, 44, 52, 50);
+    surf('track', 35, 45, 51, 49);
+    put({ x: 38, y: 45, e: '🛠️', name: 'Rafa’s workbench', kind: 'workbench', solid: true, use: 'workbench' });
+    put({ x: 42, y: 45, e: '🏺', name: 'Rafa’s kiln', kind: 'kiln', solid: true, use: 'kiln' });
+    put({ x: 46, y: 45, e: '📐', name: 'Rafa’s plans', kind: 'board', solid: true, use: 'plans' });
+    const sites = [];
+    const site = (x, y, s, proj, extra) => { sites.push({ site: s, proj }); put(Object.assign({ x, y, e: '🚧', name: 'A building site', kind: 'site', solid: true, use: 'buildSite', site: s, proj }, extra)); };
+    site(50, 45, 'oven', 'oven');
+    /* A fourth row of plots, `p` + column + 3, the way the first three are named. */
+    [36, 39, 42, 45, 48].forEach((x, i) => site(x, 39, 'plot' + i, 'plot', { plot: 'p' + i + '3' }));
+    site(52, 31, 'catcher', 'catcher');
+    site(52, 40, 'bay', 'bay');
+    site(47, 41, 'rack2', 'rack2');
     /* The plaza, and the fountain everybody meets at. */
     room('plaza', 56, 34, 76, 50);
     surf('slab', 56, 34, 76, 50);
@@ -180,6 +197,10 @@ const Island = {
     put({ x: 76, y: 81, e: '🏐', name: 'The volleyball net', kind: 'misc', solid: true, use: 'volleyball' });
     put({ x: 48, y: 82, e: '🏰', name: 'A sandcastle', kind: 'misc', solid: false, use: 'sandcastle' });
     put({ x: 32, y: 81, e: '🔥', name: 'The fire pit', kind: 'torch', solid: true, use: 'firePit' });
+    /* Two pitches for cabanas, and a ladder against the bar where the roof leaks. */
+    site(44, 81, 'cabana0', 'cabana');
+    site(68, 81, 'cabana1', 'cabana');
+    site(40, BAR[3] + 1, 'roof', 'roof');
 
     /* The street lights on the loop — tiki torches after dark would be nicer,
        and the network places these where no torch would be in the way. */
@@ -190,7 +211,28 @@ const Island = {
       return l.axis === 'x' ? (y >= g.b1 - 1 && y <= g.b2 + 1 && x >= l.from - 2 && x <= l.to + 2)
                             : (x >= g.b1 - 1 && x <= g.b2 + 1 && y >= l.from - 2 && y <= l.to + 2); })
       && !solids.some(b => x >= b[0] - 1 && x <= b[2] + 1 && y >= b[1] - 1 && y <= b[3] + 1)
-      && !rooms.some(r => ['garden', 'plaza', 'yoga', 'jetty'].includes(r.z) && x >= r.r[0] - 1 && x <= r.r[2] + 1 && y >= r.r[1] - 1 && y <= r.r[3] + 1);
+      && !rooms.some(r => ['garden', 'yard', 'plaza', 'yoga', 'jetty'].includes(r.z) && x >= r.r[0] - 1 && x <= r.r[2] + 1 && y >= r.r[1] - 1 && y <= r.r[3] + 1);
+    /* WHAT THE SEA LEAVES, AND WHAT THE HILLS GIVE UP — data/craft.js. Before
+       the trees, so a tree never lands on the only good bit of beach.
+       Driftwood at the waterline, shells a little higher, loose stones inland,
+       rock outcrops in the jungle and the wild ends of the island, and a clay
+       bank at the lagoon. A pickup is not solid: it is on the ground until you
+       pick it up, and gone until the tide or the rain brings another. */
+    const scatter = (n, salt, where, o) => {
+      for (let i = 0, got = 0; i < 4000 && got < n; i++) {
+        const x = 4 + (Roads.hash(i, salt, 41) % (W - 8)), y = 4 + (Roads.hash(i, salt + 3, 43) % (H - 8));
+        if (!L[y][x] || !roadClear(x, y) || !where(x, y, zoneOf(x, y))) continue;
+        if (put(Object.assign({ x, y }, o))) got++;
+      }
+    };
+    const beach = z => z === 'shore' || z === 'cove' || z === 'sands';
+    scatter(18, 13, (x, y, z) => beach(z) && D[y][x] <= 2, { e: '🥢', name: 'Driftwood', kind: 'pickup', solid: false, use: 'driftwood' });
+    scatter(12, 19, (x, y, z) => beach(z) && D[y][x] <= 4 && D[y][x] >= 2, { e: '🐚', name: 'Shells in the sand', kind: 'pickup', solid: false, use: 'shells' });
+    scatter(12, 29, (x, y, z) => (z === 'island' || z === 'jungle') && D[y][x] > 5, { e: '🪨', name: 'Loose stones', kind: 'pickup', solid: false, use: 'stones' });
+    scatter(10, 37, (x, y, z) => D[y][x] > 6 && (z === 'jungle' || (z === 'island' && (x < 24 || x > 100))),
+      { e: '🪨', name: 'A rock outcrop', kind: 'rocks', solid: true, use: 'outcrop' });
+    [[53, 11], [58, 15], [67, 14]].forEach(([x, y]) => put({ x, y, e: '🟤', name: 'The clay bank', kind: 'rocks', solid: true, use: 'clayBank' }));
+
     for (let i = 0; i < 900; i++) {
       const x = 4 + (Roads.hash(i, 7, 31) % (W - 8)), y = 4 + (Roads.hash(i, 11, 37) % (H - 8));
       if (!L[y][x] || !roadClear(x, y)) continue;
@@ -239,6 +281,8 @@ const Island = {
       indoors: false,
       w: W, h: H,
       net, rooms, surfaces, paint, cars, peds, signals: [],
+      /* Every building site and what it becomes, for Rafa's plans. */
+      sites,
       counters: [],
       roofs: [{ m: ['pantile', 'pantile', 'pantile', 'oxblood'], r: [0, 0, W - 1, H - 1] }],
       drives: [

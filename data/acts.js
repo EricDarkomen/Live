@@ -183,11 +183,25 @@ const Acts = {
       [{ t: 'Drive it.', to: null, do() { Cars.take(car); } }, { t: 'Leave it.', to: null }]);
   },
   streetLamp() { insp('💡', 'A street light', 'Wrapped in bougainvillea', ['It comes on at sunset, and the moths are already waiting.']); },
-  palm() {
+  /* Palms and jungle trees are also timber, fronds and vines — data/craft.js.
+     A felled one is a stump until it grows back. */
+  palm(o) {
+    if (Craft.felled(o)) return Craft.stump(o);
+    const fronds = Craft.left(o, 'frond'), axe = Tools.best('axe');
     insp('🌴', 'A palm', 'Tall', [pick(['A coconut palm, leaning towards the sea the way they all do.', 'There is a coconut directly above your head. You move.', 'Somebody has carved two initials and a heart into the trunk.'])],
-      [{ t: 'Shake it for a coconut.', to: null, if: () => !G.flags['palm_' + G.day] && chance(.5), do() { G.flags['palm_' + G.day] = true; Item.give('coconut'); } }]);
+      [{ t: 'Shake it for a coconut.', to: null, if: () => !G.flags['palm_' + G.day] && chance(.5), do() { G.flags['palm_' + G.day] = true; Item.give('coconut'); } },
+       { t: 'Pull down a frond (' + fronds + ' within reach).', to: null, if: () => fronds > 0, do() { Craft.work(o, 'frond'); } },
+       { t: 'Chop it down for timber — ' + (axe ? ITEMS[axe].n.toLowerCase() : 'you need an axe') + '.', to: null, if: () => !!axe, do() { Craft.work(o, 'chop_palm'); } },
+       { t: 'Leave it.', to: null }]);
   },
-  tree() { insp('🌳', 'A tree', 'Jungle', ['Something bright green and very loud lives in it.']); },
+  tree(o) {
+    if (Craft.felled(o)) return Craft.stump(o);
+    const vines = Craft.left(o, 'vines'), axe = Tools.best('axe');
+    insp('🌳', 'A tree', 'Jungle', ['Something bright green and very loud lives in it.', vines ? 'Vines hang off it in ropes — strip some and twist them into rope.' : 'You have stripped every vine you can reach.'],
+      [{ t: 'Strip some vines.', to: null, if: () => vines > 0, do() { Craft.work(o, 'vines'); } },
+       { t: 'Fell it for timber — ' + (axe ? ITEMS[axe].n.toLowerCase() : 'you need an axe') + '.', to: null, if: () => !!axe, do() { Craft.work(o, 'chop_tree'); } },
+       { t: 'Leave it.', to: null }]);
+  },
   parasol() {
     insp('⛱️', 'A parasol', 'Somebody’s', ['A towel, a paperback with a steamy cover, and a bottle of tanning oil. Its owner is in the sea.']);
   },
@@ -234,6 +248,35 @@ const Acts = {
       (fresh ? [{ t: 'Buy some fish.', to: null, do() { Shop.open('nico'); } }] : []).concat([{ t: 'Leave it.', to: null }]));
   },
   researchKit() { insp('🔬', 'Amara’s field station', 'Do not touch the jars', ['A folding table weighed down with rocks, a microscope under a towel, and forty numbered jars of seawater. A clipboard says PARROTFISH COUNT and then a very long list of tally marks.', 'Pinned to the table leg, in red pen: “STERLING RESORTS = SEWAGE OUTFLOW. ASK ME WHY.”']); },
+  /* Rafa's yard and what the island gives — data/craft.js. */
+  workbench() { Craft.bench(); },
+  kiln() { Craft.kiln(); },
+  plans() { Build.plans(); },
+  buildSite(o) { Build.act(o); },
+  oven() { Craft.oven(); },
+  rainCatcher() { Build.catcher(); },
+  cabana() { Build.cabana(); },
+  roofLadder() { Build.roof(); },
+  driftwood(o) { Craft.work(o, 'driftwood'); },
+  shells(o) { Craft.work(o, 'shells'); },
+  stones(o) { Craft.work(o, 'stones'); },
+  clayBank(o) {
+    const left = Craft.left(o, 'claybank');
+    /* Straight in, once you know what it is: the dialogue is for the first
+       look and for when it is dug out. */
+    if (left > 0 && G.flags.dugClay) return Craft.work(o, 'claybank');
+    insp('🟤', 'The clay bank', left ? 'Red and sticky' : 'Dug out', ['A bank of red lagoon clay, cool and slick. Rafa dug his bricks out of here; you can still see the scoop marks.',
+      left ? 'You could dig some out with your hands. It will get everywhere.' : 'You have had what is easy to reach. The lagoon will slump some more down in ' + clockDur(Craft.back(o, 'claybank')) + '.'],
+      [{ t: 'Dig out some clay.', to: null, if: () => left > 0, do() { G.flags.dugClay = true; Craft.work(o, 'claybank'); } }, { t: 'Leave it.', to: null }]);
+  },
+  outcrop(o) {
+    const left = Craft.left(o, 'outcrop'), pick = Tools.best('pick');
+    /* A pickaxe in your hand and rock left to break: just swing it. */
+    if (left > 0 && pick) return Craft.work(o, 'outcrop');
+    insp('🪨', 'A rock outcrop', left ? 'Grey, streaked with rust' : 'Picked clean', [left ? 'Grey rock pushing up through the ground, streaked rust-red where there is iron in it.' : 'You have broken off everything worth having. Give the weather ' + clockDur(Craft.back(o, 'outcrop')) + ' to loosen some more.',
+      pick ? 'Your ' + ITEMS[pick].n.toLowerCase() + ' has ' + Tools.left(pick) + ' jobs left in it.' : 'You would need a pickaxe. Rafa’s workbench, behind the garden.'],
+      [{ t: 'Break it up with the pickaxe.', to: null, if: () => left > 0 && !!pick, do() { Craft.work(o, 'outcrop'); } }, { t: 'Leave it.', to: null }]);
+  },
   /* The farm's stations — data/farm.js. */
   compostBin() { Stations.bin(); },
   dryingRack() { Stations.rack(); },
@@ -256,6 +299,7 @@ const Acts = {
   noticeboard() {
     insp('📋', 'The island noticeboard', 'Pinned', [
       'LOST: one sandal, left. FOUND: one sandal, right.',
+      'WANTED — TIMBER, BRICKS, ROPE, SEA GLASS. The supply boat pays. Rafa’s old yard is behind the garden, and the beaches are covered in driftwood. — Teo',
       'YOGA WITH LUCA — the deck, 11 till 12, “all bodies welcome, especially yours”.',
       'STERLING RESORTS — “A NEW VISION FOR ISLA SOLANA”. Somebody has drawn a moustache on the artist’s impression.']);
   },
@@ -273,7 +317,9 @@ const Acts = {
   /* ---- The jetty ---- */
   supplyBoat() {
     insp('⛵', 'The supply boat', 'The “Marisol II”', ['Captain Teo’s boat, named after somebody he will not talk about. It brought you here, and it takes the island’s orders to the others.'],
-      [{ t: 'Check the orders.', to: null, do() { Orders.open(); } }, { t: 'Leave it.', to: null }]);
+      [{ t: 'Check the orders.', to: null, do() { Orders.open(); } },
+       { t: 'Sell Teo your crafted goods (' + cash(Craft.goodsValue()) + ').', to: null, if: () => Craft.goodsValue() > 0, do() { Craft.sellGoods(); } },
+       { t: 'Leave it.', to: null }]);
   },
   orderBoard() { Orders.open(); },
   suitcase() {

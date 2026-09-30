@@ -22,6 +22,7 @@ const ZONES = {
   jungle: { name: 'The Jungle', floor: '#a9b8a4', alt: '#a2b19d', wall: '#8a7a5a', tint: '#3fbf6a', tile: 'terrain.grass.summer', wtile: 'wall.stone.pale' },
   lagoon: { name: 'The Hidden Lagoon', floor: '#e6dcc4', alt: '#e0d6be', wall: '#8a7a5a', tint: '#4dd4ff', tile: 'terrain.sand', wtile: 'wall.stone.pale' },
   garden: { name: 'The Garden', floor: '#b9c0bd', alt: '#b2b9b6', wall: '#8a7a5a', tint: '#5ad48a', tile: 'terrain.grass.summer', wtile: 'wall.stone.pale' },
+  yard: { name: 'Rafa’s Yard', floor: '#b9c0bd', alt: '#b2b9b6', wall: '#8a7a5a', tint: '#c98a4a', tile: 'terrain.grass.summer', wtile: 'wall.stone.pale' },
   plaza: { name: 'The Plaza', floor: '#d9d2c2', alt: '#d2cbbb', wall: '#8a7a5a', tint: '#ffb347', surf: 'stone', tile: 'floor.diamond', wtile: 'wall.stone.pale' },
   yoga: { name: 'The Yoga Deck', floor: '#a07a52', alt: '#98734d', wall: '#8a7a5a', tint: '#b48cff', tile: 'floor.wood', wtile: 'wall.stone.pale' },
   jetty: { name: 'The Jetty', floor: '#a07a52', alt: '#98734d', wall: '#8a7a5a', tint: '#4dd4ff', tile: 'floor.wood', wtile: 'wall.stone.pale' },
@@ -127,6 +128,15 @@ const FURN = {
   lounger: { size: 28, sprite: 'obj.bench', ground: [0.8, 0.4] },
   towel: { size: 24 },
   plot: { size: 24 },
+  /* The workshop's things — data/craft.js. A stump is what a felled palm or
+     tree becomes until it grows back; a pickup is driftwood, shells or stones
+     lying on the ground. */
+  stump: { size: 22, ground: [0.5] },
+  pickup: { size: 18 },
+  site: { size: 26, ground: [0.7, 0.5] },
+  workbench: { size: 30, ground: [0.8, 0.5] },
+  kiln: { size: 32, ground: [0.7, 0.6] },
+  cabana: { size: 44, ground: [0.9, 0.6] },
   boat: { size: 54, ground: [0.9, 0.6] },
   torch: { size: 26, ground: [0.3] },
   bed: { size: 40, ground: [0.9, 0.7] },

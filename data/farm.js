@@ -37,9 +37,11 @@ const WITHER_AFTER = 300, ROT_AFTER = 720;
 /* Chance a minute that a growing plot gets visitors. */
 const PEST_RATE = .0009;
 /* The stations. */
-const COMPOST = { in: 3, t: 90, slots: 3 };
+/* `slots` grows when you build a second bay, and the rack's when you build a
+   second rack — see PROJECTS in data/craft.js. */
+const COMPOST = { in: 3, t: 90, get slots() { return 3 + (typeof Build !== 'undefined' && Build.has('bay') ? 2 : 0); } };
 const RACK = {
-  slots: 3,
+  get slots() { return 3 + (typeof Build !== 'undefined' && Build.has('rack2') ? 3 : 0); },
   recipes: [
     { in: 'mango', out: 'dried_mango', t: 120 },
     { in: 'pineapple', out: 'dried_pineapple', t: 150 },
@@ -112,9 +114,11 @@ const Farm = {
   },
   /* ---- water ---- */
   water(dt, raining) {
-    const b = G.flags.butt === undefined ? 30 : G.flags.butt;
-    G.flags.butt = Math.min(30, b + dt * (raining ? .2 : 1 / 60));
+    const cap = this.buttCap(), b = G.flags.butt === undefined ? 30 : G.flags.butt;
+    G.flags.butt = Math.min(cap, b + dt * (raining ? .2 * (cap > 30 ? 2 : 1) : 1 / 60));
   },
+  /* Thirty cans' worth, or sixty once the rain catcher is up (data/craft.js). */
+  buttCap() { return 30 + (typeof Build !== 'undefined' && Build.has('catcher') ? 30 : 0); },
   canLeft() { return G.flags.can || 0; },
   canWords() { const n = this.canLeft(); return n ? n + ' left in the can' : 'the can is empty'; },
   useCan() {
@@ -124,7 +128,7 @@ const Farm = {
   },
   butt() {
     this.update();
-    const b = Math.floor(G.flags.butt === undefined ? 30 : G.flags.butt), can = this.canLeft();
+    const b = Math.floor(Math.min(this.buttCap(), G.flags.butt === undefined ? 30 : G.flags.butt)), can = this.canLeft();
     const want = 6 - can, take = Math.min(want, b);
     insp('🛢️', 'The water butt', b ? b + ' cans’ worth left' : 'Empty', [
       'Rafa rigged it to the gutters. It fills when it rains, and trickles in from the hill the rest of the time.',
@@ -143,11 +147,11 @@ const Farm = {
     this.update();
     const now = islandNow();
     const bar = (v, cls) => '<span class="mb' + (cls ? ' ' + cls : '') + '"><i style="width:' + Math.round(clamp(v, 0, 100)) + '%"></i></span>';
-    const butt = Math.floor(G.flags.butt === undefined ? 30 : G.flags.butt);
+    const butt = Math.floor(G.flags.butt === undefined ? 30 : G.flags.butt), cap = this.buttCap();
     const food = Hunger.get();
     const stocked = G.flags.stocked === G.day;
     let h = '<div class="h2">The farm</div><div class="farm-sum">'
-      + '<div class="fs"><span>🛢️ Water butt</span><b>' + butt + '/30</b>' + bar(butt / 30 * 100, butt < 8 ? 'bad' : butt < 15 ? 'mid' : '') + '</div>'
+      + '<div class="fs"><span>🛢️ Water butt</span><b>' + butt + '/' + cap + '</b>' + bar(butt / cap * 100, butt < 8 ? 'bad' : butt < 15 ? 'mid' : '') + '</div>'
       + '<div class="fs"><span>🪣 Watering can</span><b>' + this.canLeft() + '/6</b>' + bar(this.canLeft() / 6 * 100, this.canLeft() ? '' : 'bad') + '</div>'
       + '<div class="fs"><span>🍽️ You</span><b>' + Hunger.word() + '</b>' + bar(food, food < 25 ? 'bad' : food < 50 ? 'mid' : '') + '</div>'
       + '<div class="fs"><span>🍹 The bar today</span><b>' + (stocked ? 'Stocked · tips ×' + STOCK.tips : G.flags.stocked === -G.day ? 'Ran dry' : 'Not stocked yet') + '</b></div>'
@@ -157,6 +161,8 @@ const Farm = {
     const ids = [];
     /* Row by row, as they lie in the ground: `p` + column + row. */
     for (let j = 0; j < 3; j++) for (let i = 0; i < 5; i++) ids.push('p' + i + j);
+    /* And the fourth row, the plots you build yourself — data/craft.js. */
+    for (let i = 0; i < 5; i++) if (typeof Build !== 'undefined' && Build.has('plot' + i)) ids.push('p' + i + '3');
     ids.forEach(id => {
       const p = Garden.plots()[id], s = Garden.stage(p);
       const l = Garden.look({ plot: id });

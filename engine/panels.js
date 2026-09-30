@@ -72,7 +72,7 @@ const Interact = {
       for (let tx = ptx - 1; tx <= ptx + 1; tx++) {
         const here = World.at(tx, ty);
         for (let i = 0; i < here.length; i++) {
-          if (Collide.reach(here[i]) > SURFACE) continue;
+          if (here[i].gone || Collide.reach(here[i]) > SURFACE) continue;
           const d = dist(here[i]);
           if (d < od) { od = d; bestObj = here[i]; }
         }
@@ -113,6 +113,8 @@ const Interact = {
          DOES something, so it says so. "Inspect the crossing" is what you do
          to a bollard. */
       : best.use === 'crossingButton' ? 'Press the button'
+      /* Driftwood, shells and stones are for picking up, not for looking at. */
+      : best.kind === 'pickup' ? 'Pick up ' + best.name
       : 'Inspect ' + best.name;
     if (label === this._label) return;      /* only touch the DOM when it changes */
     this._label = label;
@@ -201,6 +203,8 @@ const TABS = [
      strip from ten tabs to eight on a screen that has room for about four. */
   /* The garden, the water, the stores and what is cooking — data/farm.js. */
   { id: 'farm', n: 'Farm', e: '🌾' },
+  /* Gathering, woodcutting, mining, crafting and building — data/craft.js. */
+  { id: 'workshop', n: 'Workshop', e: '🛠️' },
   /* How everybody you have met is doing, and why — engine/mind.js. */
   { id: 'people', n: 'Islanders', e: '🌴' },
   { id: 'ach', n: 'Achievements', e: '🏆' },
@@ -272,6 +276,7 @@ const Panels = {
   r_shop() { return Shop.render(); },
   r_people() { return Mind.panel(); },
   r_farm() { return Farm.panel(); },
+  r_workshop() { return Craft.panel(); },
   /* WHERE YOU ARE, WHAT IT IS CALLED, AND THE WAY OUT OF IT. The canvas is
      sized by the stylesheet and drawn by Atlas.panel(); everything here is the
      furniture round it. The line under the map is the legend, and it is short
@@ -466,11 +471,11 @@ const Panels = {
             + ' &nbsp; <span class="kbd">OUT</span> — get out<br>' +
           'Tap the conversation box — advance dialogue &nbsp; tap a reply — choose it<br>' +
           'Tap a move — at the bar, and in messages<br>' +
-          '<span class="kbd">☰</span> — jobs, inventory, skills, farm, islanders, profile, achievements &nbsp; the 📨 chip under the bar — post, texts, chat, the log and every guest<br>' +
+          '<span class="kbd">☰</span> — jobs, inventory, skills, farm, workshop, islanders, profile, achievements &nbsp; the 📨 chip under the bar — post, texts, chat, the log and every guest<br>' +
           'The game saves itself, and <span class="kbd">☰</span> · Menu has Save and Load.'
         : '<span class="kbd">W A S D</span> / arrows — move, and drive &nbsp; <span class="kbd">E</span> — interact, and get out &nbsp; <span class="kbd">H</span> — horn &nbsp; <span class="kbd">Space</span> — advance dialogue<br>' +
           '<span class="kbd">↑ ↓</span> then <span class="kbd">Enter</span>, or <span class="kbd">1–9</span> — dialogue choices &nbsp; <span class="kbd">1–9</span> — moves at the bar<br>' +
-          '<span class="kbd">J</span> jobs &nbsp; <span class="kbd">I</span> inventory &nbsp; <span class="kbd">K</span> skills &nbsp; <span class="kbd">O</span> farm &nbsp; <span class="kbd">U</span> islanders &nbsp; <span class="kbd">P</span> profile &nbsp; <span class="kbd">L</span> achievements<br>' +
+          '<span class="kbd">J</span> jobs &nbsp; <span class="kbd">I</span> inventory &nbsp; <span class="kbd">K</span> skills &nbsp; <span class="kbd">O</span> farm &nbsp; <span class="kbd">Y</span> workshop &nbsp; <span class="kbd">U</span> islanders &nbsp; <span class="kbd">P</span> profile &nbsp; <span class="kbd">L</span> achievements<br>' +
           '<span class="kbd">M</span> post &nbsp; <span class="kbd">C</span> chat &nbsp; <span class="kbd">V</span> texts &nbsp; <span class="kbd">B</span> the log — or the rail in the corner, which is all five channels<br>' +
           '<span class="kbd">Esc</span> menu &nbsp; <span class="kbd">F5</span> quick save &nbsp; <span class="kbd">F9</span> quick load') + '</p>';
   }

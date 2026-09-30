@@ -26,6 +26,17 @@ linen suit who very much wants to buy it.
   for ever and ship to the other islands. Mama Coco will buy your surplus.
 - **Eat.** You get hungry. Your own mangoes will do. The **Farm** tab (`O`)
   shows the garden, the water, the stores and what is cooking.
+- **Gather, chop, mine, build.** Rafa's yard is behind the garden: a
+  workbench, a kiln, and a board of plans he never finished. Driftwood and
+  shells wash up on every beach, loose stones lie about inland, palms drop
+  fronds and jungle trees have vines. Twist rope, lash a stone axe and a
+  pickaxe, fell palms for timber (the stumps grow back), break rock outcrops
+  for stone, clay and iron ore, and fire charcoal, bricks, iron and tiki mugs
+  in the kiln. Then build at the 🚧 sites round the island: more garden plots,
+  a rain catcher, a second compost bay, a bigger drying rack, a brick oven,
+  beach cabanas that rent to tourists, and — at last — the bar roof. Every
+  trade levels with practice, every job costs time and energy, and tools wear
+  out. The **Workshop** tab (`Y`) shows your trades, tools, materials and plans.
 - **Ship it.** The supply boat at the jetty takes orders for the other islands
   and pays cash.
 - **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade, Luca,
@@ -87,7 +98,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
 | Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
 | The map    | `N`, or the minimap             | `☰` · Map                      |
-| Panels     | `J I K O U P L`, `T` for today’s takings, `Esc` for menu | `☰`        |
+| Panels     | `J I K O Y U P L`, `T` for today’s takings, `Esc` for menu | `☰`        |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
 | Save/load  | `F5` / `F9`                     | `☰` · Menu                     |
@@ -161,6 +172,7 @@ python3 -m http.server 8000    # then http://localhost:8000/editor.html
 | `data/minds.js` | How the islanders feel and grow: needs, passions, quirks, friendships, skills, routines, and their moods in their own words |
 | `data/callers.js` | Bar guests, messages, moves, and the two big encounters |
 | `data/garden.js` | The garden, the blender, the supply boat's orders, and dates |
+| `data/craft.js` | Gathering, woodcutting, mining, the workbench and kiln, tools, trades, and building from Rafa's plans |
 | `data/farm.js` | Water, pests, spoilage and the fridge, the compost bin and drying rack, hunger, and stocking the bar |
 | `data/items.js` | Items, skills, jobs, achievements, minigame cabinets, shops |
 | `data/office.js` | Happenings, the island chat, post, texts, endings, the opening |

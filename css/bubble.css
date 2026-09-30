@@ -289,7 +289,7 @@ body{font-family:var(--ui);background:var(--ink);font-variant-numeric:tabular-nu
   border-bottom:0!important;padding-bottom:4px;margin-bottom:10px!important;color:var(--hold)!important;
   display:flex;align-items:center;gap:10px}
 .h2::after{content:"";flex:1;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,79,154,.5),transparent)}
-.item,.stat-box,.mind-card,.farm-sum .fs,.farm-plots .fp,.farm-prod .fst,.ach,.skill,.quest,.setting{
+.item,.stat-box,.mind-card,.farm-sum .fs,.farm-plots .fp,.farm-prod .fst,.ws-mats .wm,.ach,.skill,.quest,.setting{
   border-radius:var(--r-md)!important;background:var(--glass-lite)!important;border:1px solid rgba(255,255,255,.1)!important;
   box-shadow:var(--gloss);transition:transform .3s var(--spring),box-shadow .2s,border-color .2s!important}
 .item:hover,.mind-card:hover,.farm-plots .fp:hover,.ach:hover{transform:translateY(-3px)!important;

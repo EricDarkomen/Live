@@ -250,6 +250,17 @@ const ORDER_POOL = [
   { who: 'The botanical garden on Isla Perla', e: '🌺', want: { compost: 3 }, pay: 30 },
   { who: 'The Coral Resort’s kitchen', e: '🐟', want: { fish: 3 }, pay: 38 },
   { who: 'A beach wedding (the tacos fell through)', e: '💒', want: { fish: 2, lime: 3 }, pay: 45 },
+  /* What the workshop makes — data/craft.js. Only once you have found Rafa's
+     yard: `need` is the flag that has to be set. */
+  { who: 'A boatyard on San Tomás', e: '⚓', want: { plank: 6 }, pay: 48, need: 'workshop' },
+  { who: 'The lighthouse, re-rigging', e: '🗼', want: { rope: 4 }, pay: 36, need: 'workshop' },
+  { who: 'A potter on Isla Perla', e: '🏺', want: { clay: 6 }, pay: 30, need: 'workshop' },
+  { who: 'The governor’s new terrace', e: '🎩', want: { brick: 9 }, pay: 88, need: 'workshop' },
+  { who: 'A jeweller on Cayo Rosa', e: '💍', want: { sea_glass: 2 }, pay: 60, need: 'workshop' },
+  { who: 'The Coral Resort gift shop', e: '🏨', want: { shell_chime: 2 }, pay: 64, need: 'workshop' },
+  { who: 'A tiki bar on Isla Perla', e: '🗿', want: { tiki_mug: 3 }, pay: 72, need: 'workshop' },
+  { who: 'A barbecue joint on San Tomás', e: '🔥', want: { charcoal: 6 }, pay: 34, need: 'workshop' },
+  { who: 'A ship’s carpenter', e: '⛵', want: { log: 4, nails: 8 }, pay: 50, need: 'workshop' },
 ];
 const Orders = {
   board() {
@@ -260,7 +271,7 @@ const Orders = {
     const now = G.flags.orders || [];
     if (!force && now.length >= 3) return;
     const have = new Set(now.map(o => o.i));
-    const pool = ORDER_POOL.map((o, i) => i).filter(i => !have.has(i) && (G.day > 1 || !ORDER_POOL[i].want.sunset));
+    const pool = ORDER_POOL.map((o, i) => i).filter(i => !have.has(i) && (G.day > 1 || !ORDER_POOL[i].want.sunset) && (!ORDER_POOL[i].need || G.flags[ORDER_POOL[i].need]));
     while (now.length < 3 && pool.length) now.push({ i: pool.splice(Math.floor(Math.random() * pool.length), 1)[0] });
     G.flags.orders = now;
   },

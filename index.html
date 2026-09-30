@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="css/hud.css?v=20261001">
 <link rel="stylesheet" href="css/dialogue.css?v=20260929">
 <link rel="stylesheet" href="css/combat.css?v=20260929">
-<link rel="stylesheet" href="css/panels.css?v=20261001">
+<link rel="stylesheet" href="css/panels.css?v=20261008">
 <link rel="stylesheet" href="css/comms.css?v=20260929">
 <link rel="stylesheet" href="css/controls.css?v=20260929">
 <link rel="stylesheet" href="css/arcade.css?v=20260929">
@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="css/title.css?v=20260929">
 <link rel="stylesheet" href="css/responsive.css?v=20261007">
 <!-- The look. Last, so it restyles everything above it; see the note at its top. -->
-<link rel="stylesheet" href="css/bubble.css?v=20261007">
+<link rel="stylesheet" href="css/bubble.css?v=20261008">
 </head>
 <body>
 <div id="app">
@@ -289,6 +289,7 @@
         <button data-comms="text"><span class="kh-i" aria-hidden="true">📱</span>V · Texts</button>
         <button data-comms="chat"><span class="kh-i" aria-hidden="true">💬</span>C · Chat</button>
         <button data-panel="farm"><span class="kh-i" aria-hidden="true">🌾</span>O · Farm</button>
+        <button data-panel="workshop"><span class="kh-i" aria-hidden="true">🛠️</span>Y · Workshop</button>
         <button data-panel="people"><span class="kh-i" aria-hidden="true">🌴</span>U · Islanders</button>
         <button data-panel="stats"><span class="kh-i" aria-hidden="true">🪪</span>P · Profile</button>
         <button data-panel="settings"><span class="kh-i" aria-hidden="true">⚙️</span>Esc · Menu</button>
@@ -451,18 +452,19 @@
      the global lexical scope, which the engine below reads by bare name. -->
 <script src="art/sprites/manifest.js?v=20260929"></script>
 <script src="data/game.js?v=20261005"></script>
-<script src="data/world.js?v=20261002"></script>
+<script src="data/world.js?v=20261008"></script>
 <script src="data/roads.js?v=20260929"></script>
 <script src="data/levels.js?v=20261001"></script>
-<script src="data/island.js?v=20261002"></script>
+<script src="data/island.js?v=20261008"></script>
 <script src="data/npcs.js?v=20261002"></script>
 <script src="data/minds.js?v=20261002"></script>
-<script src="data/items.js?v=20261002"></script>
-<script src="data/garden.js?v=20261002"></script>
-<script src="data/farm.js?v=20261002"></script>
+<script src="data/items.js?v=20261008"></script>
+<script src="data/garden.js?v=20261008"></script>
+<script src="data/farm.js?v=20261008"></script>
+<script src="data/craft.js?v=20261008"></script>
 <script src="data/callers.js?v=20260929"></script>
 <script src="data/office.js?v=20260929"></script>
-<script src="data/acts.js?v=20261002"></script>
+<script src="data/acts.js?v=20261008"></script>
 <script src="engine/core.js?v=20260929"></script>
 <script src="engine/acts.js?v=20260929"></script>
 <script src="engine/controls.js?v=20260929"></script>
@@ -486,14 +488,14 @@
 <script src="engine/peds.js?v=20260929"></script>
 <script src="engine/signals.js?v=20260929"></script>
 <script src="engine/guns.js?v=20260929"></script>
-<script src="engine/render.js?v=20260929"></script>
-<script src="engine/panels.js?v=20261004"></script>
+<script src="engine/render.js?v=20261008"></script>
+<script src="engine/panels.js?v=20261008"></script>
 <script src="engine/map.js?v=20260929"></script>
 <script src="engine/menus.js?v=20260929"></script>
 <script src="engine/arcade.js?v=20260929"></script>
 <script src="engine/look.js?v=20260929"></script>
 <script src="engine/title.js?v=20260929"></script>
-<script src="engine/input.js?v=20261001"></script>
+<script src="engine/input.js?v=20261008"></script>
 <!-- The minigame library. Separate files on purpose: each is a whole game
      that knows only the interface in engine/arcade.js, and a fourth is a new
      file here rather than a change to anything above it. -->
