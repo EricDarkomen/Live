@@ -21,6 +21,8 @@ const GAME = {
   sub: 'Sun, sand & questionable decisions',
   company: 'The Driftwood',
   currency: '€',
+  /* What the player can wear, one item each; TEXT's `slot.<id>` names them. */
+  slots: ['headset', 'trinket', 'mug'],
   version: 1,
   /* THE ISLAND'S DAY. The bar is open eleven till seven; after that it is
      golden hour, then sunset at quarter past eight, then whatever you make of

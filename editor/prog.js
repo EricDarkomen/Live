@@ -41,7 +41,7 @@ const Prog = {
   /* What the engine will actually honour. Read off the code that consumes
      them — P.equipment's own keys, Player.recalc()'s own list — so a name that
      is not here is a name that does nothing. */
-  SLOTS: ['headset', 'trinket', 'mug'],
+  SLOTS: GAME.slots,
   EFFECTS: ['empathy', 'knowledge', 'bullshit', 'chaos', 'patience', 'energy'],
   RARITY: ['common', 'rare', 'epic'],
 

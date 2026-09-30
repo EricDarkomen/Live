@@ -6,7 +6,7 @@ const Player = {
     if (typeof RANKS !== 'undefined' && RANKS[0] && RANKS[0].face) P.face = RANKS[0].face;
     P.patience = 100; P.energy = 100; P.money = 0; P.rep = 0; P.food = 100;
     P.stats = { empathy: 2, knowledge: 2, patience: 2, bullshit: 1, chaos: 1 };
-    P.skills = {}; P.skillPoints = 1; P.inventory = []; P.equipment = { headset: null, trinket: null, mug: null };
+    P.skills = {}; P.skillPoints = 1; P.inventory = []; P.equipment = emptyKit();
     P.x = SPAWN.x; P.y = SPAWN.y; P.buffs = [];
     Item.give('headset0', true); Item.equip('headset0', true);
     this.recalc(); P.patience = P.patMax; P.energy = P.eneMax;

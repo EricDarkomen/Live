@@ -130,7 +130,7 @@ const Save = {
           t: m.t, r: true, face: m.face, thread: m.ch, from: m.who, body: m.msg, k: '' }));
       }
       delete G.chat; delete G.mail; delete G.unread; delete G.unreadMail;
-      P.equipment = Object.assign({ headset: null, trinket: null, mug: null }, P.equipment || {});
+      P.equipment = Object.assign(emptyKit(), P.equipment || {});
       P.inventory = Array.isArray(P.inventory) ? P.inventory.filter(i => ITEMS[i]) : [];
       P.skills = P.skills || {};
       G.activeEvent = null;
