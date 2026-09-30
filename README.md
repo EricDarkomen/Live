@@ -62,6 +62,8 @@ linen suit who very much wants to buy it.
   show you how they do it), make them quicker, and unlock new routines. The
   **Islanders** tab (`U`) shows how everybody you have met is doing, what
   they are up to, and how far they have come.
+- **Jump in.** Hop about, wade out from any beach and swim the shallows or the
+  hidden lagoon, duck-dive under the surface, and cannonball off the jetty.
 - **Explore.** A road loop round the island, a beach buggy to drive it in, a
   plaza, a yoga deck, a hidden lagoon in the jungle, a water pistol at the
   surf shack, and a wardrobe of swimwear at your beach hut.
@@ -91,14 +93,15 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 |            | Keyboard                        | Touch                          |
 | ---------- | ------------------------------- | ------------------------------ |
 | Move       | `W A S D` or arrows             | thumb down anywhere bottom-left |
-| Interact   | `E`                             | `E` button                     |
+| Interact   | `E` or `Enter`                  | `E` button                     |
+| Jump       | `Space` — in the water it dives | `JUMP` button (`DIVE` when swimming) |
 | Drive      | `W` go · `S` brake, then reverse · `A D` steer · `H` horn | **two sticks**: left steers, right is the throttle |
 | Get out    | `E`                             | `OUT`                          |
 | Take it out | `G` · `Q` swaps · `R` reloads   | grab the green stick           |
 | Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
 | Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
 | The map    | `N`, or the minimap             | `☰` · Map                      |
-| Panels     | `J I K O Y U P L`, `T` for today’s takings, `Esc` for menu | `☰`        |
+| Panels     | `J I K O Y U P L`, `T` for today’s takings, `Esc` for settings — one window, a sidebar of sections | `☰` opens a launcher of every section |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
 | Save/load  | `F5` / `F9`                     | `☰` · Menu                     |

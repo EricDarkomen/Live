@@ -320,7 +320,7 @@ const Guns = {
      takes the world away, and not while driving (the right stick is throttle). */
   can() {
     return G.state === 'play' && this.any()
-      && !Cars.driving
+      && !Cars.driving && !P.swim
       && !Dialogue.on && !Panels.on && !Arcade.on && !Combat.E;
   },
 

@@ -122,6 +122,15 @@ const UI = {
     }
     Track.sync();
   },
+  /* On the move the HUD steps back, and comes forward again a moment after you
+     stop, or whenever your nerve is low (css/polish.css: body.hud-quiet). */
+  _q: 0,
+  quiet(dt) {
+    const moving = G.state === 'play' && (P.moving || !!Cars.driving);
+    this._q = moving ? Math.min(2, this._q + dt) : Math.max(0, this._q - dt * 1.6);
+    const on = this._q > .9 && P.patience > P.patMax * .25;
+    if (on !== this._quiet) { this._quiet = on; document.body.classList.toggle('hud-quiet', on); }
+  },
   /* Rewrite every field on the next hud(), after a load. */
   hudDirty() { this._last = {}; this.hud(); }
 };

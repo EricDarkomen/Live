@@ -25,7 +25,7 @@ const Levels = {
   FIELDS: ['def', 'level', 'solid', 'zone', 'seed', 'surf', 'ao', 'objects', 'byTile',
     'zoneName', 'surfName',
     'doorways', 'openings', 'desks', 'worktops', 'tables', 'counters', 'blocked',
-    'cars', 'carTiles', 'peds',
+    'cars', 'carTiles', 'peds', 'swim',
     'signals'],
 
   /* Object fields that change after a build and must survive eviction. */

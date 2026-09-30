@@ -432,6 +432,8 @@ const ProgCheck = {
       /* The street grants driving and weapon achievements. */
       Cars,
       Guns,
+      /* Swimming and jumping grant theirs (engine/moves.js). */
+      typeof Moves !== 'undefined' && Moves,
     ].filter(Boolean).concat(
       /* Each minigame names its achievement in its own reward(); asked of the host. */
       (Arcade.catalogue ? (Arcade.catalogue() || []) : []).filter(Boolean)

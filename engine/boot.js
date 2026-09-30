@@ -14,6 +14,8 @@ const Game = {
     if (G.state === 'play' || G.state === 'dialogue' || G.state === 'panel'
       || G.state === 'comms' || G.state === 'cut') NPCM.update(dt);
     movePlayer(dt);
+    Moves.update(dt);
+    UI.quiet(dt);
     /* The car moves P, so it goes after the walk and before the camera. */
     /* Signals before cars, which obey them this frame. */
     Signals.update(dt);
@@ -98,8 +100,8 @@ const Game = {
       ? (Hand.pad === 'dpad'
           ? 'Move with the pad on the ' + Hand.padSide() + '.'
           : 'Put a thumb down anywhere in the bottom-' + Hand.padSide() + ' and push.')
-        + ' Tap <span class="kbd">E</span> to interact.'
-      : 'Move with <span class="kbd">WASD</span>. Interact with <span class="kbd">E</span>.')
+        + ' Tap <span class="kbd">E</span> to interact, <span class="kbd">JUMP</span> to jump.'
+      : 'Move with <span class="kbd">WASD</span>. Interact with <span class="kbd">E</span>, jump with <span class="kbd">Space</span>.')
       + ' ' + say('firstTip')), 900);
     setTimeout(() => UI.toast('🛎️', say('phoneTip', { press: TOUCH ? 'tap' : 'press' })), 6000);
     setTimeout(() => { if (!Phones.ringing.length) Phones.ringRandom(); }, 12000);

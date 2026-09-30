@@ -2521,7 +2521,8 @@ const R = {
       const nf = seat ? Sprites.sit(n.id)
         : n.walking ? Sprites.frame(n.id, this.animate, n.step)
         : this.animate ? Sprites.breath(n.id) : 0;
-      const nlift = seat && this.animate ? Sprites.breathLift(n.id) : 0;
+      /* A hop for joy when they are having a wonderful day (Moves.joy). */
+      const nlift = seat ? (this.animate ? Sprites.breathLift(n.id) : 0) : Moves.joy(n);
       /* A seated person faces the chair's `face` (0 up, 1 left, 2 down, 3 right),
          default 0 (towards the desk). Somebody hit turns to see who did it
          (Guns.watch twist). */
@@ -3150,6 +3151,8 @@ const R = {
     this.worktops(x0, y0, x1, y1);
     this.cubicles(x0, y0, x1, y1);
 
+    /* Rings on the water where you swim, under everybody (engine/moves.js). */
+    Moves.paintUnder(c);
     /* drawables sorted by y */
     const drawables = [];
     World.objects.forEach(o => {
@@ -3321,7 +3324,14 @@ const R = {
         const seat = psprite && !P.moving
           ? Sprites.seatedAt(Math.floor(P.x / TILE), Math.floor(P.y / TILE)) : null;
         const at = seat ? Sprites.seatPos(seat) : { x: P.x, y: P.y };
-        this.shadow(at.x, at.y + 13, 13, 5);
+        /* Jumping, landing and swimming (engine/moves.js): how you are drawn,
+           not where you are. */
+        const mv = seat ? null : Moves.pose(P.dir ?? 2, !P.moving);
+        /* The shadow stays on the ground and shrinks as you rise; a swimmer has none. */
+        if (!(mv && mv.swim)) {
+          const sh = mv && mv.lift ? Math.max(.45, 1 - mv.lift / 30) : 1;
+          this.shadow(at.x, at.y + 13, 13 * sh, 5 * sh);
+        }
         const bob = psprite ? 0 : P.moving && this.animate ? Math.abs(Math.sin(P.bob * 2)) * 4 : 0;
         c.save();
         /* The glow marks which person is you. */
@@ -3331,19 +3341,33 @@ const R = {
              Guns.back, or returns null with nothing in hand (Sprites.twisted()). */
           const tw = seat ? null : Guns.pose();
           /* The legs' frame: walk, run (P.fast, set from the movement vector), or stand. */
-          const pf = seat ? Sprites.sit('player')
+          let pf = seat ? Sprites.sit('player')
             : P.moving ? Sprites.frame('player', this.animate, P.step, P.fast, tw && Guns.back)
             /* Squared up with something to swing, the feet are the stance's. */
             : tw && tw.legFrame !== undefined ? tw.legFrame
             : this.animate ? Sprites.breath('player') : 0;
+          if (mv && mv.frame !== null && !tw) pf = mv.frame;
           const plift = seat && this.animate ? Sprites.breathLift('player') : 0;
-          /* Same rule as the colleagues above: the chair points, not the
-             sitter. Sit on the bench in Nailed It and you face the room. */
-          Sprites.draw(c, 'player', seat ? (seat.face ?? 0) : P.dir ?? 2, pf, at.x, at.y - plift, tw);
-          /* What is in hand, always on top: the arm is held away from the body in every
-             direction. */
-          if (!seat && Guns.armed) Guns.held(c, at.x, at.y - plift);
-        } else this.emoji(P.face, at.x, at.y - bob, 30);
+          const pdir = seat ? (seat.face ?? 0) : P.dir ?? 2;
+          if (mv && mv.swim) {
+            /* In the water: drawn low, cut at the waterline. */
+            Moves.paintSwimmer(c, at.x, at.y, mv, dy => Sprites.draw(c, 'player', pdir, pf, at.x, at.y + dy));
+          } else {
+            const lift = (mv ? mv.lift : 0) + plift;
+            /* A squash or a stretch, about the feet, so you land on your shadow. */
+            const squash = mv && (mv.sx !== 1 || mv.sy !== 1);
+            if (squash) {
+              const fy = at.y + Sprites.FOOT;
+              c.translate(at.x, fy); c.scale(mv.sx, mv.sy); c.translate(-at.x, -fy);
+            }
+            /* Same rule as the colleagues above: the chair points, not the
+               sitter. Sit on the bench in Nailed It and you face the room. */
+            Sprites.draw(c, 'player', pdir, pf, at.x, at.y - lift, tw);
+            /* What is in hand, always on top: the arm is held away from the body in every
+               direction. */
+            if (!seat && Guns.armed) Guns.held(c, at.x, at.y - lift);
+          }
+        } else this.emoji(P.face, at.x, at.y - bob - (mv ? mv.lift : 0) + (mv && mv.swim ? 8 : 0), 30);
         c.restore();
       }
     });

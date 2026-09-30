@@ -22,6 +22,21 @@ const Menu = {
   motion() { FX.motion = !FX.motion; if (!FX.motion) { FX.parts.length = 0; FX.shakeAmt = 0; } this._done(); },
   emoji() { R.emojiScale = R.emojiScale >= 1.3 ? 0.85 : R.emojiScale + 0.15; R._fontCache.clear(); this._done(); },
   speed() { Dialogue.speed = Dialogue.speed >= 200 ? 30 : Dialogue.speed >= 100 ? 999 : Dialogue.speed + 40; this._done(); },
+  /* The segmented choices in Settings: data-set="key:value". */
+  set(k, v) {
+    if (k === 'pops') {
+      if (!['all', 'needed', 'none'].includes(v) || Comms.pop === v) return;
+      Comms.pop = v;
+      if (v !== 'none') UI.toast('🔔', say(v === 'all' ? 'notify.all' : 'notify.needed'));
+    } else if (k === 'speed') Dialogue.speed = { slow: 30, normal: 62, fast: 150, instant: 999 }[v] || 62;
+    else if (k === 'emoji') { R.emojiScale = { s: .85, m: 1, l: 1.3 }[v] || 1; R._fontCache.clear(); }
+    else if (k === 'pad') { Hand.pad = v === 'dpad' ? 'dpad' : 'stick'; Hand.apply(); }
+    else return;
+    Sfx.select();
+    this._done();
+  },
+  /* A slider, as it moves. Saved when it is let go. */
+  range(k, v) { if (k === 'vol') Sfx.setVolume(clamp(v, 0, 100) / 100); },
   southpaw() { Hand.left = !Hand.left; Hand.apply(); Sfx.select(); this._done(); },
   padstyle() { Hand.pad = Hand.pad === 'dpad' ? 'stick' : 'dpad'; Hand.apply(); Sfx.select(); this._done(); },
   /* Entering must happen inside this click (Boot.goFullscreen). */

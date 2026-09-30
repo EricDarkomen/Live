@@ -47,7 +47,8 @@ function bindInput() {
       /* The creator takes Enter/Space as "that will do", outside its selects. */
       if (G.state === 'look') { Boot.goFullscreen(); Look.accept(); return; }
       if (G.state === 'cut') { Cut.press(); return; }
-      if (G.state === 'play') { Interact.go(); return; }
+      /* Space jumps (or, in the water, dives); Enter and E interact. */
+      if (G.state === 'play') { if (e.code === 'Space') { if (!e.repeat) Moves.jump(); } else Interact.go(); return; }
       return;
     }
     if (G.state === 'combat') {
@@ -144,6 +145,9 @@ function bindInput() {
   const mmb = $('#minimapBtn');
   if (mmb) mmb.onclick = () => { if (Panels.on && Panels.tab === 'map') Panels.close(); else Panels.open('map'); };
   $('#pnClose').onclick = () => Panels.close();
+  $('#pnBack').onclick = () => Panels.go('home');
+  /* Turning a phone round can swap the sidebar for the launcher. */
+  addEventListener('resize', () => { if (Panels.on) { if (Panels.tab === 'home' && !Panels.narrow()) Panels.tab = 'quests'; Panels.tabs(); Panels.render(); } });
   $('#panel').addEventListener('click', e => { if (e.target.id === 'panel') Panels.close(); });
   $('#endAgain').onclick = () => { localStorage.removeItem(SAVE_KEY); location.reload(); };
   $('#endTitle').onclick = () => location.reload();
@@ -230,8 +234,14 @@ function bindInput() {
     $('#touchE').addEventListener('click', e => e.preventDefault());
     const menu = e => {
       e.preventDefault(); Sfx.init(); buzz(9);
-      if (Panels.on) Panels.close(); else if (G.state === 'play') Panels.open('quests');
+      if (Panels.on) Panels.close(); else if (G.state === 'play') Panels.open('home');
     };
+    /* Jump, or dive in the water. */
+    $('#touchJ').addEventListener('pointerdown', e => {
+      e.preventDefault(); Sfx.init(); buzz(9);
+      if (G.state === 'play') Moves.jump();
+    });
+    $('#touchJ').addEventListener('click', e => e.preventDefault());
     $('#touchMenu').addEventListener('pointerdown', menu);
     $('#touchMenu').addEventListener('click', e => e.preventDefault());
 
@@ -248,7 +258,7 @@ function bindInput() {
 
 /* Can the player's feet be here? Walking, getting out of a car and the unstick
    below all ask this one question (the shape is Collide.walk()). */
-function playerFits(nx, ny) { return Collide.walk(nx, ny); }
+function playerFits(nx, ny) { return Collide.walk(nx, ny, { swim: true }); }
 
 function movePlayer(dt) {
   /* Whatever takes the world away takes the controls too: let go of the sticks. */
@@ -262,14 +272,17 @@ function movePlayer(dt) {
   const tired = P.energy < 25 ? .72 : 1;
   /* Carrying something, you walk 12% slower. */
   const held = Guns.armed ? .88 : 1;
-  const sp = TILE * 3.45 * tired * held * dt;
+  /* Swimming is slower than walking (engine/moves.js). */
+  const wet = P.swim ? Moves.SWIM_SPEED : 1;
+  const sp = TILE * 3.45 * tired * held * wet * dt;
   P.moving = !!(dx || dy);
   /* Running is chosen by how far you push, so pace and animation agree. */
-  P.fast = P.moving && Math.hypot(dx, dy) > 0.86 && !Guns.armed;
+  P.fast = P.moving && Math.hypot(dx, dy) > 0.86 && !Guns.armed && !P.swim;
   if (P.moving) {
     P.dir = Sprites.dirOf(dx, dy);
     P.bob += dt * 9;
-    if (!P._stepT || (P._stepT -= dt) <= 0) { P._stepT = .34; if (Sfx.on) Sfx.step(); }
+    /* Footsteps on land; the water makes its own noise. In the air, none. */
+    if (!P.swim && !P.jz && (!P._stepT || (P._stepT -= dt) <= 0)) { P._stepT = .34; if (Sfx.on) Sfx.step(); }
   }
   const free = (nx, ny) => {
     if (!playerFits(nx, ny)) return false;
@@ -286,7 +299,7 @@ function movePlayer(dt) {
   if (dx && free(P.x + dx * sp, P.y)) P.x += dx * sp;
   if (dy && free(P.x, P.y + dy * sp)) P.y += dy * sp;
   /* Inside something anyway, you are eased out rather than held there. */
-  const out = Collide.unstick(P.x, P.y);
+  const out = Collide.unstick(P.x, P.y, { swim: true });
   if (out) {
     const m = Math.hypot(out[0], out[1]) || 1, step = Math.min(m, TILE * 2.4 * dt);
     P.x += out[0] / m * step; P.y += out[1] / m * step;
