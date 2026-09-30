@@ -308,15 +308,27 @@ const DATE_LINES = {
 };
 const Dates = {
   ask(id, who) {
-    G.flags.date = { id, day: G.day };
-    UI.objective('Meet ' + who + ' at the lantern in Lovers’ Cove after 19:00.');
+    const said = 'Meet ' + who + ' at the lantern in Lovers’ Cove after 19:00.';
+    G.flags.date = { id, day: G.day, said };
+    UI.objective(said);
     UI.toast('💕', 'A date! <b>' + who + '</b>, the cove lantern, after sunset.', 'gold');
   },
-  today(id) { const d = G.flags.date; return !!(d && d.id === id && d.day === G.day); },
-  lantern() {
+  /* Today's date, if there is one. A date from an earlier day was missed: it
+     is dropped, with its objective, so the next one can be asked for. */
+  pending() {
     const d = G.flags.date;
+    if (d && d.day !== G.day) {
+      G.flags.date = null;
+      if (d.said && G.objective === d.said) UI.objective(Q.idle());
+      return null;
+    }
+    return d || null;
+  },
+  today(id) { const d = this.pending(); return !!(d && d.id === id); },
+  lantern() {
+    const d = this.pending();
     const m = G.minutes % 1440;
-    if (d && d.day === G.day && m >= 1140) {
+    if (d && m >= 1140) {
       const n = NPCS.find(x => x.id === d.id);
       G.flags.date = null;
       G.flags['dated_' + d.id] = (G.flags['dated_' + d.id] || 0) + 1;
@@ -329,7 +341,7 @@ const Dates = {
       insp(n ? n.face : '💕', n ? n.name : 'Your date', 'Lovers’ Cove · sunset', DATE_LINES[d.id] || ['It is a lovely evening.']);
       return true;
     }
-    if (d && d.day === G.day) {
+    if (d) {
       insp('🏮', 'The cove lantern', 'Waiting', ['It is not sunset yet. Your date said after seven. You fiddle with your hair.']);
       return true;
     }

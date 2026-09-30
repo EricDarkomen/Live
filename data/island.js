@@ -34,7 +34,7 @@ const Island = {
   plan() {
     if (this._plan) return this._plan;
     const g = (cls, at) => Roads.geom({ cls, at });
-    const wc = g('access', this.WEST), ec = g('access', this.EAST);
+    const wc = g('access', this.WEST);
     return (this._plan = Roads.net([
       { id: 'front', zone: 'front', cls: 'spine', axis: 'x', at: this.FRONT, from: 16, to: 108 },
       { id: 'west', zone: 'west', cls: 'access', axis: 'y', at: this.WEST, from: this.HILL, to: this.FRONT },
@@ -51,7 +51,8 @@ const Island = {
     const add = o => objects.push(o);
     const mass = (x1, y1, x2, y2) => solids.push([x1, y1, x2, y2]);
     const taken = new Set(), key = (x, y) => x + ',' + y;
-    const put = o => { if (taken.has(key(o.x, o.y))) return false; taken.add(key(o.x, o.y)); add(o); return true; };
+    const hard = new Set();
+    const put = o => { if (taken.has(key(o.x, o.y))) return false; taken.add(key(o.x, o.y)); if (o.solid) hard.add(key(o.x, o.y)); add(o); return true; };
 
     /* THE COAST. Distance to the sea, by flood from every wet tile, is what
        decides sand from grass: five tiles of beach all the way round, and the
@@ -117,9 +118,7 @@ const Island = {
     put({ x: 58, y: fg.b1 - 1, e: '🚏', name: 'The shuttle stop', kind: 'sign', solid: true, use: 'busStop' });
 
     /* INSIDE THE LOOP. */
-    const west = Roads.byId(net, 'west'), east = Roads.byId(net, 'east'), hill = Roads.byId(net, 'hill');
-    const wg = Roads.geom(west), eg = Roads.geom(east), hg = Roads.geom(hill);
-    /* The garden: twelve plots of red earth that were Uncle Rafa's. */
+    /* The garden: fifteen plots of red earth that were Uncle Rafa's. */
     room('garden', 34, 28, 52, 42);
     surf('track', 35, 29, 50, 38);
     [36, 39, 42, 45, 48].forEach((x, i) => [30, 33, 36].forEach((y, j) => {
@@ -171,7 +170,7 @@ const Island = {
     put({ x: 108, y: 45, e: '📜', name: 'The order board', kind: 'board', solid: true, use: 'orderBoard' });
     put({ x: 119, y: 45, e: '🧳', name: 'Your suitcase', kind: 'misc', solid: true, use: 'suitcase' });
     /* Nico's end of the jetty, which he will tell you is not Teo's end. */
-    put({ x: 123, y: 46, e: '🐟', name: 'Nico’s fish crate', kind: 'misc', solid: true, use: 'fishCrate' });
+    put({ x: 122, y: 46, e: '🐟', name: 'Nico’s fish crate', kind: 'misc', solid: true, use: 'fishCrate' });
 
     /* LOVERS' COVE — a horseshoe of rock on the west shore and one lantern. */
     surf('rock', 6, 38, 11, 40); surf('rock', 6, 53, 11, 55);
@@ -212,6 +211,15 @@ const Island = {
                             : (x >= g.b1 - 1 && x <= g.b2 + 1 && y >= l.from - 2 && y <= l.to + 2); })
       && !solids.some(b => x >= b[0] - 1 && x <= b[2] + 1 && y >= b[1] - 1 && y <= b[3] + 1)
       && !rooms.some(r => ['garden', 'yard', 'plaza', 'yoga', 'jetty'].includes(r.z) && x >= r.r[0] - 1 && x <= r.r[2] + 1 && y >= r.r[1] - 1 && y <= r.r[3] + 1);
+    /* Whether something solid at x,y would wall a neighbouring tile of ground
+       in on every side: floor nobody can stand on (Check.connectivity). */
+    const open = (x, y) => L[y] && L[y][x] && !hard.has(key(x, y))
+      && !solids.some(b => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]);
+    const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const seals = (x, y) => N4.some(([dx, dy]) => {
+      const nx = x + dx, ny = y + dy;
+      return open(nx, ny) && !N4.some(([ex, ey]) => (nx + ex !== x || ny + ey !== y) && open(nx + ex, ny + ey));
+    });
     /* WHAT THE SEA LEAVES, AND WHAT THE HILLS GIVE UP — data/craft.js. Before
        the trees, so a tree never lands on the only good bit of beach.
        Driftwood at the waterline, shells a little higher, loose stones inland,
@@ -221,7 +229,7 @@ const Island = {
     const scatter = (n, salt, where, o) => {
       for (let i = 0, got = 0; i < 4000 && got < n; i++) {
         const x = 4 + (Roads.hash(i, salt, 41) % (W - 8)), y = 4 + (Roads.hash(i, salt + 3, 43) % (H - 8));
-        if (!L[y][x] || !roadClear(x, y) || !where(x, y, zoneOf(x, y))) continue;
+        if (!L[y][x] || !roadClear(x, y) || !where(x, y, zoneOf(x, y)) || (o.solid && seals(x, y))) continue;
         if (put(Object.assign({ x, y }, o))) got++;
       }
     };
@@ -235,7 +243,7 @@ const Island = {
 
     for (let i = 0; i < 900; i++) {
       const x = 4 + (Roads.hash(i, 7, 31) % (W - 8)), y = 4 + (Roads.hash(i, 11, 37) % (H - 8));
-      if (!L[y][x] || !roadClear(x, y)) continue;
+      if (!L[y][x] || !roadClear(x, y) || seals(x, y)) continue;
       const z = zoneOf(x, y);
       if (z === 'sands' && y > 74) continue;                       /* keep the beach for lying on */
       if (z === 'lagoon' && x >= 53 && x <= 67 && y >= 9 && y <= 15) continue;

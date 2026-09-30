@@ -55,8 +55,12 @@ function bindInput() {
       if (/^Digit[1-9]$/.test(e.code)) { const b = $('#cbMoves').children[+e.code.slice(5) - 1]; if (b && !b.disabled) b.click(); }
       return;
     }
-    if (e.code === 'F5') { e.preventDefault(); Save.write(); return; }
-    if (e.code === 'F9') { e.preventDefault(); if (Save.has()) { Save.read(); Panels.close(); } else Sfx.deny(); return; }
+    /* Only with a game on screen: on the title, the name, the creator or the
+       opening, P and G are a placeholder run, and F5 would write it over the
+       real save (F5 is left to the browser there). */
+    const inGame = G.state === 'play' || G.state === 'panel' || G.state === 'comms';
+    if (e.code === 'F5' && inGame) { e.preventDefault(); Save.write(); return; }
+    if (e.code === 'F9' && inGame) { e.preventDefault(); if (Save.has()) { Save.read(); Panels.close(); } else Sfx.deny(); return; }
     if (e.code === 'Escape') {
       /* Esc skips the opening. */
       if (G.state === 'cut' && Cut.on) { Cut.skip(); return; }
@@ -149,7 +153,7 @@ function bindInput() {
   /* Turning a phone round can swap the sidebar for the launcher. */
   addEventListener('resize', () => { if (Panels.on) { if (Panels.tab === 'home' && !Panels.narrow()) Panels.tab = 'quests'; Panels.tabs(); Panels.render(); } });
   $('#panel').addEventListener('click', e => { if (e.target.id === 'panel') Panels.close(); });
-  $('#endAgain').onclick = () => { localStorage.removeItem(SAVE_KEY); location.reload(); };
+  $('#endAgain').onclick = () => { Save.erase(); location.reload(); };
   $('#endTitle').onclick = () => location.reload();
   $('#dialogue').addEventListener('click', e => { if (!e.target.closest('.choice')) Dialogue.advance(); });
 

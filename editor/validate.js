@@ -171,8 +171,9 @@ const Check = {
 
   /* ---- things on walls ----
      World.build() drops a wall-mounted object with no wall to the floor,
-     silently. Exempt: `sign` (R.wallArt() gives it a stand) and `pigeon`. */
-  FREESTANDING: ['sign', 'pigeon'],
+     silently. Exempt: `sign` and `board` (R.wallArt() gives them a stand) and
+     `pigeon`. */
+  FREESTANDING: ['sign', 'board', 'pigeon'],
   /* Asked of the built object: an object's `furn:` overrides its kind. */
   stranded(built) {
     if (!built || this.FREESTANDING.indexOf(built.kind) >= 0) return false;

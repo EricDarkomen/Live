@@ -348,6 +348,7 @@ const HOOKS = {
   second() {
     Farm.update(); Garden.refresh();
     Craft.update(); Craft.refresh();
+    Dates.pending();
   },
   bossWon(key) {
     if (key === 'critic') {

@@ -4,7 +4,7 @@ const Menu = {
   _done() { Settings.save(); Panels.render(); },
   save() { Save.write(); },
   load() { Save.read(); Panels.close(); },
-  newgame() { if (confirm(say('eraseSave'))) { localStorage.removeItem(SAVE_KEY); location.reload(); } },
+  newgame() { if (confirm(say('eraseSave'))) { Save.erase(); location.reload(); } },
   sound() { Sfx.on = !Sfx.on; if (Sfx.on) Sfx.init(); else Sfx.holdMusic(false); this._done(); },
   music() { Sfx.music = !Sfx.music; if (!Sfx.music) Sfx.holdMusic(false); this._done(); },
   vol() { Sfx.setVolume(Sfx.volume >= 0.6 ? 0.08 : Sfx.volume + 0.14); this._done(); },
@@ -77,6 +77,8 @@ const Save = {
     return this.write(true);
   },
   has() { return !!this.peek(); },
+  /* Blocked storage throws; the page reload that follows must still happen. */
+  erase() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* nothing was saved */ } },
   /* The header without applying it, for the title screen. */
   peek() {
     try {
@@ -91,7 +93,7 @@ const Save = {
       if (!d || !d.P || !d.G) { UI.toast('↻', say('noSaveFound'), 'bad'); return false; }
       /* Fresh defaults first, so the save only overlays what it has. */
       resetRun();
-      Object.assign(P, d.P); Object.assign(G, d.G);
+      Object.assign(P, freshPlayer(), d.P); Object.assign(G, d.G);
       /* Items the game no longer defines are dropped. */
       P.inventory = P.inventory.filter(i => ITEMS[i]);
       G.activeEvent = null;

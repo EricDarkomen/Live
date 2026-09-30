@@ -2612,6 +2612,13 @@ const R = {
         /* Cork, and four things pinned to it at four different angles by four
            people who each thought theirs was the important one. */
         const w = size * 1.12, h = size * .84;
+        /* Out in the open it stands on two legs, as a sign does on its post. */
+        if (!side) {
+          c.fillStyle = 'rgba(0,0,0,.35)';
+          c.beginPath(); c.ellipse(0, h * .92, w * .42, 3, 0, 0, 6.3); c.fill();
+          c.fillStyle = '#5a4128';
+          c.fillRect(-w * .36, h * .3, 3, h * .62); c.fillRect(w * .36 - 3, h * .3, 3, h * .62);
+        }
         frame(w, h, '#2a2018', '#8a6b46');
         for (let i = 0; i < 4; i++) {
           const pw = 6 + rnd() * 5, ph = 7 + rnd() * 4;

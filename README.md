@@ -200,9 +200,10 @@ copies to take if you want them.
 
 Most of the sheets above use only assets offered under OGA-BY 3.0 or CC0,
 deliberately: neither carries a ShareAlike term, so using them costs
-attribution and nothing else. `tools/build-sprites.mjs` re-checks that against
-upstream's own licence data on every build and refuses to produce a sheet if it
-stops being true.
+attribution and nothing else. The sprite build tool (`tools/build-sprites.mjs`,
+which lives in the private source repository — `tools/` is deliberately not
+published, see `LICENSE`) re-checks that against upstream's own licence data on
+every build and refuses to produce a sheet if it stops being true.
 
 ShareAlike art is not banned outright — it is kept in files of its own, and
 there are five of them across two parts. `art/sprites/sanitary.png` has always
@@ -224,8 +225,8 @@ under 4.0, which is not ours to do to somebody else's work. So each gets its
 own part, its own PNG, and `assertOnePart()` refusing to write a sheet that
 mixes anything with anything. `CREDITS.md` marks each non-part-2 sheet in the
 list at the top of it, so the OGA-BY sentence underneath is not quietly
-covering something it does not cover. See `LICENSE`, and the build section
-above.
+covering something it does not cover. See `LICENSE` for the full terms of each
+part.
 
 **The fonts** — Fredoka and Nunito, in `art/fonts/` — are not ours either.
 They are used unmodified under the [SIL Open Font License 1.1](art/fonts/),

@@ -32,7 +32,7 @@ function islander(id, who, o) {
   const common = [
     { t: 'Flirt.', to: 'flirt', if: () => !flirted() },
     { t: 'Offer them a drink.', to: 'gift', if: hasDrink },
-    { t: 'Meet me at the cove tonight? After sunset.', to: 'date', if: () => Rel.get(id) >= 4 && !G.flags.date && G.minutes % 1440 < 1260 },
+    { t: 'Meet me at the cove tonight? After sunset.', to: 'date', if: () => Rel.get(id) >= 4 && !Dates.pending() && G.minutes % 1440 < 1260 },
     /* Developing them: once a day, spend some time on the thing they love.
        They get better at it (see Mind.event 'practise'), and they remember
        who they got better with. */

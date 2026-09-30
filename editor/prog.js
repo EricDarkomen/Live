@@ -470,15 +470,16 @@ const ProgCheck = {
   },
 
   /* The other direction: the writing naming something that is not in a table.
-     Ach.get() on an unknown id THROWS, mid-sentence, in front of the player. */
+     Ach.get() on an unknown id does nothing (engine/progress.js), so the
+     achievement is quietly never awarded. */
   dangling() {
     const out = [];
     Writing.byId('Ach', 'get').forEach((wheres, id) => {
       if (ACHS[id]) return;
-      out.push({ level: 'error', key: null,
+      out.push({ level: 'warn', key: null,
         msg: 'Ach.get(' + Emit.str(id) + ') is called in ' + wheres.length + ' place'
-          + (wheres.length === 1 ? '' : 's') + ' and there is no such achievement — it throws, '
-          + 'mid-sentence, in front of the player: ' + wheres.slice(0, 3).join(', ') });
+          + (wheres.length === 1 ? '' : 's') + ' and there is no such achievement, so it is '
+          + 'never awarded: ' + wheres.slice(0, 3).join(', ') });
     });
     Writing.byId('Item', 'give').forEach((wheres, id) => {
       if (ITEMS[id]) return;
