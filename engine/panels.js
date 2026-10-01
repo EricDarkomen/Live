@@ -219,7 +219,9 @@ const Panels = {
     $('#panel').classList.add('on');
     this.tabs(); this.render(); Sfx.blip();
     /* Focus into the dialog, for the keyboard and screen readers. */
-    if (first) setTimeout(() => { const t = $('#pnTabs .tab.on') || $('#pnBody .home-tile') || $('#pnClose'); if (t) t.focus(); }, 20);
+    /* Not on a touch screen, though, unless a controller is driving: there the
+       ring would sit on the first tile as if it had been chosen. */
+    if (first && (!TOUCH || Pad.used)) setTimeout(() => { const t = $('#pnTabs .tab.on') || $('#pnBody .home-tile') || $('#pnClose'); if (t) t.focus(); }, 20);
   },
   close() {
     if (!this.on) return;
@@ -448,7 +450,7 @@ const Panels = {
         : it.quest ? 'Quest item'
         : typeof TOOLS !== 'undefined' && TOOLS[id] ? Gear.left(id) + '/' + TOOLS[id].uses + ' jobs left'
         : tap + ' to examine';
-      return '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + (counts[id] > 1 ? ' ×' + counts[id] : '') + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
+      return '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(counts[id] > 1 ? it.n.replace(/^(A|An) /, '') + ' ×' + counts[id] : it.n) + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
         (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div>' : '') +
         '<div class="ieff" style="color:var(--dim)">' + how + '</div></button>';
     };
@@ -534,6 +536,7 @@ const Panels = {
       + '</div></div>';
     const known = NPCS.filter(n => G.rel[n.id] !== undefined);
     const staff = known.filter(n => !n.level), town = known.filter(n => n.level);
+    if (!known.length) return h + '</div><div class="h2">' + say('stats.colleagues') + '</div><p class="empty">Nobody yet. Say hello to somebody.</p>';
     h += '</div><div class="h2">' + say('stats.colleagues') + '</div><div class="stat-grid">';
     staff.forEach(n => { h += box(n); });
     if (town.length) {

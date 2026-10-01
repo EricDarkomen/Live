@@ -869,7 +869,7 @@ const Mind = {
      about it. */
   panel() {
     const known = NPCS.filter(d => G.rel[d.id] !== undefined);
-    if (!known.length) return '<div class="h2">Islanders</div><p class="idesc">Nobody yet. Say hello to somebody.</p>';
+    if (!known.length) return '<div class="h2">Islanders</div><p class="empty">Nobody yet. Say hello to somebody.</p>';
     const bar = (v, cls) => '<span class="mb' + (cls ? ' ' + cls : '') + '"><i style="width:' + Math.round(clamp(v, 0, 100)) + '%"></i></span>';
     const tone = v => v >= 62 ? 'ok' : v >= 30 ? 'mid' : 'bad';
     let h = '<div class="h2">Islanders</div><p class="idesc mind-intro">How everybody is doing today, what they are up to, and how they are growing. Moods rise and fall with sun, rain, company, drinks and you; skills grow with practice — and with you.</p><div class="mind-grid">';
