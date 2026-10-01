@@ -217,3 +217,7 @@
 
 /* Inventory groups (Panels.r_inventory). */
 .inv-g{margin:12px 2px 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.item.poor{opacity:.55}
+.item.poor:hover{transform:none}
+.mrel{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mfind{flex:none}

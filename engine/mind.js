@@ -917,7 +917,8 @@ const Mind = {
         + (skills ? '<div class="mskills">' + skills + '</div>' : '')
         + (unl ? '<div class="mgrow">' + esc(unl) + '</div>' : '')
         + (life ? '<ul class="mlife">' + life + '</ul>' : '')
-        + '<div class="mrel">With you: ' + esc(Rel.label(G.rel[d.id])) + '</div>'
+        + '<div class="mrel">With you: ' + esc(Rel.label(G.rel[d.id]))
+        + '<button class="btn small mfind" type="button" data-find="' + d.id + '">📍 Find ' + esc(d.name.split(' ')[0]) + '</button></div>'
         + '</div>';
     });
     return h + '</div>';

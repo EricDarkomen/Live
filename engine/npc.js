@@ -1854,6 +1854,26 @@ const Guide = {
     Sfx.select();
     return true;
   },
+  findNpcQuiet(id) {
+    this.clear();
+    if (!NPCM.get(id) || !this.aim({ npc: id })) return false;
+    this.pinned = true;
+    if (!NPCM.here(id)) this._then = { npc: id };
+    Track._sig = null;
+    return true;
+  },
+  /* Follow a person as your own pin, across doors if need be, until you reach them. */
+  findNpc(id) {
+    const n = NPCM.get(id);
+    if (!n) return false;
+    this.clear();
+    if (!this.aim({ npc: id })) return false;
+    this.pinned = true;
+    if (!NPCM.here(id)) this._then = { npc: id };
+    UI.toast('📍', say('find.on', { who: esc(n.name) }));
+    Sfx.select();
+    return true;
+  },
   unpin() {
     if (!this.pinned) return;
     this.clear();
@@ -1934,7 +1954,8 @@ const Guide = {
       const n = NPCM.get(this.npc);
       if (n) { this.tx = Math.floor(n.x / TILE); this.ty = Math.floor(n.y / TILE); }
     }
-    if (this.tx === null || this.sticky) return;
+    /* Sticky pins stay put; a person you asked to find is reached like any pin. */
+    if (this.tx === null || (this.sticky && !(this.pinned && this.npc))) return;
     if (Math.hypot((this.tx + .5) * TILE - P.x, (this.ty + .5) * TILE - P.y) < TILE * 1.4) {
       if (this.flag) G.flags[this.flag] = true;
       if (this.pinned) UI.toast('📍', say('pin.here', { where: esc(this.label) }), 'good');
@@ -1953,6 +1974,7 @@ const Guide = {
   /* On a new level, re-resolve the pin: its tile coordinates meant the old map. */
   onLevel() {
     const t = this._then; this._then = null;
+    if (t && t.npc && this.findNpcQuiet(t.npc)) return;
     const at = t && t.level === Levels.current && this.where(t.ref);
     if (at) { this.set(at[0], at[1], t.label, null); this.pinned = true; Track._sig = null; return; }
     if (t && Levels.route(t.level)) { this.clear(); this.aimAcross(t.level, t.label); this.pinned = true; this._then = t; return; }

@@ -251,3 +251,7 @@
   text-transform:uppercase;color:var(--dim)}
 /* Nothing to go back FROM on a desktop, where both panes are on screen. */
 .cm-back{display:none}
+/* A tip never sits over a conversation, and never runs the width of a
+   landscape phone. */
+body.talking .alert.tip{visibility:hidden;opacity:0!important;pointer-events:none}
+@media(orientation:landscape) and (max-height:520px){.alert.tip{max-width:62vw}}
