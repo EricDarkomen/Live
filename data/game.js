@@ -358,7 +358,7 @@ const HOOKS = {
   /* The farm and the workshop catch up from the island's own minutes. */
   second() {
     Farm.update(); Garden.refresh();
-    Craft.update(); Craft.refresh();
+    Craft.update(); Craft.refresh(); Station.tick();
     /* Late, tired, and not at home: a word about the bed, once a night. */
     const m = G.minutes % 1440;
     const night = m >= 23 * 60 ? G.day : G.day - 1;   /* past midnight is still the same night */

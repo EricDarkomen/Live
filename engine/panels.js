@@ -221,7 +221,7 @@ const Panels = {
     /* Focus into the dialog, for the keyboard and screen readers. */
     /* Not on a touch screen, though, unless a controller is driving: there the
        ring would sit on the first tile as if it had been chosen. */
-    if (first && (!TOUCH || Pad.used)) setTimeout(() => { const t = $('#pnTabs .tab.on') || $('#pnBody .home-tile') || $('#pnClose'); if (t) t.focus(); }, 20);
+    if (first && (!TOUCH || Pad.used)) setTimeout(() => { const t = $('#pnTabs .tab.on') || $('#pnBody .home-tile') || $('#pnBody [data-craft]') || $('#pnClose'); if (t) t.focus(); }, 20);
   },
   close() {
     if (!this.on) return;
@@ -299,7 +299,8 @@ const Panels = {
     this.side();
     const b = $('#pnBody');
     const tab = TABS.find(t => t.id === this.tab);
-    const [ic, nm] = this.tab === 'home' ? ['🌺', 'Menu'] : this.tab === 'shop' ? ['🛍️', 'Shop'] : tab ? [tab.e, tab.n] : ['', ''];
+    const [ic, nm] = this.tab === 'home' ? ['🌺', 'Menu'] : this.tab === 'shop' ? ['🛍️', 'Shop']
+      : this.tab === 'station' && typeof Station !== 'undefined' ? Station.title() : tab ? [tab.e, tab.n] : ['', ''];
     $('#pnTitle').innerHTML = (ic ? '<span class="pt-i" aria-hidden="true">' + ic + '</span>' : '') + esc(nm);
     $('#panel').classList.toggle('at-home', this.tab === 'home');
     b.innerHTML = tab && tab.panel ? tab.panel() : this['r_' + this.tab] ? this['r_' + this.tab]() : '';
@@ -332,6 +333,10 @@ const Panels = {
       this.close();
       if (!Guide.findNpc(el.dataset.find)) { Sfx.deny(); UI.toast('📍', say('find.nowhere')); }
     });
+    /* A crafting screen (data/station.js): the recipe book from the Workshop
+       tab, and the screen's own buttons. */
+    b.querySelectorAll('[data-station]').forEach(el => el.onclick = () => { Sfx.blip(); Station.open(el.dataset.station, true); });
+    if (this.tab === 'station') Station.bind(b);
     b.querySelectorAll('[data-comms]').forEach(el => el.onclick = () => { this.close(); Comms.toggle(el.dataset.comms || null); });
     /* The map canvas has no size until layout, so it is drawn after the body. */
     if (this.tab === 'map') { Atlas.panel(); const mc = $('#mapCv'); if (mc) mc.onclick = e => { Atlas.click(e); this.render(); }; }
@@ -362,6 +367,7 @@ const Panels = {
     return h;
   },
   r_shop() { return Shop.render(); },
+  r_station() { return typeof Station !== 'undefined' ? Station.render() : ''; },
   r_people() { return Mind.panel(); },
   /* Where you are, the map (Atlas.panel draws it) and a short legend. */
   r_map() {
