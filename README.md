@@ -36,7 +36,13 @@ linen suit who very much wants to buy it.
   a rain catcher, a second compost bay, a bigger drying rack, a brick oven,
   beach cabanas that rent to tourists, and — at last — the bar roof. Every
   trade levels with practice, every job costs time and energy, and tools wear
-  out. The **Workshop** tab (`Y`) shows your trades, tools, materials and plans — what each plan still needs, and a button that pins its building site on the map.
+  out. The workbench, kiln and brick oven each open a crafting screen: every
+  recipe as a card with what you have of what it takes, what you are short of
+  and where to find it, and Make (or Make ×N) buttons; the kiln shows its two
+  slots counting down. The **Workshop** tab (`Y`) has the same recipes as a
+  book you can read from anywhere, plus your trades, tools, materials and
+  plans — what each plan still needs, and a button that pins its building site
+  on the map.
 - **Ship it.** The supply boat at the jetty takes orders for the other islands
   and pays cash.
 - **Fall for somebody.** Flirt, share a drink, and ask Mari, Kai, Jade, Luca,

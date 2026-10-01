@@ -308,87 +308,55 @@ const Craft = {
     }
   },
 
-  /* ---------------- The workbench ---------------- */
-  bench() {
-    this.intro();
-    const lvl = this.level('craft');
-    insp('🛠️', 'Rafa’s workbench', 'Craftsmanship ' + lvl, [
-      'A scarred bench with a vice, a saw missing three teeth, a coffee tin of bent nails, and RAFA carved into the leg in letters a foot high.',
-      'What are you making?'],
-      Object.keys(BENCH_CATS).map(c => {
-        const ready = WORKBENCH.filter(r => r.cat === c && this.benchOk(r)).length;
-        return { t: BENCH_CATS[c] + '…' + (ready ? ' (' + ready + ' you can make)' : ''), to: null, do: () => this.later(() => this.benchMenu(c)) };
-      }).concat([
-        { t: 'Look at Rafa’s plans.', to: null, do: () => this.later(() => Build.plans()) },
-        { t: 'Leave it.', to: null }]));
-  },
+  /* ---------------- The workbench, the kiln and the oven ----------------
+     Each opens its own screen (Station, data/station.js): the recipes as
+     cards, what you have of what they take, and a button to make them. What
+     follows is the doing, which the screen calls. */
+  bench() { this.intro(); Station.open('bench'); },
+  kiln() { this.intro(); Station.open('kiln'); },
+  oven() { Station.open('oven'); },
+  /* How long a thing takes you, quicker as you get better. */
+  benchMins(r) { return Math.max(2, Math.round(r.mins * (1 - this.level('craft') * .05))); },
+  kilnMins(r) { return Math.round(r.t * (1 - this.level('craft') * .04)); },
   benchOk(r) { return canPay(r.in) && this.level('craft') >= (r.lvl || 1) && !(TOOLS[r.out] && Item.has(r.out)); },
-  benchMenu(cat) {
-    const lvl = this.level('craft');
-    const list = WORKBENCH.filter(r => r.cat === cat);
-    const lines = [list.map(r => ITEMS[r.out].e + ' ' + ITEMS[r.out].n + (r.n > 1 ? ' ×' + r.n : '') + ' — ' + costWords(r.in)
-      + ((r.lvl || 1) > lvl ? ' (Craftsmanship ' + r.lvl + ')' : '')).join(' · ')];
-    if (cat === 'tool') lines.push('An axe fells trees, a pickaxe breaks rock. Iron lasts three times as long and works faster. You can only carry one of each.');
-    insp('🛠️', 'Rafa’s workbench', BENCH_CATS[cat], lines,
-      list.filter(r => this.benchOk(r)).map(r => ({
-        t: 'Make ' + (r.n > 1 ? r.n + ' × ' : '') + ITEMS[r.out].n.toLowerCase() + ' — ' + costWords(r.in) + '.', to: null, do: () => this.make(r, cat)
-      })).concat([{ t: 'Back.', to: null, do: () => this.later(() => this.bench()) }, { t: 'Leave it.', to: null }]));
-  },
-  make(r, cat) {
+  /* One go at the bench. */
+  make(r) {
+    if (!this.benchOk(r)) return false;
     pay(r.in);
     for (let i = 0; i < r.n; i++) Item.give(r.out, true);
     if (TOOLS[r.out]) Gear.wear()[r.out] = TOOLS[r.out].uses;
-    G.minutes += Math.max(2, Math.round(r.mins * (1 - this.level('craft') * .05)));
+    G.minutes += this.benchMins(r);
     this.train('craft', r.xp);
     Player.xp(3);
-    Sfx.blip && Sfx.blip();
-    FX.burst(P.x, P.y, ITEMS[r.out].e, 8);
-    UI.toast(ITEMS[r.out].e, 'Made ' + (r.n > 1 ? r.n + ' × ' : 'a ') + '<b>' + ITEMS[r.out].n + '</b>.', 'gold');
     G.flags.crafted = (G.flags.crafted || 0) + 1;
     if (TOOLS[r.out]) qTo('q_build', 2);
-    /* Straight back to the same drawer: making six planks is six presses, not
-       eighteen. */
-    this.later(() => this.benchMenu(cat));
+    return true;
   },
-
-  /* ---------------- The kiln ---------------- */
-  kiln() {
-    this.intro();
-    const now = islandNow(), k = (G.flags.kiln = G.flags.kiln || []);
-    const ready = k.filter(x => x.done <= now), lvl = this.level('craft');
-    const lines = ['A squat clay dome with a chimney, still black from Rafa’s last firing. Charcoal from timber, bricks and mugs from clay, and — if you know what you are doing — iron from ore.',
-      k.length ? k.map(x => x.n + ' × ' + ITEMS[x.out].n + (x.done <= now ? ', done.' : ', ' + clockDur(x.done - now) + ' to go.')).join(' ') : 'It is cold. A lizard lives in the chimney and would like it to stay that way.',
-      KILN.recipes.map(r => ITEMS[r.out].e + ' ' + r.n + ' × ' + ITEMS[r.out].n + ' — ' + costWords(r.in) + ', ' + clockDur(r.t) + ((r.lvl || 1) > lvl ? ' (Craftsmanship ' + r.lvl + ')' : '')).join(' · ')];
-    const ch = [];
-    if (ready.length) ch.push({ t: 'Take out what’s fired (' + ready.length + ').', to: null, do: () => {
-      G.flags.kiln = k.filter(x => x.done > now);
-      ready.forEach(x => { for (let i = 0; i < x.n; i++) Item.give(x.out, true); this.train('craft', x.xp || 6); });
-      Player.xp(4 * ready.length);
-      UI.toast('🏺', 'Out of the kiln: ' + ready.map(x => x.n + ' × ' + ITEMS[x.out].n).join(', ') + '.', 'gold');
-    } });
-    if (k.length < KILN.slots) KILN.recipes.filter(r => canPay(r.in) && lvl >= (r.lvl || 1)).forEach(r => ch.push({
-      t: 'Fire ' + r.n + ' × ' + ITEMS[r.out].n.toLowerCase() + ' — ' + costWords(r.in) + ', ' + clockDur(r.t * (1 - lvl * .04)) + '.', to: null, do: () => {
-        pay(r.in);
-        const t = Math.round(r.t * (1 - lvl * .04));
-        k.push({ out: r.out, n: r.n, xp: r.xp, t, done: now + t });
-        G.minutes += 5;
-        UI.toast('🔥', 'The kiln roars. ' + ITEMS[r.out].n + ' in about ' + clockDur(t) + '.');
-      } }));
-    ch.push({ t: 'Leave it.', to: null });
-    insp('🏺', 'Rafa’s kiln', k.length + '/' + KILN.slots + ' firing', lines, ch);
+  kilnLoad() { return (G.flags.kiln = G.flags.kiln || []); },
+  kilnReady() { const now = islandNow(); return this.kilnLoad().filter(x => x.done <= now); },
+  fire(r) {
+    const k = this.kilnLoad();
+    if (k.length >= KILN.slots || !canPay(r.in) || this.level('craft') < (r.lvl || 1)) return false;
+    pay(r.in);
+    const t = this.kilnMins(r);
+    k.push({ out: r.out, n: r.n, xp: r.xp, t, done: islandNow() + t });
+    G.minutes += 5;
+    return true;
   },
-
-  /* ---------------- The brick oven ---------------- */
-  oven() {
-    const ok = OVEN.filter(r => canPay(r.in));
-    insp('🍞', 'The brick oven', 'Yours, and warm', ['The dome ticks as it heats. It smells of woodsmoke and, faintly, of everything that has ever been cooked in it, which is not much yet.',
-      'Recipes: ' + OVEN.map(r => ITEMS[r.out].n + ' (' + costWords(r.in) + ')').join(' · ')],
-      ok.map(r => ({ t: 'Cook ' + ITEMS[r.out].n.toLowerCase() + ' — ' + costWords(r.in) + '.', to: null, do: () => {
-        pay(r.in); Item.give(r.out, true); G.minutes += 15;
-        this.train('craft', 4); Player.xp(3);
-        FX.burst(P.x, P.y, ITEMS[r.out].e, 8);
-        UI.toast(ITEMS[r.out].e, 'Out of the oven: <b>' + ITEMS[r.out].n + '</b>. It will keep.', 'gold');
-      } })).concat([{ t: 'Leave it.', to: null }]));
+  /* Everything that is done, out of the kiln and into your bag. */
+  takeOut() {
+    const now = islandNow(), k = this.kilnLoad(), ready = k.filter(x => x.done <= now);
+    if (!ready.length) return [];
+    G.flags.kiln = k.filter(x => x.done > now);
+    ready.forEach(x => { for (let i = 0; i < x.n; i++) Item.give(x.out, true); this.train('craft', x.xp || 6); });
+    Player.xp(4 * ready.length);
+    return ready;
+  },
+  cook(r) {
+    if (!canPay(r.in)) return false;
+    pay(r.in); Item.give(r.out, true); G.minutes += 15;
+    this.train('craft', 4); Player.xp(3);
+    return true;
   },
 
   /* ---------------- The Workshop tab ---------------- */
@@ -396,7 +364,15 @@ const Craft = {
     this.update();
     const now = islandNow();
     const bar = (v, cls) => '<span class="mb' + (cls ? ' ' + cls : '') + '"><i style="width:' + Math.round(clamp(v, 0, 100)) + '%"></i></span>';
-    let h = '<div class="h2">Trades</div><div class="farm-sum">';
+    /* The recipe book: each station's screen, to read from anywhere. */
+    const book = Station.list().map(id => {
+      const n = Station.ready(id);
+      return '<button class="ws-book-b" type="button" data-station="' + id + '"><span class="wb-i" aria-hidden="true">' + STATIONS[id].e + '</span>'
+        + '<span class="wb-t"><b>' + esc(STATIONS[id].short) + '</b><span>' + (n ? n + ' you can make now' : Station.blurb(id)) + '</span></span>'
+        + (n ? '<span class="tab-n cool">' + n + '</span>' : '') + '</button>';
+    }).join('');
+    let h = '<div class="h2">Recipes</div><div class="ws-book">' + book + '</div>'
+      + '<div class="h2">Trades</div><div class="farm-sum">';
     for (const tr in TRADES) {
       const L = this.level(tr), x = this.xp(tr);
       const lo = tradeXp(L), hi = tradeXp(L + 1);
@@ -423,7 +399,7 @@ const Craft = {
     if (cab) h += '<div class="fst"><b>🛖 Beach cabanas</b><span>' + cab + ' built · ' + cash(CABANA_RENT * cab) + ' a day in rent, paid each morning</span></div>';
     h += '</div>';
     /* Rafa's plans. */
-    h += '<div class="h2">Rafa’s plans</div><div class="farm-prod">';
+    h += '<div class="h2" id="wsPlans">Rafa’s plans</div><div class="farm-prod">';
     for (const p in PROJECTS) {
       const P2 = PROJECTS[p], sites = Build.sites(p), done = sites.filter(s => Build.has(s)).length;
       const lvlOk = this.level('craft') >= P2.lvl;
@@ -511,17 +487,12 @@ const Build = {
     if (o.proj === 'roof') Rel.add('mari', 2);
     if (Q.active('q_build')) Q.complete('q_build');
   },
-  /* The board in the yard: every plan, and where its site is. */
+  /* The board in the yard: the Workshop tab, at the plans, where each one says
+     what it still needs and has a button to its site. */
   plans() {
     Craft.intro();
-    const lvl = Craft.level('craft');
-    const where = { plot: 'the bottom of the garden', catcher: 'beside the water butt', bay: 'beside the compost bin', rack2: 'in the garden, by the drying rack',
-      oven: 'here in the yard', cabana: 'Honeymoon Sands', roof: 'the Promenade, at the side of The Driftwood' };
-    insp('📐', 'Rafa’s plans', 'Pinned up and curling', ['Sketches on the backs of receipts, drawn with a carpenter’s pencil and a great deal of optimism. The sites are pegged out with string.']
-      .concat(Object.keys(PROJECTS).map(k => {
-        const p = PROJECTS[k], s = this.sites(k), d = s.filter(x => this.has(x)).length;
-        return p.e + ' ' + p.n + ' — ' + (d >= s.length ? 'built.' : costWords(p.cost) + (lvl >= p.lvl ? '' : ' · Craftsmanship ' + p.lvl) + ' · at ' + where[k] + (s.length > 1 ? ' (' + d + '/' + s.length + ' built)' : '') + '.');
-      })));
+    Panels.open('workshop');
+    setTimeout(() => { const el = $('#wsPlans'); if (el) el.scrollIntoView({ block: 'start' }); }, 30);
   },
   /* The two buildings that do their work without being pressed. */
   catcher() {
