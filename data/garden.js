@@ -207,7 +207,12 @@ const RECIPES = [
 ];
 const Blender = {
   can(r) { return Object.keys(r.in).every(k => bag(k) >= r.in[k]); },
-  list(r) { return Object.keys(r.in).map(k => r.in[k] + ' ' + ITEMS[k].e).join(' + '); },
+  list(r) { return Object.keys(r.in).map(k => r.in[k] + ' ' + ITEMS[k].e + ' ' + ITEMS[k].n.toLowerCase()).join(' + '); },
+  /* What a recipe is still short of, by name. */
+  short(r) {
+    return Object.keys(r.in).filter(k => bag(k) < r.in[k])
+      .map(k => (r.in[k] - bag(k)) + ' more ' + ITEMS[k].e + ' ' + ITEMS[k].n.toLowerCase()).join(', ');
+  },
   make(r) {
     for (const k in r.in) bagTake(k, r.in[k]);
     Item.give(r.out, true);
@@ -219,12 +224,15 @@ const Blender = {
     if (G.flags.blended >= 10) Ach.get('a_mixer');
     if (Q.active('q_garden') && G.quests.q_garden.step >= 3) Q.complete('q_garden');
     if (qAt('q_critic', 0) && P.inventory.filter(x => ITEMS[x] && ITEMS[x].drink).length >= 3) Q.step('q_critic');
+    /* Straight back to the blender while there is fruit for another. */
+    if (RECIPES.some(q => this.can(q))) setTimeout(() => { if (!Dialogue.on && G.state === 'play') this.open(true); }, 40);
   },
-  open() {
-    const ok = RECIPES.filter(r => this.can(r));
-    insp('🍹', 'The blender', 'Rafa’s pride and joy', [
-      'A chrome blender older than you, with a dent where somebody once threw it at a man called Sterling.',
-      ok.length ? 'You have the fruit for something. What are we making?' : 'Rafa’s recipes are taped to the wall: ' + RECIPES.map(r => ITEMS[r.out].n + ' (' + this.list(r) + ')').join(' · ') + '. You do not have the fruit for any of them.'],
+  open(again) {
+    const ok = RECIPES.filter(r => this.can(r)), not = RECIPES.filter(r => !this.can(r));
+    const missing = not.length ? 'Not yet: ' + not.map(r => ITEMS[r.out].n + ' — ' + this.short(r)).join(' · ') + '.' : '';
+    insp('🍹', 'The blender', 'Rafa’s pride and joy', (again ? [] : [
+      'A chrome blender older than you, with a dent where somebody once threw it at a man called Sterling.']).concat(
+      ok.length ? ['You have the fruit for something. What are we making?'].concat(missing ? [missing] : []) : ['Rafa’s recipes are taped to the wall. You do not have the fruit for any of them yet.', missing]),
       ok.map(r => ({ t: 'Blend a ' + ITEMS[r.out].n + ' — ' + this.list(r) + '.', to: null, do: () => this.make(r) }))
         .concat([{ t: 'Leave it.', to: null }]));
   }

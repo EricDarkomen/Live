@@ -45,7 +45,7 @@ function bindInput() {
     }
     /* The comms console takes the arrows (and WASD) for its own lists. */
     if (Comms.on && !Panels.on && Comms.nav(e.code)) { e.preventDefault(); return; }
-    if (KEYMAP[e.code]) { Keys[KEYMAP[e.code]] = 1; e.preventDefault(); return; }
+    if (KEYMAP[e.code]) { Keys[KEYMAP[e.code]] = 1; AutoWalk.stop(); e.preventDefault(); return; }
     /* Shift runs, held. */
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { Keys.run = 1; return; }
     if (e.code === 'Space' || e.code === 'Enter') {
@@ -158,6 +158,22 @@ function bindInput() {
     if (b.dataset.comms) { Panels.close(); return Comms.toggle(b.dataset.comms); }
     Panels.open(b.dataset.panel === 'settings' ? 'settings' : b.dataset.panel);
   });
+  /* The corner cards are ways in too: you to your profile, the clock to the day. */
+  [['#hudTL', 'stats'], ['#hudTR', 'shift']].forEach(([sel, tab]) => {
+    const el = $(sel); if (!el) return;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', e => {
+      if (G.state !== 'play') return;
+      /* "1 guest waiting" points you at the bell; "waiting on a reply" opens the post. */
+      if (e.target.closest('#hQueue')) { if (!Guide.pinAt(Levels.hub(), 'ring', say('pin.guest'))) Sfx.deny(); return; }
+      if (e.target.closest('#hWrit')) {
+        const ch = ['mail', 'text'].find(c => Comms.store(c).some(it => it.enc && !it.answered)) || 'mail';
+        const it = Comms.store(ch).find(i => i.enc && !i.answered);
+        Comms.open(ch, it && it.id); return;
+      }
+      Sfx.blip(); Panels.open(tab);
+    });
+  });
   /* The minimap opens the map screen. */
   const mmb = $('#minimapBtn');
   if (mmb) mmb.onclick = () => { if (Panels.on && Panels.tab === 'map') Panels.close(); else Panels.open('map'); };
@@ -183,9 +199,30 @@ function bindInput() {
     const r = R.cv.getBoundingClientRect();
     Mouse.x = Cam.x + (e.clientX - r.left);
     Mouse.y = Cam.y + (e.clientY - r.top);
+    /* A hand over somebody or something a click would walk you to. */
+    if (e.target === R.cv) {
+      const over = G.state === 'play' && !Guns.armed && !Cars.driving && AutoWalk.pick(Mouse.x, Mouse.y);
+      const cur = over ? 'pointer' : '';
+      if (R.cv.style.cursor !== cur) R.cv.style.cursor = cur;
+    }
   }, { passive: true });
   R.cv.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'touch' || e.button !== 0) return;
+    /* On a phone, tapping somebody or something walks you to it — the ground
+       alone does nothing, so a stray thumb never sends you off. */
+    if (e.pointerType === 'touch') {
+      if (G.state !== 'play' || Cars.driving || Guns.armed) return;
+      const r = R.cv.getBoundingClientRect(), wx = Cam.x + (e.clientX - r.left), wy = Cam.y + (e.clientY - r.top);
+      if (AutoWalk.pick(wx, wy)) { Sfx.init(); AutoWalk.to(wx, wy); }
+      return;
+    }
+    if (e.button !== 0) return;
+    /* Empty-handed, a click is somewhere to go (AutoWalk). */
+    if (!Guns.armed && G.state === 'play' && !Cars.driving) {
+      const r = R.cv.getBoundingClientRect();
+      Sfx.init();
+      AutoWalk.to(Cam.x + (e.clientX - r.left), Cam.y + (e.clientY - r.top));
+      return;
+    }
     if (!Guns.armed || !Guns.can()) return;
     e.preventDefault(); Sfx.init();
     Mouse.down = true;
@@ -279,6 +316,82 @@ function saveOnLeave() {
 
 /* ---------------- Movement ---------------- */
 
+/* ---------------- Click to walk ----------------
+   On a desktop, a click on the ground walks you there by the same routes the
+   islanders use; a click on somebody or something walks you up to it and
+   presses E when you arrive. Any key or stick of your own cancels it. */
+const AutoWalk = {
+  on: false, tx: 0, ty: 0, target: null, kind: null, stuck: 0, best: Infinity,
+  to(wx, wy) {
+    const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+    if (tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH) return;
+    const hit = this.pick(wx, wy), target = hit && hit.t, kind = hit && hit.kind;
+    if (!target && World.isSolid(tx, ty)) { Sfx.deny(); return; }
+    this.on = true; this.target = target; this.kind = kind;
+    this.tx = target ? Math.floor((kind === 'npc' ? target.x : (target.x + .5) * TILE) / TILE) : tx;
+    this.ty = target ? Math.floor((kind === 'npc' ? target.y : (target.y + .5) * TILE) / TILE) : ty;
+    this.stuck = 0; this.best = Infinity;
+    if (this.arrived()) { this.finish(); return; }
+    FX.float(wx, wy, '•', '#ffb938');
+  },
+  stop() { this.on = false; this.target = null; },
+  /* A person under the pointer, else a thing you could press E on. */
+  pick(wx, wy) {
+    let best = null, bd = TILE * .75;
+    for (const n of NPCM.list) { const d = Math.hypot(n.x - wx, n.y - (wy + TILE * .3)); if (d < bd) { bd = d; best = { t: n, kind: 'npc' }; } }
+    if (best) return best;
+    const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+    if (tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH) return null;
+    for (const o of World.at(tx, ty)) if (!o.gone && (Acts[o.use] || o.kind === 'door' || o.kind === 'exit' || o.kind === 'pickup')) return { t: o, kind: 'obj' };
+    return null;
+  },
+  /* Close enough: in reach of what you clicked, or on the square. */
+  arrived() {
+    if (this.target) {
+      const x = this.kind === 'npc' ? this.target.x : (this.target.x + .5) * TILE;
+      const y = this.kind === 'npc' ? this.target.y : (this.target.y + .5) * TILE;
+      return Math.hypot(x - P.x, y - P.y) < TILE * 1.05;
+    }
+    return Math.hypot((this.tx + .5) * TILE - P.x, (this.ty + .5) * TILE - P.y) < TILE * .3;
+  },
+  /* Face it and press E, as if you had walked up yourself. */
+  finish() {
+    const t = this.target, kind = this.kind;
+    this.stop();
+    if (!t || G.state !== 'play') return;
+    const x = kind === 'npc' ? t.x : (t.x + .5) * TILE, y = kind === 'npc' ? t.y : (t.y + .5) * TILE;
+    P.dir = Sprites.dirOf(x - P.x, y - P.y);
+    Interact.target = t; Interact.kind = kind;
+    Interact.go();
+  },
+  /* This frame's direction: downhill on the route, straight in for the last bit. */
+  step(dt) {
+    if (G.state !== 'play' || Cars.driving) { this.stop(); return null; }
+    if (this.target && this.kind === 'npc') { this.tx = Math.floor(this.target.x / TILE); this.ty = Math.floor(this.target.y / TILE); }
+    if (this.arrived()) { this.finish(); return null; }
+    const fx = Math.floor(P.x / TILE), fy = Math.floor(P.y / TILE);
+    const f = Nav.field(this.tx, this.ty, true);
+    const here = Nav.at(f, fx, fy);
+    /* Never stuck for long: no progress in a second and a half and it gives up. */
+    const far = here >= 0 ? here : Math.hypot(this.tx - fx, this.ty - fy) * 10;
+    if (far < this.best - .01) { this.best = far; this.stuck = 0; } else if ((this.stuck += dt) > 1.5) { this.stop(); return null; }
+    let gx = (this.tx + .5) * TILE, gy = (this.ty + .5) * TILE;
+    if (here > 0) {
+      let bx = 0, by = 0, bv = here;
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+        if (!ox && !oy) continue;
+        const v = Nav.at(f, fx + ox, fy + oy);
+        if (v < 0 || v >= bv) continue;
+        if (ox && oy && (Nav.at(f, fx + ox, fy) < 0 || Nav.at(f, fx, fy + oy) < 0)) continue;
+        bv = v; bx = ox; by = oy;
+      }
+      if (bx || by) { gx = (fx + bx + .5) * TILE; gy = (fy + by + .5) * TILE; }
+    }
+    const dx = gx - P.x, dy = gy - P.y, m = Math.hypot(dx, dy);
+    return m < 1 ? null : [dx / m, dy / m];
+  }
+};
+
 /* How much faster a run is than a walk. */
 const RUN_SPEED = 1.45;
 
@@ -293,8 +406,14 @@ function movePlayer(dt) {
   if (Cars.driving) return;
   let dx = (Keys.right - Keys.left), dy = (Keys.down - Keys.up);
   if (dx && dy) { dx *= .707; dy *= .707; }
-  /* The stick wins while held; its vector already carries the speed. */
+  /* The stick wins while held; its vector already carries the speed. A
+     controller's left stick is the same thing (engine/pad.js). */
   if (Stick.on) { dx = Stick.x; dy = Stick.y; }
+  else if (Pad.on) { dx = Pad.x; dy = Pad.y; }
+  /* Any steering of your own takes over from a click-to-walk; without it, the
+     walk steers. */
+  if (dx || dy) AutoWalk.stop();
+  else if (AutoWalk.on) { const v = AutoWalk.step(dt); if (v) { dx = v[0]; dy = v[1]; } }
   const tired = P.energy < 25 ? .72 : 1;
   /* Carrying something, you walk 12% slower. */
   const held = Guns.armed ? .88 : 1;
@@ -303,7 +422,7 @@ function movePlayer(dt) {
   P.moving = !!(dx || dy);
   /* Running: Shift on a keyboard, the stick pushed right out on a phone. Not
      with something in your hand, in the water, or when you are worn out. */
-  P.fast = P.moving && (Stick.on ? Math.hypot(dx, dy) > 0.86 : !!Keys.run) && !Guns.armed && !P.swim && P.energy >= 25;
+  P.fast = P.moving && (Keys.run || ((Stick.on || Pad.on) && Math.hypot(dx, dy) > 0.86)) && !Guns.armed && !P.swim && P.energy >= 25;
   const sp = TILE * 3.45 * (P.fast ? RUN_SPEED : 1) * tired * held * wet * dt;
   if (P.moving) {
     P.dir = Sprites.dirOf(dx, dy);

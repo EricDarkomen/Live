@@ -4,6 +4,39 @@ const Menu = {
   _done() { Settings.save(); Panels.render(); },
   save() { Save.write(); },
   load() { Save.read(); Panels.close(); },
+  /* The save as a file: a backup, or a way to carry the island to another
+     browser. Written fresh first, so the file is now and not the last hour. */
+  exportSave() {
+    if (!Save.write(true)) { Sfx.deny(); return; }
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      const blob = new Blob([raw], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (GAME.id || 'save') + '-' + String(P.name || 'you').replace(/[^\w-]+/g, '') + '-day' + G.day + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      UI.toast('💾', say('save.exported'), 'good');
+    } catch (e) { UI.toast('💾', say('saveFailed'), 'bad'); }
+  },
+  importSave() {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'application/json,.json';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        let d = null;
+        try { d = JSON.parse(String(r.result)); } catch (e) { d = null; }
+        if (!d || !d.P || !d.G) { Sfx.deny(); UI.toast('↻', say('save.badFile'), 'bad'); return; }
+        if (Save.has() && !confirm(say('save.replace'))) return;
+        try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) { UI.toast('💾', say('saveFailed'), 'bad'); return; }
+        if (Save.read()) Panels.close();
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  },
   newgame() { if (confirm(say('eraseSave'))) { localStorage.removeItem(SAVE_KEY); location.reload(); } },
   sound() { Sfx.on = !Sfx.on; if (Sfx.on) Sfx.init(); else Sfx.holdMusic(false); this._done(); },
   music() { Sfx.music = !Sfx.music; if (!Sfx.music) Sfx.holdMusic(false); this._done(); },

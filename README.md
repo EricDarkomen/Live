@@ -92,7 +92,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 
 |            | Keyboard                        | Touch                          |
 | ---------- | ------------------------------- | ------------------------------ |
-| Move       | `W A S D` or arrows, hold `Shift` to run | thumb down anywhere bottom-left; push all the way to run |
+| Move       | `W A S D` or arrows, hold `Shift` to run; or click the ground — click somebody or something to walk up and use it | thumb down anywhere bottom-left; push all the way to run; tap somebody to walk over |
 | Interact   | `E` or `Enter`                  | `E` button                     |
 | Eat        | `F` — the least precious thing in your bag | the item, in `☰` · Inventory |
 | Jump       | `Space` — in the water it dives | `JUMP` button (`DIVE` when swimming) |
@@ -105,7 +105,13 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | Panels     | `J I K O Y U P L`, `T` for today’s takings, `Esc` for settings — one window, a sidebar of sections | `☰` opens a launcher of every section |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
-| Save/load  | `F5` / `F9`                     | `☰` · Menu                     |
+| Save/load  | `F5` / `F9`; `Esc` · Export / Import to keep a save as a file | `☰` · Menu                     |
+
+A **controller** works too (any pad the browser calls standard): the left
+stick walks and steers, A interacts and chooses, B goes back, X jumps, Y opens
+the map, RB runs, LB eats, LT takes something out, Start is the menu, and over
+a menu or a serve the d-pad moves from button to button, LB and RB flipping
+between sections.
 
 On a phone the movement control is a floating analogue stick: it appears
 wherever your thumb lands in the bottom-left of the screen, goes in every

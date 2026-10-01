@@ -293,6 +293,9 @@ const Track = {
       return;
     }
     if (!QUESTS[id]) return;
+    /* Asking for a job on purpose lifts your own pin, or the job would never show. */
+    if (Guide.pinned) Guide.unpin();
+    this._sig = null;
     const t = this.target(id);
     UI.toast('📍', say(t ? 'track.on' : 'track.noFix', { job: esc(QUESTS[id].n) }));
   },
