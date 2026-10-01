@@ -235,3 +235,27 @@ body.pad-nav :focus{outline:3px solid var(--hold,#ffb938)!important;outline-offs
   background:rgba(42,20,70,.92);border:1px solid rgba(255,255,255,.14);color:#fff;box-shadow:0 20px 50px -20px #000}
 #pauseVeil b{font:700 22px var(--display,inherit);letter-spacing:.06em}
 #pauseVeil span{font-size:12px;color:rgba(255,255,255,.7)}
+
+/* ---- menu refinements ---- */
+/* The panel's hibiscus sits further into the corner and fainter, as in the
+   dialogue box: the map, the plans and the settings run across that corner,
+   and a flower behind a card reads as a mark on the card. */
+.pn{background-position:right -70px bottom -76px,left -54px top 46%,0 0,0 0!important;
+  background-size:150px,90px,auto,auto!important}
+/* A skill's name is the headline and what it does the note under it. */
+.skill .sn{font:700 13px var(--display)}
+.skill .idesc{font-size:11.5px;line-height:1.35;color:var(--dim);font-style:italic}
+.sk-hint{font-size:12.5px;color:var(--dim)}
+/* Plans of different lengths keep "Show me where" on one line across the row. */
+.farm-prod .ws-where{margin-top:auto;align-self:stretch}
+/* A short landscape phone: the launcher's tiles lie down (icon beside the
+   name) and your card is one line, so more than the first group fits. */
+@media (max-height:520px) and (min-width:560px){
+  #panel.at-home .nv-who{grid-template-columns:auto 1fr auto;padding:8px 12px}
+  #panel.at-home .nv-face,#panel.at-home .nv-face canvas{width:40px!important;height:40px!important}
+  #panel.at-home .nv-cash{grid-column:auto;flex-direction:column;align-items:flex-end;gap:2px}
+  .home-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .home-tile{flex-direction:row;justify-content:flex-start;min-height:52px;padding:8px 12px;gap:10px}
+  .home-tile .ht-i{font-size:22px}
+  .home-tile .tab-n{position:static;margin-left:auto}
+}
