@@ -70,6 +70,8 @@ const Menu = {
   },
   /* A slider, as it moves. Saved when it is let go. */
   range(k, v) { if (k === 'vol') Sfx.setVolume(clamp(v, 0, 100) / 100); },
+  clickwalk() { AutoWalk.enabled = !AutoWalk.enabled; if (!AutoWalk.enabled) AutoWalk.stop(); Sfx.select(); this._done(); },
+  blurpause() { Game.blurPause = !Game.blurPause; Sfx.select(); this._done(); },
   southpaw() { Hand.left = !Hand.left; Hand.apply(); Sfx.select(); this._done(); },
   padstyle() { Hand.pad = Hand.pad === 'dpad' ? 'stick' : 'dpad'; Hand.apply(); Sfx.select(); this._done(); },
   /* Entering must happen inside this click (Boot.goFullscreen). */
@@ -160,6 +162,8 @@ const Settings = {
     R.emojiScale = typeof s.emojiScale === 'number' ? clamp(s.emojiScale, 0.7, 1.6) : 1;
     Dialogue.speed = typeof s.textSpeed === 'number' ? clamp(s.textSpeed, 20, 999) : 62;
     Hand.left = s.southpaw === true;
+    AutoWalk.enabled = s.clickWalk !== false;
+    Game.blurPause = s.blurPause !== false;
     Hand.pad = s.pad === 'dpad' ? 'dpad' : 'stick';
     /* Validated, not trusted: it comes out of localStorage. */
     Comms.pop = ['all', 'needed', 'none'].indexOf(s.pop) >= 0 ? s.pop : 'needed';
@@ -170,7 +174,8 @@ const Settings = {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         sound: Sfx.on, music: Sfx.music, volume: Sfx.volume, animate: R.animate,
         motion: FX.motion, emojiScale: R.emojiScale, textSpeed: Dialogue.speed,
-        southpaw: Hand.left, pad: Hand.pad, pop: Comms.pop
+        southpaw: Hand.left, pad: Hand.pad, pop: Comms.pop,
+        clickWalk: AutoWalk.enabled, blurPause: Game.blurPause
       }));
     } catch (e) { /* private browsing; settings just won't persist */ }
   }

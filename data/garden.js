@@ -302,9 +302,17 @@ const Orders = {
   open() {
     const b = this.board();
     if (qAt('q_boat', 0)) Q.step('q_boat');
+    /* One page, an order a line, each saying whether you can fill it now or
+       how much of it you have. */
+    const line = o => {
+      const d = ORDER_POOL[o.i], w = d.want;
+      const have = this.can(o) ? '  ✅ ready to load'
+        : '  (' + Object.keys(w).map(k => Math.min(bag(k), w[k]) + '/' + w[k]).join(', ') + ')';
+      return d.e + ' ' + d.who + ' — ' + this.words(o) + ' · ' + cash(d.pay) + have;
+    };
     insp('📜', 'The order board', 'For the supply boat', [
-      b.length ? 'Orders pinned up for Captain Teo to take round the islands:' : 'Nothing pinned up. Teo says there will be more in the morning.']
-      .concat(b.map(o => ORDER_POOL[o.i].e + ' ' + ORDER_POOL[o.i].who + ' — ' + this.words(o) + ' · ' + cash(ORDER_POOL[o.i].pay))),
+      b.length ? 'Orders pinned up for Captain Teo to take round the islands:\n\n' + b.map(line).join('\n')
+        : 'Nothing pinned up. Teo says there will be more in the morning.'],
       b.filter(o => this.can(o)).map(o => ({ t: 'Load up ' + ORDER_POOL[o.i].who + ' (' + cash(ORDER_POOL[o.i].pay) + ').', to: null, do: () => this.fill(o) }))
         .concat([{ t: 'Walk away.', to: null }]));
   }

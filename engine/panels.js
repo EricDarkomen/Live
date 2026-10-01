@@ -375,6 +375,7 @@ const Panels = {
       + '<span><i class="mp-npc"></i>People</span>'
       + '<span><i class="mp-car"></i>Something you can drive</span>'
       + '<span><i class="mp-ring"></i>A guest waiting at the bar</span>'
+      + (World.objects.some(o => o.use === 'busStop') ? '<span><i class="mp-bus"></i>The shuttle stop: €2 to anywhere you have been</span>' : '')
       + '<span><i class="mp-flag"></i>' + esc(say(Guide.pinned ? 'pin.keyOn' : 'pin.key', { tap: Guide.pinned ? (TOUCH ? 'tap' : 'click') : (TOUCH ? 'Tap' : 'Click') })) + '</span>'
       + '</div>';
   },
@@ -587,6 +588,11 @@ const Panels = {
       + row('Emoji size', '', seg('emoji', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']], emoji, 'Emoji size'))
       + row('Text speed', 'How fast dialogue types itself out.', seg('speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']], speed, 'Text speed'))
       + '</div>';
+    h += '<div class="h2">Play</div><div class="set-card">'
+      + row(TOUCH ? 'Tap to walk' : 'Click to walk', TOUCH ? 'Tap somebody or something and you walk over to it.' : 'Click the ground to walk there; click somebody or something to walk up and use it.',
+        sw('clickwalk', AutoWalk.enabled, TOUCH ? 'Tap to walk' : 'Click to walk'))
+      + row('Pause when away', 'Stop the clock when you switch to another window or app.', sw('blurpause', Game.blurPause !== false, 'Pause when away'))
+      + '</div>';
     if (TOUCH) {
       h += '<div class="h2">Controls</div><div class="set-card">'
         + row('Movement', 'The stick appears wherever you put your thumb down in the bottom ' + Hand.padSide() + '. The pad is four buttons in a fixed cross.',
@@ -608,6 +614,7 @@ const Panels = {
       h += '<div class="h2">Keys</div><div class="keys">'
         + k('W A S D', 'walk, and drive') + k('Shift', 'hold to run') + k('Click', 'walk there · go and talk to them') + k('Space', 'jump · dive when swimming') + k('E', 'talk, use, get out')
         + k('F', 'eat something from your bag') + k('G', 'take it out · Q swaps · R reloads') + k('H', 'horn') + k('1–9', 'choose a reply or a move')
+        + k('N', 'the map') + k('T', 'today’s takings')
         + this.tabList().filter(t => t.key).map(t => k(t.key.slice(3), t.n.toLowerCase())).join('')
         + k('M', 'post') + k('C', 'island chat') + k('V', 'texts') + k('B', 'the log')
         + (Pad.used ? k('🎮 A', 'interact, choose, press') + k('🎮 B', 'back') + k('🎮 X', 'jump') + k('🎮 Y', 'map')

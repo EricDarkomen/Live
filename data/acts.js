@@ -12,7 +12,8 @@ const insp = (face, name, role, pages, choices, done) => Dialogue.say(face, name
 /* What the E prompt says for a `use:` whose answer depends on its state;
    anything not here gets a verb from its kind (Interact.verb). */
 const PROMPTS = {
-  plot: o => Garden.prompt(o)
+  plot: o => Garden.prompt(o),
+  busStop: () => 'Catch the shuttle'
 };
 
 /* The replies that offer whatever minigames are installed on an object — the
@@ -20,6 +21,21 @@ const PROMPTS = {
 const cab = use => Arcade.cabinets(use).map(c => ({
   t: c.t, to: null, do() { Arcade.open(c.game, c); }
 }));
+/* ---------------- The island shuttle ---------------- */
+const SHUTTLE_FARE = 2, SHUTTLE_MINS = 20;
+const Shuttle = {
+  ride(z) {
+    if (P.money < SHUTTLE_FARE) { Sfx.deny(); UI.toast('🚌', 'The driver looks at your two hands and your no euros, and drives off.', 'bad'); return; }
+    Player.mod({ money: -SHUTTLE_FARE });
+    G.minutes += SHUTTLE_MINS;
+    const swap = () => {
+      P.x = z.x * TILE; P.y = z.y * TILE;
+      Cam.snap(); zoneCheck();
+      UI.toast('🚌', 'The shuttle drops you at <b>' + esc(ZONES[z.z].name) + '</b>, music still going.');
+    };
+    Levels.transition(swap);
+  }
+};
 const evening = () => G.minutes % 1440 >= 1140 || G.minutes % 1440 < 300;
 const night = () => G.minutes % 1440 >= 1230 || G.minutes % 1440 < 300;
 
@@ -180,8 +196,17 @@ const Acts = {
     insp('🪧', 'The Driftwood', 'Under new management', ['A hand-painted sign: THE DRIFTWOOD — COCKTAILS · SUNSETS · BAD DECISIONS. Somebody has added “UNDER NEW MANAGEMENT” in lipstick.']);
   },
   tikiTorch() { insp('🏮', 'A tiki torch', evening() ? 'Lit' : 'Unlit', [evening() ? 'Flickering orange against the blue of the evening.' : 'Waiting for sunset.']); },
+  /* The shuttle does stop here, for anybody with two euros and twenty
+     minutes, and takes you anywhere on the island you have already been. */
   busStop() {
-    insp('🚏', 'The shuttle stop', 'Every twenty minutes, allegedly', ['A timetable that says “WHEN IT COMES” and a bench with a view of the sea.']);
+    const here = World.zoneAt(Math.floor(P.x / TILE), Math.floor(P.y / TILE));
+    const stops = Atlas.labels().filter(z => z.z !== here && ZONES[z.z] && G.discovered[z.z] && World.level === 'island' && z.z !== 'island')
+      .sort((a, b) => ZONES[a.z].name.localeCompare(ZONES[b.z].name)).slice(0, 8);
+    insp('🚏', 'The shuttle stop', 'Every twenty minutes, allegedly', ['A timetable that says “WHEN IT COMES” and a bench with a view of the sea.',
+      stops.length ? 'It does come, eventually. €' + SHUTTLE_FARE + ' to anywhere the driver has heard of — which is anywhere you have been.'
+        : 'The driver only stops at places he has heard of, and he has heard of nowhere you have been yet. Walk about a bit first.'],
+      stops.map(z => ({ t: 'Ride to ' + ZONES[z.z].name + '.', to: null, do() { Shuttle.ride(z); } }))
+        .concat([{ t: 'Walk.', to: null }]));
   },
   theBus() { insp('🚌', 'The island shuttle', 'Not stopping', ['A purple minibus going round the island with the music too loud. It does not stop. It never stops.']); },
   buggy(car) {

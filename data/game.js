@@ -74,6 +74,8 @@ const TEXT = {
   'save.badFile': 'That file is not a Tan Lines save.', 'save.replace': 'Replace the island saved in this browser with the one in that file?',
   'pad.on': 'Controller connected. <span class="kbd">A</span> interact, <span class="kbd">X</span> jump, <span class="kbd">Y</span> map, <span class="kbd">RB</span> run, <span class="kbd">Start</span> menu — the d-pad moves through menus.',
   'find.on': 'Looking for <b>{who}</b>. Follow the arrow.', 'find.nowhere': 'Nobody knows where they are right now.',
+  'guns.none': 'Nothing to take out. Kai keeps a water pistol at the surf shack.', 'guns.wet': 'Not while you are swimming.',
+  'guns.car': 'Not while you are driving.', 'guns.notNow': 'Not now.',
   'pin.guest': 'A guest at the bar',
   'pin.title': 'Your pin', 'pin.label': 'Your pin', 'pin.on': 'Pin dropped: <b>{where}</b>. Follow the arrow.',
   'pin.here': 'You made it: <b>{where}</b>.', 'pin.key': '{tap} the map to drop a pin',
@@ -357,6 +359,13 @@ const HOOKS = {
   second() {
     Farm.update(); Garden.refresh();
     Craft.update(); Craft.refresh();
+    /* Late, tired, and not at home: a word about the bed, once a night. */
+    const m = G.minutes % 1440;
+    const night = m >= 23 * 60 ? G.day : G.day - 1;   /* past midnight is still the same night */
+    if (G.state === 'play' && (m >= 23 * 60 || m < 3 * 60) && P.energy < 50 && G.flags.bedTip !== night && World.level !== 'villa') {
+      G.flags.bedTip = night;
+      UI.toast('🌙', 'It is late and you are flagging. Your bed is in your beach hut on Honeymoon Sands — sleep and it is morning.', 'tip');
+    }
   },
   bossWon(key) {
     if (key === 'critic') {
