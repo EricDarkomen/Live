@@ -92,7 +92,7 @@ const TEXT = {
     '<b>Serving is turn-based.</b> Your <b>Nerve</b> is your health and their <b>Guard</b> is what you are bringing down. Every turn they give something away — the <b>tell</b> — and a reply that answers it lands properly and builds <b>Chemistry</b>. Build enough and you can <b>seal it</b>, which tips far better than grinding them down.',
     '<b>Grow and ship.</b> Rafa’s garden grows the fruit for your cocktails. The supply boat at the jetty takes orders for the other islands and pays well for them.',
     '<b>Talk to everybody.</b> Everybody has a day of their own, and some of them would very much like to spend the evening with you.',
-    '<b>J</b> jobs · <b>T</b> today’s takings · <b>I</b> bag · <b>K</b> skills · <b>C</b> island chat · <b>M</b> post · <b>V</b> texts · <b>P</b> profile · <b>L</b> achievements · <b>Esc</b> menu and settings.',
+    '<b>N</b> map · <b>J</b> jobs · <b>T</b> today’s takings · <b>I</b> bag · <b>K</b> skills · <b>O</b> farm · <b>Y</b> workshop · <b>U</b> islanders · <b>C</b> island chat · <b>M</b> post · <b>V</b> texts · <b>P</b> profile · <b>L</b> achievements · <b>F</b> eat something · <b>Esc</b> menu and settings.',
     'The Driftwood is open 11:00 to 19:00. After that it is golden hour, then sunset, and the next day starts whenever you wake up.'
   ],
   trialObjective: 'Trying {level} from the editor.',

@@ -18,7 +18,7 @@ const Interact = {
         if (d < wd) { wd = d; win = o; }
       }
       this.target = win || car; this.kind = win ? 'obj' : 'car';
-      const label = win ? 'Use ' + win.name : 'Get out of ' + car.name;
+      const label = win ? 'Use ' + this.thing(win.name) : 'Get out of ' + this.thing(car.name);
       if (label !== this._label) {
         this._label = label;
         const el = $('#prompt');
@@ -68,7 +68,7 @@ const Interact = {
     const label = !best ? null
       : kind === 'npc' ? 'Talk to ' + best.name
       : kind === 'ped' ? 'Talk to ' + best.name
-      : kind === 'car' ? (best.canDrive ? 'Get in ' : 'Look at ') + best.name
+      : kind === 'car' ? (best.canDrive ? 'Get in ' : 'Look at ') + this.thing(best.name)
       : best.ringing ? sayOr('act.answer', 'ANSWER') + ' — ' + best.name
       : (best.kind === 'chair' || best.use === 'playerDesk') ? 'Use ' + best.name
       /* The one piece of street furniture that does something says so. */
@@ -93,13 +93,17 @@ const Interact = {
     shelf: 'Browse', crate: 'Browse', hammock: 'Use', lounger: 'Use', sofa: 'Use', site: 'Check' },
   verb(o) {
     const n = String(o.name || '');
+    /* A use with a word of its own for what it needs (PROMPTS, data/acts.js). */
+    if (typeof PROMPTS !== 'undefined' && PROMPTS[o.use]) {
+      try { const t = PROMPTS[o.use](o); if (t) return t; } catch (e) { /* fall through to the verb */ }
+    }
     if (o.kind === 'exit' || o.kind === 'door') {
       return /^(out|in|up|down|back)\b/i.test(n) ? 'Go ' + n.charAt(0).toLowerCase() + n.slice(1) : 'Enter ' + n;
     }
-    /* "Read the cocktail board", not "Read The cocktail board". */
-    const thing = n.replace(/^(The|A|An) /, m => m.toLowerCase());
-    return (o.verb || this.VERBS[o.kind] || 'Inspect') + ' ' + thing;
+    return (o.verb || this.VERBS[o.kind] || 'Inspect') + ' ' + this.thing(n);
   },
+  /* "Read the cocktail board", not "Read The cocktail board". */
+  thing(n) { return String(n || '').replace(/^(The|A|An|Your) /, m => m.toLowerCase()); },
   go() {
     if (G.state !== 'play' || !this.target) return;
     if (this.kind === 'npc') { Sfx.select(); Dialogue.openNPC(this.target); return; }
@@ -260,7 +264,10 @@ const Panels = {
     b.innerHTML = tab && tab.panel ? tab.panel() : this['r_' + this.tab] ? this['r_' + this.tab]() : '';
     b.querySelectorAll('[data-item]').forEach(el => el.onclick = () => Item.use(el.dataset.item));
     b.querySelectorAll('[data-uneq]').forEach(el => el.onclick = () => Item.equip(el.dataset.uneq));
-    b.querySelectorAll('[data-skill]').forEach(el => el.onclick = () => Sk.buy(el.dataset.branch, el.dataset.skill));
+    b.querySelectorAll('[data-skill]').forEach(el => {
+      el.onclick = () => Sk.buy(el.dataset.branch, el.dataset.skill);
+      el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); el.click(); } };
+    });
     b.querySelectorAll('[data-buy]').forEach(el => el.onclick = () => Shop.buy(el.dataset.buy));
     b.querySelectorAll('[data-act]').forEach(el => el.onclick = () => Menu[el.dataset.act]());
     /* Segmented choices: data-set="setting:value". */
@@ -272,6 +279,12 @@ const Panels = {
       el.onchange = () => { Settings.save(); Sfx.blip(); };
     });
     b.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => this.go(el.dataset.tab));
+    /* "Show me where": data-pin="level:@site" drops your pin there and closes. */
+    b.querySelectorAll('[data-pin]').forEach(el => el.onclick = () => {
+      const [lv, ref] = el.dataset.pin.split(':');
+      this.close();
+      Guide.pinAt(lv, ref, el.dataset.pinLabel || '');
+    });
     b.querySelectorAll('[data-comms]').forEach(el => el.onclick = () => { this.close(); Comms.toggle(el.dataset.comms || null); });
     /* The map canvas has no size until layout, so it is drawn after the body. */
     if (this.tab === 'map') { Atlas.panel(); const mc = $('#mapCv'); if (mc) mc.onclick = e => { Atlas.click(e); this.render(); }; }
@@ -373,23 +386,51 @@ const Panels = {
     if (!P.inventory.length) return h + '<p class="empty">' + say('inv.empty') + '</p>';
     const counts = {};
     P.inventory.forEach(i => counts[i] = (counts[i] || 0) + 1);
-    h += '<div class="grid">';
-    Object.keys(counts).forEach(id => {
-      const it = ITEMS[id];
-      h += '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + (counts[id] > 1 ? ' ×' + counts[id] : '') + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
+    const tap = TOUCH ? 'Tap' : 'Click';
+    /* What eating or drinking it does, at a glance. */
+    const gives = u => [['food', '🍽️'], ['energy', '⚡'], ['patience', '❤️']]
+      .filter(([k]) => u[k]).map(([k, e]) => e + (u[k] > 0 ? '+' : '') + u[k]).join(' ');
+    const card = id => {
+      const it = ITEMS[id], u = it.use && typeof it.use === 'object' ? it.use : null;
+      const how = it.slot ? tap + ' to equip'
+        : u && u.food ? tap + ' to eat' + (gives(u) ? ' · ' + gives(u) : '')
+        : it.use ? tap + ' to use' + (u && gives(u) ? ' · ' + gives(u) : '')
+        : it.quest ? 'Quest item'
+        : typeof TOOLS !== 'undefined' && TOOLS[id] ? Gear.left(id) + '/' + TOOLS[id].uses + ' jobs left'
+        : tap + ' to examine';
+      return '<button class="item" data-item="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + (counts[id] > 1 ? ' ×' + counts[id] : '') + '</span><span class="rar ' + it.r + '">' + it.r + '</span></div><div class="idesc">' + esc(it.d) + '</div>' +
         (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div>' : '') +
-        '<div class="ieff" style="color:var(--dim)">' + (it.slot ? 'Click to equip' : it.use ? 'Click to use' : it.quest ? 'Quest item' : 'Click to examine') + '</div></button>';
+        '<div class="ieff" style="color:var(--dim)">' + how + '</div></button>';
+    };
+    /* Grouped, so a bag full of driftwood does not bury the lunch. */
+    const mats = typeof MATERIALS !== 'undefined' ? MATERIALS : [];
+    const tools = typeof TOOLS !== 'undefined' ? TOOLS : {};
+    const groups = [['Food & drink', []], ['Tools', []], ['Materials', []], ['Everything else', []]];
+    Object.keys(counts).forEach(id => {
+      const it = ITEMS[id], u = it.use;
+      const g = u && typeof u === 'object' && u.food ? 0 : tools[id] ? 1 : mats.includes(id) ? 2 : 3;
+      groups[g][1].push(id);
     });
-    return h + '</div>';
+    const shown = groups.filter(g => g[1].length);
+    shown.forEach(([name, ids]) => {
+      if (shown.length > 1) h += '<div class="inv-g">' + name + '</div>';
+      h += '<div class="grid">' + ids.map(card).join('') + '</div>';
+    });
+    return h;
   },
   r_skills() {
-    let h = '<div class="h2">Skill points available: ' + P.skillPoints + '</div><div class="tree">';
+    const pts = P.skillPoints > 0;
+    let h = '<div class="h2">Skill points available: ' + P.skillPoints + '</div>'
+      + '<p class="idesc sk-hint">' + (pts
+        ? (TOUCH ? 'Tap' : 'Click') + ' a skill to learn its next rank.'
+        : 'You earn a point each time you level up.') + '</p><div class="tree">';
     for (const bk in SKILLS) {
       const br = SKILLS[bk];
       h += '<div class="branch"><h4 style="color:' + br.colour + '">' + br.name + '</h4>';
       for (const sk in br.list) {
         const d = br.list[sk], r = Sk.rank(sk);
-        h += '<div class="skill' + (r >= d.max ? ' maxed' : '') + '" data-skill="' + sk + '" data-branch="' + bk + '"><div style="flex:1"><div class="sn">' + esc(d.n) + '</div><div class="idesc" style="margin:2px 0 0">' + esc(d.d) + '</div></div><span class="pips">' + '●'.repeat(r) + '○'.repeat(d.max - r) + '</span></div>';
+        const can = pts && r < d.max;
+        h += '<div class="skill' + (r >= d.max ? ' maxed' : '') + (can ? ' can' : '') + '" role="button" tabindex="0" aria-label="' + esc(d.n) + ', rank ' + r + ' of ' + d.max + '" data-skill="' + sk + '" data-branch="' + bk + '"><div style="flex:1"><div class="sn">' + esc(d.n) + '</div><div class="idesc" style="margin:2px 0 0">' + esc(d.d) + '</div></div><span class="pips">' + '●'.repeat(r) + '○'.repeat(d.max - r) + '</span></div>';
       }
       h += '</div>';
     }

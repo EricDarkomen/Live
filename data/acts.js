@@ -9,6 +9,12 @@
 
 const insp = (face, name, role, pages, choices, done) => Dialogue.say(face, name, role, pages, choices, done);
 
+/* What the E prompt says for a `use:` whose answer depends on its state;
+   anything not here gets a verb from its kind (Interact.verb). */
+const PROMPTS = {
+  plot: o => Garden.prompt(o)
+};
+
 /* The replies that offer whatever minigames are installed on an object — the
    binding is CABINETS in data/items.js. */
 const cab = use => Arcade.cabinets(use).map(c => ({
@@ -179,6 +185,9 @@ const Acts = {
   },
   theBus() { insp('🚌', 'The island shuttle', 'Not stopping', ['A purple minibus going round the island with the music too loud. It does not stop. It never stops.']); },
   buggy(car) {
+    /* Described once; after that E just gets you in. */
+    if (G.flags.buggySeen) { Cars.take(car); return; }
+    G.flags.buggySeen = true;
     insp('🚙', 'Your beach buggy', 'Keys in it', ['Orange, doorless, and smelling of coconut. A bumper sticker says HONK IF YOU’RE SUNBURNT.'],
       [{ t: 'Drive it.', to: null, do() { Cars.take(car); } }, { t: 'Leave it.', to: null }]);
   },

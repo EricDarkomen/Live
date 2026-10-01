@@ -65,6 +65,8 @@ function bindInput() {
     if (e.code === 'Escape') {
       /* Esc skips the opening. */
       if (G.state === 'cut' && Cut.on) { Cut.skip(); return; }
+      /* Esc leaves the help page, which borrows the opening's screen. */
+      if (G.state === 'cut') { Cut.press(); return; }
       /* Esc closes the comms console first, then the panel, else opens the menu. */
       if (Comms.on) Comms.close();
       else if (Panels.on) Panels.close(); else if (G.state === 'play') Panels.open('settings');
