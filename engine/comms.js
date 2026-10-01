@@ -264,6 +264,28 @@ const Comms = {
     return out.sort((a, b) => b.last.t - a.last.t);
   },
 
+  /* The keyboard in the console: ← → change channel, ↑ ↓ change thread. */
+  nav(code) {
+    if (!this.on) return false;
+    const ids = CHANNELS.map(c => c.id);
+    if (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'KeyA' || code === 'KeyD') {
+      const d = code === 'ArrowLeft' || code === 'KeyA' ? -1 : 1;
+      this.ch = ids[(ids.indexOf(this.ch) + d + ids.length) % ids.length];
+      this.sel = null; this.wide = false; Sfx.blip(); this.render();
+      return true;
+    }
+    if (code === 'ArrowUp' || code === 'ArrowDown' || code === 'KeyW' || code === 'KeyS') {
+      const ths = CH[this.ch].read === 'ledger' ? [] : this.threads(this.ch);
+      if (!ths.length) return true;
+      const i = Math.max(0, ths.findIndex(t => t.key === this.sel));
+      const j = clamp(i + (code === 'ArrowUp' || code === 'KeyW' ? -1 : 1), 0, ths.length - 1);
+      if (j !== i) { this.sel = ths[j].key; Sfx.blip(); this.render(); }
+      const row = $('#cmList .on, #cmList [aria-selected="true"]');
+      if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+      return true;
+    }
+    return false;
+  },
   render() {
     if (!this.on) return;
     const c = CH[this.ch];
@@ -321,7 +343,8 @@ const Comms = {
     const n = this.store(this.ch).length;
     f.innerHTML = (c.read === 'ledger' ? ''
       : '<button class="btn small cm-back" id="cmBack" type="button">◂ ' + esc(c.n) + '</button>')
-      + '<span class="cm-count">' + n + ' ' + (n === 1 ? 'item' : 'items') + ' · kept to ' + c.cap + '</span>';
+      + '<span class="cm-count">' + n + ' ' + (n === 1 ? 'item' : 'items') + ' · kept to ' + c.cap
+      + (TOUCH ? '' : ' · ← → channels · ↑ ↓ messages') + '</span>';
     const b = $('#cmBack');
     if (b) b.onclick = () => { this.wide = false; Sfx.blip(); this.render(); };
   },

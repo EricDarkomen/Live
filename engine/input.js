@@ -43,6 +43,8 @@ function bindInput() {
     if (ARROWS[e.code] && Guns.can() && Guns.armed) {
       Aimer[ARROWS[e.code]] = 1; e.preventDefault(); return;
     }
+    /* The comms console takes the arrows (and WASD) for its own lists. */
+    if (Comms.on && !Panels.on && Comms.nav(e.code)) { e.preventDefault(); return; }
     if (KEYMAP[e.code]) { Keys[KEYMAP[e.code]] = 1; e.preventDefault(); return; }
     /* Shift runs, held. */
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { Keys.run = 1; return; }

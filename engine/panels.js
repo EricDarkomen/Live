@@ -74,7 +74,7 @@ const Interact = {
       /* The one piece of street furniture that does something says so. */
       : best.use === 'crossingButton' ? 'Press the button'
       /* Driftwood, shells and stones are picked up. */
-      : best.kind === 'pickup' ? 'Pick up ' + best.name
+      : best.kind === 'pickup' ? 'Pick up ' + String(best.name).charAt(0).toLowerCase() + String(best.name).slice(1)
       : this.verb(best);
     if (label === this._label) return;      /* the DOM only when it changes */
     this._label = label;
@@ -141,8 +141,20 @@ const Shop = {
     const s = SHOP[this.id];
     let h = '<div class="h2">' + s.title + ' — ' + say('shop.pocket', { money: cash(P.money) }) + '</div><p class="empty" style="text-align:left;padding:0 0 12px">' + s.note + '</p><div class="grid">';
     s.stock.forEach(k => {
-      const it = ITEMS[k];
-      h += '<button class="item" data-buy="' + k + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + cash(it.v) + '</span></div><div class="idesc">' + esc(it.d) + '</div>' + (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(x => '+' + it.eff[x] + ' ' + x).join(' · ') + '</div>' : '') + '</button>';
+      const it = ITEMS[k], have = P.inventory.filter(x => x === k).length
+        + Object.values(P.equipment || {}).filter(x => x === k).length;
+      const poor = P.money < it.v;
+      /* What it is for, in a line: how long a seed takes, what food gives. */
+      const u = it.use && typeof it.use === 'object' ? it.use : null;
+      const crop = it.crop && typeof CROPS !== 'undefined' && CROPS[it.crop];
+      const note = crop ? '🌱 ready in about ' + clockDur(crop.t) + ' if kept watered'
+        : u ? [['food', '🍽️'], ['energy', '⚡'], ['patience', '❤️']].filter(([x]) => u[x]).map(([x, e]) => e + (u[x] > 0 ? '+' : '') + u[x]).join(' ')
+        : '';
+      h += '<button class="item' + (poor ? ' poor' : '') + '" data-buy="' + k + '"' + (poor ? ' aria-disabled="true"' : '') + '><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + cash(it.v) + '</span></div><div class="idesc">' + esc(it.d) + '</div>'
+        + (it.eff ? '<div class="ieff">' + Object.keys(it.eff).map(x => '+' + it.eff[x] + ' ' + sayOr('stat.' + x, x)).join(' · ') + '</div>' : '')
+        + (note ? '<div class="ieff">' + note + '</div>' : '')
+        + '<div class="ieff" style="color:var(--dim)">' + (poor ? 'Not enough cash' : (TOUCH ? 'Tap' : 'Click') + ' to buy') + (have ? ' · you have ' + have : '') + '</div>'
+        + '</button>';
     });
     return h + '</div>';
   },
@@ -254,8 +266,20 @@ const Panels = {
     });
     Portrait.scan(box);
   },
+  /* The sidebar's card and counts go stale under a purchase or a skill point:
+     rebuilt when what they show has changed, keeping keyboard focus in place. */
+  side() {
+    const sig = [P.money, P.xpv, P.level, G.day, G.minutes, P.skillPoints, Q.list().filter(q => !q.done).length, this.tab].join('|');
+    if (sig === this._side) return;
+    this._side = sig;
+    const box = $('#pnTabs'); if (!box || this.narrow()) return;
+    const f = document.activeElement && box.contains(document.activeElement) ? document.activeElement.title : null;
+    this.tabs();
+    if (f) { const el = [...box.querySelectorAll('button')].find(x => x.title === f); if (el) el.focus(); }
+  },
   render() {
     if (!this.on) return;
+    this.side();
     const b = $('#pnBody');
     const tab = TABS.find(t => t.id === this.tab);
     const [ic, nm] = this.tab === 'home' ? ['🌺', 'Menu'] : this.tab === 'shop' ? ['🛍️', 'Shop'] : tab ? [tab.e, tab.n] : ['', ''];
@@ -284,6 +308,11 @@ const Panels = {
       const [lv, ref] = el.dataset.pin.split(':');
       this.close();
       Guide.pinAt(lv, ref, el.dataset.pinLabel || '');
+    });
+    /* "Find" on an islander's card: the guide follows them. */
+    b.querySelectorAll('[data-find]').forEach(el => el.onclick = () => {
+      this.close();
+      if (!Guide.findNpc(el.dataset.find)) { Sfx.deny(); UI.toast('📍', say('find.nowhere')); }
     });
     b.querySelectorAll('[data-comms]').forEach(el => el.onclick = () => { this.close(); Comms.toggle(el.dataset.comms || null); });
     /* The map canvas has no size until layout, so it is drawn after the body. */

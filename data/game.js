@@ -70,6 +70,7 @@ const TEXT = {
   firstObjective: 'Find The Driftwood.',
   yourDesk: 'Behind the bar',
   'snack.full': 'You are not hungry.', 'snack.none': 'Nothing in your bag to eat. Pick some fruit, or try Mama Coco’s.',
+  'find.on': 'Looking for <b>{who}</b>. Follow the arrow.', 'find.nowhere': 'Nobody knows where they are right now.',
   'pin.title': 'Your pin', 'pin.label': 'Your pin', 'pin.on': 'Pin dropped: <b>{where}</b>. Follow the arrow.',
   'pin.here': 'You made it: <b>{where}</b>.', 'pin.key': '{tap} the map to drop a pin',
   'pin.keyOn': 'Your pin · {tap} it again to lift it',
