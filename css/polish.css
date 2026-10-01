@@ -223,3 +223,6 @@ body.southpaw #touchJ{right:auto;left:calc(106px + env(safe-area-inset-left))}
 @keyframes lowPulse{50%{transform:scale(1.35);filter:drop-shadow(0 0 4px rgba(255,90,110,.9))}}
 @media(prefers-reduced-motion:reduce){#hudTL .bar-row.low .lbl{animation:none;filter:drop-shadow(0 0 4px rgba(255,90,110,.9))}}
 #hudTL .bar-row.low .bar{box-shadow:0 0 0 1.5px rgba(255,90,110,.75),0 0 8px rgba(255,90,110,.45)}
+
+/* A controller moving the focus (engine/pad.js): the ring is the cursor. */
+body.pad-nav :focus{outline:3px solid var(--hold,#ffb938)!important;outline-offset:2px}

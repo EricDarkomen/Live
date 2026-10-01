@@ -1837,7 +1837,7 @@ const Guide = {
   /* A pin on any level: there, or the way out towards it from here. */
   /* `ref` is "@site": the building site of that id, looked up once it is in front of you. */
   where(ref) {
-    const o = World.objects.find(x => '@' + x.site === ref);
+    const o = World.objects.find(x => ref === 'ring' ? x.ringing : '@' + x.site === ref);
     return o ? [o.x, o.y] : null;
   },
   pinAt(level, ref, label) {

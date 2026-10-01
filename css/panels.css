@@ -221,3 +221,8 @@
 .item.poor:hover{transform:none}
 .mrel{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mfind{flex:none}
+.quest .q-track{margin-top:8px}
+.quest .q-track.on{background:rgba(255,79,154,.18);border-color:var(--brand)}
+.ach-prog{position:relative;margin-top:6px;height:14px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.ach-prog i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffb347,#ff6f91)}
+.ach-prog span{position:relative;display:block;text-align:center;font-size:10px;line-height:14px;color:#fff}

@@ -98,7 +98,7 @@ const Acts = {
   },
   fairyLights() {
     insp('🏮', 'Fairy lights', 'A tangle', ['Four hundred little bulbs strung along the deck, half of them in a knot the size of a coconut.'],
-      [{ t: 'Leave them.', to: null }].concat(cab('fairyLights')));
+      cab('fairyLights').concat([{ t: 'Leave them.', to: null }]));
   },
   hammock() {
     insp('🛏️', 'The hammock', 'Swaying', ['Strung between two posts over the water. It is the most comfortable thing on the island and it knows it.'],
@@ -113,7 +113,7 @@ const Acts = {
   },
   djBooth() {
     insp('🎧', 'The DJ booth', 'Luca’s', ['Two decks, one of them held together with tape. A sticker says ONLY LUCA TOUCHES THIS. Somebody has added “(AND YOU)”.'],
-      [{ t: 'Leave it.', to: null }].concat(cab('djBooth')));
+      cab('djBooth').concat([{ t: 'Leave it.', to: null }]));
   },
 
   /* ---- Home ---- */

@@ -37,8 +37,17 @@ const Interact = {
        biggest thing nearby would win every tie. Something on a table beats
        the table. */
     const SURFACE = TILE * 0.6;
-    const dist = o => Math.hypot((o.x + .5) * TILE - P.x, (o.y + .5) * TILE - P.y)
-      - (o.onTable ? 1 : 0);
+    /* Whatever you are facing wins a close call: with Mari at your elbow, turn
+       to the blender and the blender is what E reaches. (`dir`: 0 N, 1 W, 2 S, 3 E.) */
+    const fx = P.dir === 1 ? -1 : P.dir === 3 ? 1 : 0, fy = P.dir === 0 ? -1 : P.dir === 2 ? 1 : 0;
+    const facing = (x, y) => {
+      const dx = x - P.x, dy = y - P.y, d = Math.hypot(dx, dy) || 1;
+      return (dx * fx + dy * fy) / d > .55 ? TILE * .45 : 0;
+    };
+    const dist = o => {
+      const x = (o.x + .5) * TILE, y = (o.y + .5) * TILE;
+      return Math.hypot(x - P.x, y - P.y) - (o.onTable ? 1 : 0) - facing(x, y);
+    };
     for (let ty = pty - 1; ty <= pty + 1; ty++) {
       for (let tx = ptx - 1; tx <= ptx + 1; tx++) {
         const here = World.at(tx, ty);
@@ -51,13 +60,17 @@ const Interact = {
     }
     let bestNpc = null, nd = REACH;
     for (const n of NPCM.list) {
-      const d = Math.hypot(n.x - P.x, n.y - P.y);
+      const raw = Math.hypot(n.x - P.x, n.y - P.y);
+      if (raw >= REACH) continue;
+      const d = raw - facing(n.x, n.y);
       if (d < nd) { nd = d; bestNpc = n; }
     }
     /* A person beats the chair they stand on unless you are clearly closer to it. */
     const PERSON_BIAS = TILE * .36;
     let best = null, kind = null;
-    if (bestNpc && (!bestObj || nd <= od + PERSON_BIAS)) { best = bestNpc; kind = 'npc'; }
+    const facedObj = bestObj && facing((bestObj.x + .5) * TILE, (bestObj.y + .5) * TILE) > 0;
+    const facedNpc = bestNpc && facing(bestNpc.x, bestNpc.y) > 0;
+    if (bestNpc && (!bestObj || (facedNpc || !facedObj) && nd <= od + PERSON_BIAS)) { best = bestNpc; kind = 'npc'; }
     else if (bestObj) { best = bestObj; kind = 'obj'; }
     /* Passers-by and cars lose every tie; between them the person wins. */
     const ped = Peds.near(P.x, P.y);
@@ -76,11 +89,13 @@ const Interact = {
       /* Driftwood, shells and stones are picked up. */
       : best.kind === 'pickup' ? 'Pick up ' + String(best.name).charAt(0).toLowerCase() + String(best.name).slice(1)
       : this.verb(best);
-    if (label === this._label) return;      /* the DOM only when it changes */
-    this._label = label;
+    /* The button you have: A once a controller has been used. */
+    const key = Pad.used ? 'A' : 'E';
+    if (label === this._label && key === this._key) return;      /* the DOM only when it changes */
+    this._label = label; this._key = key;
     const el = $('#prompt');
     if (label) {
-      el.innerHTML = '<span class="kbd">E</span> &nbsp;' + esc(label);
+      el.innerHTML = '<span class="kbd">' + key + '</span> &nbsp;' + esc(label);
       el.classList.add('on');
       el.classList.toggle('urgent', !!(best && best.ringing));
     } else el.classList.remove('on');
@@ -309,6 +324,7 @@ const Panels = {
       this.close();
       Guide.pinAt(lv, ref, el.dataset.pinLabel || '');
     });
+    b.querySelectorAll('[data-track]').forEach(el => el.onclick = () => { Track.follow(el.dataset.track); this.render(); });
     /* "Find" on an islander's card: the guide follows them. */
     b.querySelectorAll('[data-find]').forEach(el => el.onclick = () => {
       this.close();
@@ -400,7 +416,11 @@ const Panels = {
   quest(q) {
     return '<div class="quest' + (q.done ? ' done' : '') + '"><span class="giver">from ' + esc(q.giver) + '</span><h4>' + esc(q.n) + '</h4>' +
       q.steps.map((s, i) => '<div class="step" style="opacity:' + (i <= q.step || q.done ? 1 : .35) + '">' + esc(s) + (i < q.step || q.done ? ' ✔' : '') + '</div>').join('') +
-      '<div class="rw">Reward: ' + q.rw.xp + ' XP' + (q.rw.money ? ' · ' + cash(q.rw.money) : '') + (q.rw.item ? ' · ' + ITEMS[q.rw.item].e + ' ' + ITEMS[q.rw.item].n : '') + '</div></div>';
+      '<div class="rw">Reward: ' + q.rw.xp + ' XP' + (q.rw.money ? ' · ' + cash(q.rw.money) : '') + (q.rw.item ? ' · ' + ITEMS[q.rw.item].e + ' ' + ITEMS[q.rw.item].n : '') + '</div>'
+      /* Follow it from here: the guide's arrow and pin go to its current step. */
+      + (q.done ? '' : '<button class="btn small q-track' + (G.track === q.id ? ' on' : '') + '" type="button" data-track="' + q.id + '" aria-pressed="' + (G.track === q.id) + '">'
+        + (G.track === q.id ? '📍 Following · stop' : '📍 Follow this job') + '</button>')
+      + '</div>';
   },
   r_inventory() {
     let h = '<div class="h2">Equipped</div><div class="grid">';
@@ -408,7 +428,7 @@ const Panels = {
     for (const slot in P.equipment) {
       const id = P.equipment[slot]; if (!id) continue; any = true;
       const it = ITEMS[id];
-      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + sayOr('slot.' + slot, slot) + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div><div class="idesc">Click to unequip</div></button>';
+      h += '<button class="item" data-uneq="' + id + '"><div class="ih"><span class="ie">' + it.e + '</span><span class="it">' + esc(it.n) + '</span><span class="rar ' + it.r + '">' + sayOr('slot.' + slot, slot) + '</span></div><div class="ieff">' + Object.keys(it.eff || {}).map(k => '+' + it.eff[k] + ' ' + sayOr('stat.' + k, k)).join(' · ') + '</div><div class="idesc">' + (TOUCH ? 'Tap' : 'Click') + ' to unequip</div></button>';
     }
     if (!any) h += '<p class="empty">Nothing equipped.</p>';
     h += '</div><div class="h2">Carried (' + P.inventory.length + ')</div>';
@@ -465,12 +485,30 @@ const Panels = {
     }
     return h + '</div>';
   },
+  /* How far along a counted achievement is: [have, need]. */
+  ACH_PROG: {
+    a_green: () => [G.flags.harvests || 0, 10],
+    a_mixer: () => [G.flags.blended || 0, 10],
+    a_cargo: () => [G.flags.shipped || 0, 5],
+    a_stocked: () => [G.flags.stockRun || 0, 3],
+    a_legend: () => [Math.max(0, Math.round(P.rep)), 100],
+    a_allthree: () => [Object.keys(ZONES).filter(k => G.discovered[k]).length, Object.keys(ZONES).length]
+  },
   r_ach() {
     const got = Ach.count();
+    /* Unlocked first; the rest keep their order. */
+    const ids = Object.keys(ACHS).sort((a, b) => (G.achievements[b] ? 1 : 0) - (G.achievements[a] ? 1 : 0));
     return '<div class="h2">' + got + ' / ' + Object.keys(ACHS).length + ' unlocked</div>' +
-      Object.keys(ACHS).map(k => {
+      ids.map(k => {
         const a = ACHS[k], has = G.achievements[k];
-        return '<div class="ach' + (has ? ' got' : '') + '" style="margin-bottom:8px"><span class="ae">' + a.e + '</span><div><div class="at">' + esc(has ? a.n : '???') + '</div><div class="ad">' + esc(a.d) + '</div></div></div>';
+        let prog = '';
+        if (!has && this.ACH_PROG[k]) {
+          try {
+            const [n, of] = this.ACH_PROG[k]();
+            if (n > 0) prog = '<div class="ach-prog"><i style="width:' + Math.round(clamp(n / of, 0, 1) * 100) + '%"></i><span>' + Math.min(n, of) + ' / ' + of + '</span></div>';
+          } catch (e) { /* a counter the game no longer keeps */ }
+        }
+        return '<div class="ach' + (has ? ' got' : '') + '" style="margin-bottom:8px"><span class="ae">' + a.e + '</span><div style="flex:1"><div class="at">' + esc(has ? a.n : '???') + '</div><div class="ad">' + esc(a.d) + '</div>' + prog + '</div></div>';
       }).join('');
   },
   r_stats() {
@@ -526,6 +564,8 @@ const Panels = {
     let h = '<div class="set-save">'
       + '<button class="btn" data-act="save">💾 Save</button>'
       + '<button class="btn" data-act="load">↻ Load</button>'
+      + '<button class="btn" data-act="exportSave" title="Download your save as a file">⬇️ Export</button>'
+      + '<button class="btn" data-act="importSave" title="Load a save file">⬆️ Import</button>'
       + '<button class="btn danger" data-act="newgame">🗑️ New game</button>'
       + '<span class="sd">The game also saves itself every hour, and whenever you close or leave the tab, in this browser.</span></div>';
     h += '<div class="h2">Sound</div><div class="set-card">'
@@ -558,6 +598,7 @@ const Panels = {
       h += '<div class="h2">How to play</div><div class="keys">'
         + k(Hand.pad === 'dpad' ? 'Pad' : 'Stick', 'walk — push further to run')
         + k('E', 'talk, use, pick up, get out')
+        + k('Tap', 'somebody or something: walk over to it')
         + k('⤒', 'jump · dive when swimming')
         + k('☰', 'this menu')
         + k('📨', 'post, texts, chat and the log')
@@ -565,10 +606,12 @@ const Panels = {
         + '</div>';
     } else {
       h += '<div class="h2">Keys</div><div class="keys">'
-        + k('W A S D', 'walk, and drive') + k('Shift', 'hold to run') + k('Space', 'jump · dive when swimming') + k('E', 'talk, use, get out')
+        + k('W A S D', 'walk, and drive') + k('Shift', 'hold to run') + k('Click', 'walk there · go and talk to them') + k('Space', 'jump · dive when swimming') + k('E', 'talk, use, get out')
         + k('F', 'eat something from your bag') + k('G', 'take it out · Q swaps · R reloads') + k('H', 'horn') + k('1–9', 'choose a reply or a move')
         + this.tabList().filter(t => t.key).map(t => k(t.key.slice(3), t.n.toLowerCase())).join('')
         + k('M', 'post') + k('C', 'island chat') + k('V', 'texts') + k('B', 'the log')
+        + (Pad.used ? k('🎮 A', 'interact, choose, press') + k('🎮 B', 'back') + k('🎮 X', 'jump') + k('🎮 Y', 'map')
+          + k('🎮 LB · RB', 'eat · run; sections in a menu') + k('🎮 LT', 'take it out') + k('🎮 Start', 'menu') : '')
         + k('Esc', 'this menu') + k('F5 / F9', 'quick save / load')
         + '</div>';
     }

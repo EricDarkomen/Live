@@ -80,6 +80,7 @@ const Farm = {
     Larder.update(now, dt);
     Stations.update(now, dt, raining);
     Hunger.update(dt);
+    this.notices(now);
     /* The fridge sulks, now and then — once a day it decides whether today is
        the day. Mari has been hitting it on the left for six years. */
     if (G.flags.fridgeDay !== G.day) {
@@ -89,6 +90,38 @@ const Farm = {
         if (World.level === 'bar') UI.toast('🧊', 'The fridge has stopped humming. It is sulking again.', 'bad');
       }
     }
+  },
+  /* A word when something out there wants you: fruit ripe, plots gone dry, a
+     pest, or the kiln, bin or rack done. Said when the count goes up, at most
+     once an island hour and a half per kind, and never for what was already so
+     when the game was loaded. */
+  notices(now) {
+    /* A new run or a loaded one starts quiet (G.flags is a new object then). */
+    if (this._run !== G.flags) { this._run = G.flags; this._seen = null; this._said = {}; }
+    const plots = Object.values(Garden.plots()).filter(p => p && !p.dead);
+    const n = {
+      ripe: plots.filter(p => Garden.stage(p) === 3).length,
+      dry: plots.filter(p => Garden.stage(p) < 3 && p.w < .12).length,
+      pest: plots.filter(p => p.pest && Garden.stage(p) < 3).length,
+      kiln: (G.flags.kiln || []).filter(x => x.done <= now).length,
+      bin: (G.flags.bin || []).filter(x => x.done <= now).length,
+      rack: (G.flags.rack || []).filter(x => x.left <= 0).length
+    };
+    const was = this._seen;
+    this._seen = n;
+    if (!was) return;
+    const at = (this._said = this._said || {});
+    const say1 = (k, e, msg, cls) => {
+      if (n[k] <= was[k] || (at[k] !== undefined && now - at[k] < 90)) return;
+      at[k] = now; UI.toast(e, msg, cls || '');
+    };
+    const plotWord = c => c === 1 ? 'a plot' : c + ' plots';
+    say1('ripe', '🧺', 'Ripe in Rafa’s garden: ' + plotWord(n.ripe) + ' ready to pick. Ripe fruit does not wait.', 'gold');
+    say1('dry', '💧', 'The garden is thirsty: ' + plotWord(n.dry) + ' drying out.', 'bad');
+    say1('pest', '🐛', 'Something is chewing ' + plotWord(n.pest) + ' in the garden.', 'bad');
+    say1('kiln', '🏺', 'Rafa’s kiln has finished firing.', 'good');
+    say1('bin', '🪱', 'A batch of compost is ready in the bin.', 'good');
+    say1('rack', '🌞', 'Something on the drying rack is ready.', 'good');
   },
   plots(now, dt, raining, rate) {
     const scare = 1 - .35;   /* the scarecrow, who is cool rather than scary */

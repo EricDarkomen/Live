@@ -360,6 +360,7 @@ const Boot = {
     Arcade.init();
     Track.init();
     Settings.load();
+    Pad.init();
     Player.init('Trainee'); UI.hud();
     Title.init();
     $('#btnNew').onclick = () => { this.goFullscreen(); this.newGame(); };
@@ -432,6 +433,13 @@ const Boot = {
     b.disabled = false;
     /* textContent, so no escaping */
     b.textContent = say('continueSave', { name: s.name || say('defaultName'), day: s.day || 1, time: clockStr(s.minutes || DAY_START) });
+    /* When it was last played, in words, on hover. */
+    if (s.at) {
+      const m = Math.max(0, Math.round((Date.now() - s.at) / 60000));
+      b.title = 'Saved ' + (m < 1 ? 'just now' : m < 60 ? m + (m === 1 ? ' minute' : ' minutes') + ' ago'
+        : m < 1440 ? Math.round(m / 60) + (Math.round(m / 60) === 1 ? ' hour' : ' hours') + ' ago'
+        : Math.round(m / 1440) + (Math.round(m / 1440) === 1 ? ' day' : ' days') + ' ago');
+    }
     /* With a save, continuing is the default and starting over is not. */
     b.classList.add('primary'); n.classList.remove('primary');
     n.textContent = say('newSave');
@@ -470,8 +478,8 @@ const Boot = {
         ? (Hand.pad === 'dpad'
             ? 'Walk with the pad in the bottom-' + Hand.padSide() + '.'
             : 'Walk by putting a thumb down anywhere in the bottom-' + Hand.padSide() + ' of the screen and pushing — the stick comes to your thumb, and how far you push it is how fast you walk.')
-          + ' Tap <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Once someone is talking, tap the conversation box to carry on and tap a reply to choose what to say. <b>☰</b> opens your jobs, inventory and the rest. Left-handed, or would rather have a d-pad? <b>☰ · Menu</b> has both.'
-        : 'Walk around with <b>WASD</b> or the arrow keys, and hold <b>Shift</b> to run. Press <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Press <b>Space</b> to advance dialogue and <b>1–9</b> to choose what to say.') + '<br><br>' +
+          + ' Tap somebody or something to walk over to it. Tap <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Once someone is talking, tap the conversation box to carry on and tap a reply to choose what to say. <b>☰</b> opens your jobs, inventory and the rest. Left-handed, or would rather have a d-pad? <b>☰ · Menu</b> has both.'
+        : 'Walk around with <b>WASD</b> or the arrow keys, and hold <b>Shift</b> to run — or click the ground to walk there, and click somebody to go and talk to them. A controller works too. Press <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Press <b>Space</b> to advance dialogue and <b>1–9</b> to choose what to say.') + '<br><br>' +
       /* The list of keys means nothing on a phone. */
       says('helpBody').filter(l => !(TOUCH && /^<b>N<\/b> map/.test(l))).join('<br><br>')
       + '<span class="help-back">' + (TOUCH ? 'Tap anywhere to go back' : 'Click anywhere, or press Esc, to go back') + '</span>';

@@ -177,6 +177,8 @@ const Cars = {
        still does its half; the keys do both. */
     if (Stick.on) st = clamp(Stick.x * 1.5, -1, 1);
     if (Throttle.on) th = clamp(-Throttle.y * 1.3, -1, 1);
+    /* A controller: the left stick steers with x and drives with y. */
+    if (Pad.drive) { st = clamp(Pad.drive.x * 1.5, -1, 1); th = clamp(-Pad.drive.y * 1.3, -1, 1); }
 
     car.braking = false;
     if (th > 0.05) car.fwd += d.acc * th * dt;
