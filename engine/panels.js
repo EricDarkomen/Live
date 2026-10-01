@@ -68,14 +68,14 @@ const Interact = {
     const label = !best ? null
       : kind === 'npc' ? 'Talk to ' + best.name
       : kind === 'ped' ? 'Talk to ' + best.name
-      : kind === 'car' ? 'Look at ' + best.name
+      : kind === 'car' ? (best.canDrive ? 'Get in ' : 'Look at ') + best.name
       : best.ringing ? sayOr('act.answer', 'ANSWER') + ' — ' + best.name
       : (best.kind === 'chair' || best.use === 'playerDesk') ? 'Use ' + best.name
       /* The one piece of street furniture that does something says so. */
       : best.use === 'crossingButton' ? 'Press the button'
       /* Driftwood, shells and stones are picked up. */
       : best.kind === 'pickup' ? 'Pick up ' + best.name
-      : 'Inspect ' + best.name;
+      : this.verb(best);
     if (label === this._label) return;      /* the DOM only when it changes */
     this._label = label;
     const el = $('#prompt');
@@ -84,6 +84,21 @@ const Interact = {
       el.classList.add('on');
       el.classList.toggle('urgent', !!(best && best.ringing));
     } else el.classList.remove('on');
+  },
+  /* What pressing E will do, in a word: a door is gone through and a sign is
+     read. An object's own `verb` wins; anything unlisted is inspected. */
+  VERBS: { sign: 'Read', board: 'Read', art: 'Look at', mirror: 'Look in', plot: 'Tend',
+    wardrobe: 'Open', fridge: 'Open', box: 'Open', bed: 'Use', workbench: 'Use', kiln: 'Use',
+    jukebox: 'Use', blender: 'Use', taps: 'Use', till: 'Use', stall: 'Visit', boat: 'Visit',
+    shelf: 'Browse', crate: 'Browse', hammock: 'Use', lounger: 'Use', sofa: 'Use', site: 'Check' },
+  verb(o) {
+    const n = String(o.name || '');
+    if (o.kind === 'exit' || o.kind === 'door') {
+      return /^(out|in|up|down|back)\b/i.test(n) ? 'Go ' + n.charAt(0).toLowerCase() + n.slice(1) : 'Enter ' + n;
+    }
+    /* "Read the cocktail board", not "Read The cocktail board". */
+    const thing = n.replace(/^(The|A|An) /, m => m.toLowerCase());
+    return (o.verb || this.VERBS[o.kind] || 'Inspect') + ' ' + thing;
   },
   go() {
     if (G.state !== 'play' || !this.target) return;
@@ -259,7 +274,7 @@ const Panels = {
     b.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => this.go(el.dataset.tab));
     b.querySelectorAll('[data-comms]').forEach(el => el.onclick = () => { this.close(); Comms.toggle(el.dataset.comms || null); });
     /* The map canvas has no size until layout, so it is drawn after the body. */
-    if (this.tab === 'map') Atlas.panel();
+    if (this.tab === 'map') { Atlas.panel(); const mc = $('#mapCv'); if (mc) mc.onclick = e => { Atlas.click(e); this.render(); }; }
     Portrait.scan(b);   /* live faces on the cards */
   },
   /* The launcher, on a phone: your card, then every section as a tile. */
@@ -302,6 +317,7 @@ const Panels = {
       + '<span><i class="mp-npc"></i>People</span>'
       + '<span><i class="mp-car"></i>Something you can drive</span>'
       + '<span><i class="mp-ring"></i>A guest waiting at the bar</span>'
+      + '<span><i class="mp-flag"></i>' + esc(say(Guide.pinned ? 'pin.keyOn' : 'pin.key', { tap: Guide.pinned ? (TOUCH ? 'tap' : 'click') : (TOUCH ? 'Tap' : 'Click') })) + '</span>'
       + '</div>';
   },
   /* Today: a live tally while the day runs, the report with its rating after
@@ -441,7 +457,7 @@ const Panels = {
       + '<button class="btn" data-act="save">💾 Save</button>'
       + '<button class="btn" data-act="load">↻ Load</button>'
       + '<button class="btn danger" data-act="newgame">🗑️ New game</button>'
-      + '<span class="sd">The game also saves itself every hour, in this browser.</span></div>';
+      + '<span class="sd">The game also saves itself every hour, and whenever you close or leave the tab, in this browser.</span></div>';
     h += '<div class="h2">Sound</div><div class="set-card">'
       + row('Sound effects', '', sw('sound', Sfx.on, 'Sound effects'))
       + row('Bar music', 'Plays while you serve.', sw('music', Sfx.music, 'Bar music'))
@@ -479,8 +495,8 @@ const Panels = {
         + '</div>';
     } else {
       h += '<div class="h2">Keys</div><div class="keys">'
-        + k('W A S D', 'walk, and drive') + k('Space', 'jump · dive when swimming') + k('E', 'talk, use, get out')
-        + k('G', 'take it out · Q swaps · R reloads') + k('H', 'horn') + k('1–9', 'choose a reply or a move')
+        + k('W A S D', 'walk, and drive') + k('Shift', 'hold to run') + k('Space', 'jump · dive when swimming') + k('E', 'talk, use, get out')
+        + k('F', 'eat something from your bag') + k('G', 'take it out · Q swaps · R reloads') + k('H', 'horn') + k('1–9', 'choose a reply or a move')
         + this.tabList().filter(t => t.key).map(t => k(t.key.slice(3), t.n.toLowerCase())).join('')
         + k('M', 'post') + k('C', 'island chat') + k('V', 'texts') + k('B', 'the log')
         + k('Esc', 'this menu') + k('F5 / F9', 'quick save / load')

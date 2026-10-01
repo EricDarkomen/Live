@@ -216,3 +216,10 @@ body.southpaw #touchJ{right:auto;left:calc(106px + env(safe-area-inset-left))}
   body.southpaw #touchJ{right:auto;left:calc(92px + env(safe-area-inset-left))}
 }
 @media(prefers-reduced-motion:reduce){#touchJ:active{transform:none}}
+
+/* A meter running low (UI.hud): its icon pulses, so tired and hungry show
+   before the toast does. */
+#hudTL .bar-row.low .lbl{animation:lowPulse 1.1s ease-in-out infinite}
+@keyframes lowPulse{50%{transform:scale(1.35);filter:drop-shadow(0 0 4px rgba(255,90,110,.9))}}
+@media(prefers-reduced-motion:reduce){#hudTL .bar-row.low .lbl{animation:none;filter:drop-shadow(0 0 4px rgba(255,90,110,.9))}}
+#hudTL .bar-row.low .bar{box-shadow:0 0 0 1.5px rgba(255,90,110,.75),0 0 8px rgba(255,90,110,.45)}

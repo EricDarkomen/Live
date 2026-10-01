@@ -102,6 +102,10 @@ const UI = {
     /* The bars turn red when you are nearly out of yourself. */
     const low = P.patience <= P.patMax * 0.25;
     if (this._last.low !== low) { this._last.low = low; $('#hudTL').classList.toggle('low', low); }
+    /* Each meter running out says so on its own row: tired, or hungry. */
+    const lowE = P.energy < P.eneMax * .25, lowF = P.food < 25;
+    if (this._last.lowE !== lowE) { this._last.lowE = lowE; $('#bEne').closest('.bar-row').classList.toggle('low', lowE); }
+    if (this._last.lowF !== lowF) { this._last.lowF = lowF; $('#bFood').closest('.bar-row').classList.toggle('low', lowF); }
     /* The weather, the season, and whether work is over. */
     const sky = Sky.label() + ' · ' + Sky.seasonName()
       + (Sky.working() ? '' : ' · off shift');

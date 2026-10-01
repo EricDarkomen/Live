@@ -92,15 +92,16 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 
 |            | Keyboard                        | Touch                          |
 | ---------- | ------------------------------- | ------------------------------ |
-| Move       | `W A S D` or arrows             | thumb down anywhere bottom-left |
+| Move       | `W A S D` or arrows, hold `Shift` to run | thumb down anywhere bottom-left; push all the way to run |
 | Interact   | `E` or `Enter`                  | `E` button                     |
+| Eat        | `F` — the least precious thing in your bag | the item, in `☰` · Inventory |
 | Jump       | `Space` — in the water it dives | `JUMP` button (`DIVE` when swimming) |
 | Drive      | `W` go · `S` brake, then reverse · `A D` steer · `H` horn | **two sticks**: left steers, right is the throttle |
 | Get out    | `E`                             | `OUT`                          |
 | Take it out | `G` · `Q` swaps · `R` reloads   | grab the green stick           |
 | Aim, fire, swing | the mouse and its button, or the arrows | **two sticks**: left walks, right aims and fires |
 | Dialogue   | `Space`, `1`–`9` to choose      | tap the box, tap a reply       |
-| The map    | `N`, or the minimap             | `☰` · Map                      |
+| The map    | `N`, or the minimap — click it to drop a pin the arrow follows | `☰` · Map — tap it to drop a pin |
 | Panels     | `J I K O Y U P L`, `T` for today’s takings, `Esc` for settings — one window, a sidebar of sections | `☰` opens a launcher of every section |
 | Comms      | `M` post · `C` island chat · `V` texts · `B` the log, or the chips in the corner | the `📨` chip under the bar |
 | Pop-ups    | `☰ · Menu → Notifications`: everything / only what needs you / nothing | same |
@@ -139,7 +140,7 @@ and the button is the trigger. Nobody has to choose: the stick is asked first,
 then the arrows, then the mouse, so picking one up never means putting another
 down.
 
-The game saves itself, and detects touch devices to show the right controls and
+The game saves itself — every game hour, and whenever you close or leave the tab — and detects touch devices to show the right controls and
 the right instructions.
 
 ## The editor

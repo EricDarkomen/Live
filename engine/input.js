@@ -3,7 +3,7 @@
 /* Panel shortcuts: the engine's, and each GAME.tabs entry's `key`. */
 const PANEL_KEYS = Object.assign({ KeyN: 'map', KeyI: 'inventory', KeyJ: 'quests', KeyK: 'skills', KeyP: 'stats', KeyL: 'ach', KeyT: 'shift', KeyU: 'people' },
   Object.fromEntries((GAME.tabs || []).filter(t => t.key).map(t => [t.key, t.id])));
-const Keys = { up: 0, down: 0, left: 0, right: 0 };
+const Keys = { up: 0, down: 0, left: 0, right: 0, run: 0 };
 const KEYMAP = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' };
 /* The arrows as the right hand while something is out: they aim and fire,
    while WASD keeps walking. Separate from Keys because both are held at once. */
@@ -21,9 +21,12 @@ function bindInput() {
       if (Dialogue.avail && Dialogue.avail.length) {
         if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); Dialogue.move(-1); return; }
         if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); Dialogue.move(1); return; }
-        if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); Dialogue.choose(Dialogue.sel); return; }
+        /* A held key never picks a reply: holding Space to hurry the words along
+           would otherwise answer for you the moment they finish. */
+        if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyE') { e.preventDefault(); if (!e.repeat) Dialogue.choose(Dialogue.sel); return; }
       }
-      if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); Dialogue.advance(); return; }
+      /* E opened the conversation, so E carries it on, as it does on a phone. */
+      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyE') { e.preventDefault(); if (!(e.repeat && e.code === 'KeyE')) Dialogue.advance(); return; }
       if (e.code === 'Escape') { e.preventDefault(); Dialogue.close(); return; }
       return;
     }
@@ -41,6 +44,8 @@ function bindInput() {
       Aimer[ARROWS[e.code]] = 1; e.preventDefault(); return;
     }
     if (KEYMAP[e.code]) { Keys[KEYMAP[e.code]] = 1; e.preventDefault(); return; }
+    /* Shift runs, held. */
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { Keys.run = 1; return; }
     if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
       if (G.state === 'name') { Boot.acceptName(); return; }
@@ -48,7 +53,7 @@ function bindInput() {
       if (G.state === 'look') { Boot.goFullscreen(); Look.accept(); return; }
       if (G.state === 'cut') { Cut.press(); return; }
       /* Space jumps (or, in the water, dives); Enter and E interact. */
-      if (G.state === 'play') { if (e.code === 'Space') { if (!e.repeat) Moves.jump(); } else Interact.go(); return; }
+      if (G.state === 'play') { if (!e.repeat) { if (e.code === 'Space') Moves.jump(); else Interact.go(); } return; }
       return;
     }
     if (G.state === 'combat') {
@@ -66,9 +71,11 @@ function bindInput() {
       return;
     }
     if (G.state !== 'play' && !Panels.on && !Comms.on) return;
-    if (e.code === 'KeyE') { if (!Panels.on) Interact.go(); return; }
+    /* Not on a held key: the press that ends a conversation must not start the next. */
+    if (e.code === 'KeyE') { if (!Panels.on && !e.repeat) Interact.go(); return; }
     /* G takes it out and puts it away; on a phone, letting go of the stick does that. */
     if (e.code === 'KeyG') { if (!Panels.on && Guns.any()) { Guns.toggle(); if (!Guns.armed) Sfx.blip(); } else if (!Panels.on) Sfx.deny(); return; }
+    if (e.code === 'KeyF') { if (!Panels.on && !Comms.on && G.state === 'play' && !e.repeat) Item.snack(); return; }
     if (e.code === 'KeyR') { if (!Panels.on && Guns.armed && !Guns.reload()) Sfx.deny(); return; }
     if (e.code === 'KeyQ') { if (!Panels.on && Guns.armed) Guns.next(); return; }
     /* The horn, held while driving. */
@@ -110,9 +117,10 @@ function bindInput() {
     if (e.code === 'KeyH') Cars.horn = false;
     if (ARROWS[e.code]) Aimer[ARROWS[e.code]] = 0;
     if (KEYMAP[e.code]) Keys[KEYMAP[e.code]] = 0;
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Keys.run = 0;
   });
   addEventListener('blur', () => {
-    Keys.up = Keys.down = Keys.left = Keys.right = 0;
+    Keys.up = Keys.down = Keys.left = Keys.right = Keys.run = 0;
     Aimer.up = Aimer.down = Aimer.left = Aimer.right = 0;
     Cars.horn = false; Guns.trigger(false); releaseSticks();
   });
@@ -120,8 +128,10 @@ function bindInput() {
   /* Leaving the tab stops the clock, drops held keys and hushes the music. */
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      /* A phone may never come back to this tab: keep the run as it stands. */
+      saveOnLeave();
       Game.paused = true;
-      Keys.up = Keys.down = Keys.left = Keys.right = 0;
+      Keys.up = Keys.down = Keys.left = Keys.right = Keys.run = 0;
       Aimer.up = Aimer.down = Aimer.left = Aimer.right = 0;
       Guns.trigger(false);
       releaseSticks();
@@ -134,6 +144,9 @@ function bindInput() {
       if (Combat.E && Sfx.music) Sfx.holdMusic(true);
     }
   });
+
+  /* Closing the tab or the browser saves too, not only the hourly autosave. */
+  addEventListener('pagehide', saveOnLeave);
 
   $('#keyhints').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -254,7 +267,16 @@ function bindInput() {
   }
 }
 
+/* Only from somewhere a save can resume: play, or a panel or the console over it. */
+function saveOnLeave() {
+  if ((typeof Trial !== 'undefined' && Trial.on) || !['play', 'panel', 'comms', 'dialogue'].includes(G.state) || Combat.E || Arcade.on) return;
+  Save.write(true);
+}
+
 /* ---------------- Movement ---------------- */
+
+/* How much faster a run is than a walk. */
+const RUN_SPEED = 1.45;
 
 /* Can the player's feet be here? Walking, getting out of a car and the unstick
    below all ask this one question (the shape is Collide.walk()). */
@@ -274,10 +296,11 @@ function movePlayer(dt) {
   const held = Guns.armed ? .88 : 1;
   /* Swimming is slower than walking (engine/moves.js). */
   const wet = P.swim ? Moves.SWIM_SPEED : 1;
-  const sp = TILE * 3.45 * tired * held * wet * dt;
   P.moving = !!(dx || dy);
-  /* Running is chosen by how far you push, so pace and animation agree. */
-  P.fast = P.moving && Math.hypot(dx, dy) > 0.86 && !Guns.armed && !P.swim;
+  /* Running: Shift on a keyboard, the stick pushed right out on a phone. Not
+     with something in your hand, in the water, or when you are worn out. */
+  P.fast = P.moving && (Stick.on ? Math.hypot(dx, dy) > 0.86 : !!Keys.run) && !Guns.armed && !P.swim && P.energy >= 25;
+  const sp = TILE * 3.45 * (P.fast ? RUN_SPEED : 1) * tired * held * wet * dt;
   if (P.moving) {
     P.dir = Sprites.dirOf(dx, dy);
     P.bob += dt * 9;

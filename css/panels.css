@@ -50,11 +50,13 @@
 .mp-key span{display:inline-flex;align-items:center;gap:6px}
 .mp-key i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
 .mp-you{background:#fff;clip-path:polygon(100% 50%,14% 100%,38% 50%,14% 0)}
-.mp-out{background:#ff6f91;border-radius:999px!important}
+.mp-out{background:#4da3ff;border-radius:999px!important}
 .mp-pin{background:#5ad48a}
 .mp-npc{background:rgba(180,140,255,.85)}
 .mp-car{background:rgba(90,212,138,.9)}
 .mp-ring{background:#ffb347}
+.mp-flag{background:#ff4fa3;border-radius:50% 50% 50% 0!important;transform:rotate(-45deg)}
+#mapCv{cursor:crosshair}
 .mp-here{color:var(--brand)}
 /* The panel body is a column for this one tab: the map has to be able to take
    the height that is left, and a block layout will not give it any. */

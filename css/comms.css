@@ -58,6 +58,9 @@
    here is what turned the old band into a variable-height slab. */
 .a-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .a-t b{color:var(--acc,var(--brand));font-weight:600}
+/* The exception: a how-to tip (UI.toast(…, 'tip')) wraps, up to four lines. */
+.alert.tip .a-t{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-height:1.35}
+.alert.tip{border-radius:16px!important;padding-top:8px;padding-bottom:8px}
 /* Out of the flex line the moment it starts going, so the band is the height of
    what is standing. `top` is written by Comms.retire() from the row it was in. */
 /* A folded alert pulses in place: the same row saying something newer. */
