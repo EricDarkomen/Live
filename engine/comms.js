@@ -38,6 +38,8 @@ const maxAlerts = () => {
 };
 /* How long an alert stands; hovering holds it. */
 const ALERT_MS = 5200;
+/* A how-to tip wraps and stands long enough to read twice. */
+const TIP_MS = 13000;
 /* The floor between pop-ups, in real ms. A game day passes in minutes, so any
    per-item pop-up is a stream: arrivals inside the floor are queued and come
    out as one digest per channel. */
@@ -98,11 +100,13 @@ const Comms = {
     if (!this.pops(item)) return;
     /* One standing row per channel: another arrival folds into it ("3 new")
        without moving anything or chiming again. */
-    const live = this._alerts.find(a => a.dataset.ch === item.ch && !a.classList.contains('gone'));
+    /* A how-to tip is never folded away or held back: it is read, not glanced at. */
+    const tip = item.k === 'tip';
+    const live = !tip && this._alerts.find(a => a.dataset.ch === item.ch && !a.classList.contains('gone') && !a.classList.contains('tip'));
     if (live) return this.restack(live, item);
     /* Inside the floor, only somebody waiting on an answer gets through. */
     const t = now();
-    if (!item.enc && t - this._lastRow < MIN_GAP_MS) return this.queue(item);
+    if (!tip && !item.enc && t - this._lastRow < MIN_GAP_MS) return this.queue(item);
     return this.raise(item);
   },
   /* Behind the floor, counted per channel; one timer however many arrive.
@@ -143,7 +147,7 @@ const Comms = {
     this._alerts.push(d);
     /* Over the cap, the oldest goes. */
     while (this._alerts.length > maxAlerts()) this.retire(this._alerts[0]);
-    d._out = setTimeout(() => this.retire(d), ALERT_MS);
+    d._out = setTimeout(() => this.retire(d), item.k === 'tip' ? TIP_MS : ALERT_MS);
     this.sound(item);
     return d;
   },

@@ -1824,14 +1824,30 @@ const Guide = {
      come back after a save is reloaded. */
   set(tx, ty, label, flag) {
     this.tx = tx; this.ty = ty; this.label = label || ''; this.flag = flag || null;
-    this.npc = null; this.sticky = false;
+    this.npc = null; this.sticky = false; this.pinned = false;
+  },
+  /* Your own pin, dropped on the map: it outranks a job's target until you get
+     there or lift it, and then the job's comes back. */
+  pinned: false,
+  pin(tx, ty, label) {
+    this.set(tx, ty, label, null);
+    this.pinned = true;
+    UI.toast('📍', say('pin.on', { where: esc(label) }));
+  },
+  unpin() {
+    if (!this.pinned) return;
+    this.clear();
+    Track._sig = null;
   },
   /* By the object's `use`, not coordinates. */
   setObject(use, label, flag) {
     if (flag && G.flags[flag]) return false;
     const o = World.objects.find(x => x.use === use);
-    if (o) this.set(o.x, o.y, label, flag);
-    return !!o;
+    if (o) { this.set(o.x, o.y, label, flag); this._want = null; return true; }
+    /* On another level: point at the way there. Asked again from check() until
+       that level is built, since a fresh run builds its neighbours in idle time. */
+    this._want = { use, label, flag };
+    return this.aimAcross(Levels.whereIs(use), label);
   },
   /* A tracked job's target: object, colleague or waypoint. False when it cannot
      be resolved, and the tracker stays pinless. */
@@ -1887,10 +1903,13 @@ const Guide = {
     return s === null
       ? Math.round(Math.hypot((this.tx + .5) * TILE - P.x, (this.ty + .5) * TILE - P.y) / TILE) : s;
   },
-  clear() { this.tx = this.ty = null; this.label = ''; this.flag = null; this.npc = null; this.sticky = false; },
+  clear() { this._want = null; this.pinned = false; this.tx = this.ty = null; this.label = ''; this.flag = null; this.npc = null; this.sticky = false; },
   on() { return this.tx !== null && G.state === 'play'; },
   /* Arriving clears a one-shot pin; a tracked job's pin stays over the person. */
   check() {
+    if (this.tx === null && this._want && G.state === 'play' && (this._wantT = (this._wantT || 0) + 1) % 30 === 0) {
+      const w = this._want; this.setObject(w.use, w.label, w.flag);
+    }
     if (this.npc) {
       const n = NPCM.get(this.npc);
       if (n) { this.tx = Math.floor(n.x / TILE); this.ty = Math.floor(n.y / TILE); }
@@ -1898,7 +1917,10 @@ const Guide = {
     if (this.tx === null || this.sticky) return;
     if (Math.hypot((this.tx + .5) * TILE - P.x, (this.ty + .5) * TILE - P.y) < TILE * 1.4) {
       if (this.flag) G.flags[this.flag] = true;
+      if (this.pinned) UI.toast('📍', say('pin.here', { where: esc(this.label) }), 'good');
+      const was = this.pinned;
       this.clear(); Sfx.select();
+      if (was) Track._sig = null;
     }
   },
   /* Called after a save is restored: put the pin back if it is still owed. A

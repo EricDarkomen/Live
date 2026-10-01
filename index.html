@@ -24,9 +24,9 @@
 <link rel="stylesheet" href="css/base.css?v=20261010">
 <link rel="stylesheet" href="css/hud.css?v=20261010">
 <link rel="stylesheet" href="css/dialogue.css?v=20261010">
-<link rel="stylesheet" href="css/combat.css?v=20261010">
-<link rel="stylesheet" href="css/panels.css?v=20261010">
-<link rel="stylesheet" href="css/comms.css?v=20261010">
+<link rel="stylesheet" href="css/combat.css?v=20261013">
+<link rel="stylesheet" href="css/panels.css?v=20261013">
+<link rel="stylesheet" href="css/comms.css?v=20261013">
 <link rel="stylesheet" href="css/controls.css?v=20261010">
 <link rel="stylesheet" href="css/arcade.css?v=20261010">
 <link rel="stylesheet" href="css/cutscene.css?v=20261010">
@@ -35,7 +35,7 @@
 <!-- The look. Last, so it restyles everything above it; see the note at its top. -->
 <link rel="stylesheet" href="css/bubble.css?v=20261010">
 <!-- The quieter HUD, the menu and the moves. After the look, and only restyles. -->
-<link rel="stylesheet" href="css/polish.css?v=20261012">
+<link rel="stylesheet" href="css/polish.css?v=20261013">
 </head>
 <body>
 <div id="app">
@@ -145,9 +145,9 @@
 
     <div id="cutBody">
       <div id="cutCard">
-        <div class="cut-emoji" id="cutFace">🏢</div>
+        <div class="cut-emoji" id="cutFace"></div>
         <div class="cut-say">
-          <div class="cut-label" id="cutLabel">Outside · 08:57</div>
+          <div class="cut-label" id="cutLabel"></div>
           <!-- The typed line and, behind it at zero opacity, the whole line —
                so the box is already the height of the finished sentence and the
                layout does not grow a row as the words arrive. -->
@@ -184,10 +184,10 @@
       <div class="hud" id="hudTL">
         <div class="card">
           <div class="who-row">
-            <span class="who-face" id="hFace">🧑‍💻</span>
+            <span class="who-face" id="hFace">🙂</span>
             <div>
-              <div class="who-name" id="hName">TRAINEE</div>
-              <div class="who-rank" id="hRank">Lv.1 · Trainee</div>
+              <div class="who-name" id="hName"></div>
+              <div class="who-rank" id="hRank">Lv.1</div>
             </div>
           </div>
           <!-- Wrapped so the phone bar can stand the three meters BESIDE the
@@ -355,7 +355,7 @@
       <div class="dlg sign">
         <div class="dlg-head">
           <span class="dlg-face" id="dFace">🧑</span>
-          <div><div class="dlg-name" id="dName">DAVE</div><div class="dlg-role" id="dRole">Senior Agent</div></div>
+          <div><div class="dlg-name" id="dName"></div><div class="dlg-role" id="dRole"></div></div>
           <div class="dlg-mood" id="dMood"></div>
         </div>
         <div class="dlg-text" id="dText" aria-live="polite"></div>
@@ -373,18 +373,18 @@
         <div class="sign-title"><span id="cbTitle">At the bar · stool 1</span><span class="badge" id="cbTimer">TURN 1</span></div>
         <div class="cb-top">
           <span class="cb-face" id="cbFace">🍹</span>
-          <div class="cb-who"><h3 id="cbName">CUSTOMER</h3><div class="sub" id="cbIssue">Account query</div></div>
+          <div class="cb-who"><h3 id="cbName"></h3><div class="sub" id="cbIssue"></div></div>
           <div class="cb-meters">
-            <div class="bar-row"><span class="lbl" title="Their guard">🛡️</span><span class="bar" role="progressbar" aria-label="Their guard" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbFrus" style="background:linear-gradient(90deg,#ff5f56,#ffb347)"></i></span><span class="val" id="cbFrusV">80</span></div>
-            <div class="bar-row"><span class="lbl" title="Their patience">⏳</span><span class="bar" role="progressbar" aria-label="Their patience" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbCPat" style="background:linear-gradient(90deg,#b48cff,#4da3ff)"></i></span><span class="val" id="cbCPatV">100</span></div>
-            <div class="bar-row"><span class="lbl" title="Your nerve">❤️</span><span class="bar" role="progressbar" aria-label="Your nerve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbYou" style="background:linear-gradient(90deg,#5ad48a,#4da3ff)"></i></span><span class="val" id="cbYouV">100</span></div>
-            <div class="bar-row"><span class="lbl" title="Chemistry">💕</span><span class="bar" role="progressbar" aria-label="Chemistry" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="cbRap" style="background:linear-gradient(90deg,#b48cff,#5ad48a);width:0%"></i></span><span class="val" id="cbRapV">0</span></div>
+            <div class="bar-row"><span class="lbl" title="Their guard">🛡️</span><span class="nm" aria-hidden="true">Guard</span><span class="bar" role="progressbar" aria-label="Their guard" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbFrus" style="background:linear-gradient(90deg,#ff5f56,#ffb347)"></i></span><span class="val" id="cbFrusV">80</span></div>
+            <div class="bar-row"><span class="lbl" title="Their patience">⏳</span><span class="nm" aria-hidden="true">Patience</span><span class="bar" role="progressbar" aria-label="Their patience" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbCPat" style="background:linear-gradient(90deg,#b48cff,#4da3ff)"></i></span><span class="val" id="cbCPatV">100</span></div>
+            <div class="bar-row"><span class="lbl" title="Your nerve">❤️</span><span class="nm" aria-hidden="true">Your nerve</span><span class="bar" role="progressbar" aria-label="Your nerve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="cbYou" style="background:linear-gradient(90deg,#5ad48a,#4da3ff)"></i></span><span class="val" id="cbYouV">100</span></div>
+            <div class="bar-row"><span class="lbl" title="Chemistry">💕</span><span class="nm" aria-hidden="true">Chemistry</span><span class="bar" role="progressbar" aria-label="Chemistry" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="cbRap" style="background:linear-gradient(90deg,#b48cff,#5ad48a);width:0%"></i></span><span class="val" id="cbRapV">0</span></div>
           </div>
         </div>
         <div class="cb-line" id="cbLine" role="status" aria-live="polite"></div>
         <div class="cb-tell" id="cbTell" role="status" aria-live="polite"></div>
         <div class="cb-moves" id="cbMoves" role="group" aria-label="What you say next"></div>
-        <div class="hold-note" id="cbHold">♪ hold music: “Greensleeves”, but wrong</div>
+        <div class="hold-note" id="cbHold"></div>
         <div class="cb-log scroll" id="cbLog" role="log" aria-live="polite" aria-label="Conversation"></div>
       </div>
     </div>
@@ -460,7 +460,7 @@
      way the game still opens straight off disk. Their top-level consts land in
      the global lexical scope, which the engine below reads by bare name. -->
 <script src="art/sprites/manifest.js?v=20260929"></script>
-<script src="data/game.js?v=20261010"></script>
+<script src="data/game.js?v=20261013"></script>
 <script src="data/world.js?v=20261010"></script>
 <script src="data/roads.js?v=20261010"></script>
 <script src="data/levels.js?v=20261001"></script>
@@ -483,13 +483,13 @@
 <script src="engine/world.js?v=20261012"></script>
 <script src="engine/collide.js?v=20261012"></script>
 <script src="engine/levels.js?v=20261012"></script>
-<script src="engine/ui.js?v=20261012"></script>
-<script src="engine/comms.js?v=20261010"></script>
-<script src="engine/progress.js?v=20261010"></script>
+<script src="engine/ui.js?v=20261013"></script>
+<script src="engine/comms.js?v=20261013"></script>
+<script src="engine/progress.js?v=20261013"></script>
 <script src="engine/office.js?v=20261010"></script>
 <script src="engine/dialogue.js?v=20261010"></script>
 <script src="engine/combat.js?v=20261010"></script>
-<script src="engine/npc.js?v=20261010"></script>
+<script src="engine/npc.js?v=20261013"></script>
 <script src="engine/mind.js?v=20261010"></script>
 <script src="engine/sprites.js?v=20261011"></script>
 <script src="engine/faces.js?v=20261010"></script>
@@ -499,13 +499,13 @@
 <script src="engine/guns.js?v=20261012"></script>
 <script src="engine/moves.js?v=20261012"></script>
 <script src="engine/render.js?v=20261012"></script>
-<script src="engine/panels.js?v=20261012"></script>
-<script src="engine/map.js?v=20261010"></script>
+<script src="engine/panels.js?v=20261013"></script>
+<script src="engine/map.js?v=20261013"></script>
 <script src="engine/menus.js?v=20261012"></script>
 <script src="engine/arcade.js?v=20261010"></script>
 <script src="engine/look.js?v=20261010"></script>
 <script src="engine/title.js?v=20261010"></script>
-<script src="engine/input.js?v=20261012"></script>
+<script src="engine/input.js?v=20261013"></script>
 <!-- The minigame library. Separate files on purpose: each is a whole game
      that knows only the interface in engine/arcade.js, and a fourth is a new
      file here rather than a change to anything above it. -->
@@ -514,6 +514,6 @@
 <script src="minigames/patch.js?v=20261010"></script>
 <script src="engine/juice.js?v=20261010"></script>
 <script src="engine/portrait.js?v=20261010"></script>
-<script src="engine/boot.js?v=20261012"></script>
+<script src="engine/boot.js?v=20261013"></script>
 </body>
 </html>

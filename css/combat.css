@@ -28,6 +28,8 @@
 .cb-who .sub{font-size:11px;color:var(--dim);margin-top:2px}
 .cb-meters{width:min(300px,42%);display:flex;flex-direction:column;gap:5px}
 .cb-meters .bar-row{position:relative}
+/* The meters' names: four emoji were a legend you had to hover to read. */
+.cb-meters .nm{flex:none;width:66px;font-size:10.5px;color:var(--dim);white-space:nowrap}
 .cb-line{padding:12px 16px;font-size:15px;line-height:1.5;min-height:74px;background:rgba(11,15,22,.5)}
 .cb-line .say{color:var(--text)} .cb-line .nar{color:var(--dim);font-style:italic;font-size:13px}
 /* The tell, beside the caller's line. Flowing text, not a flex row, which
@@ -64,6 +66,7 @@
 /* On a phone the flavour shrinks so more moves show without scrolling. */
 @media(max-width:640px){
   .cb-moves{grid-template-columns:1fr}
+  .cb-meters .nm{display:none}
   /* The title row goes; the turn badge floats in its corner. The HUD already
      shows the queue. */
   .cb{position:relative}
@@ -117,6 +120,7 @@
   .cb-meters{width:min(400px,54%);display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
   .cb-meters .bar-row{margin-top:0}
   .cb-line{min-height:0;padding:7px 12px;font-size:13px}
+  .cb-meters .nm{display:none}
   .cb-log,.hold-note{display:none}
   .cb-moves{grid-template-columns:1fr 1fr;padding:8px 10px;gap:6px}
   /* The name and its emoji already say what a move does; the explanation is the

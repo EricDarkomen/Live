@@ -139,8 +139,24 @@ const Atlas = {
     for (const n of NPCM.list) {
       dot(n.x / TILE, n.y / TILE, R.questMark(n) ? '#ff5f56' : 'rgba(180,140,255,.85)', big ? 2 : 1.3);
     }
-    if (Guide.tx !== null) dot(Guide.tx + .5, Guide.ty + .5, '#5ad48a', big ? 3 : 2);
+    if (Guide.pinned) this.flag(c, f, s, big);
+    else if (Guide.tx !== null) dot(Guide.tx + .5, Guide.ty + .5, '#5ad48a', big ? 3 : 2);
     this.you(c, f, s, big);
+  },
+
+  /* Your own pin: a drop pin, so it is never mistaken for a job's dot. */
+  flag(c, f, s, big) {
+    if (!this.seen(f, Guide.tx, Guide.ty)) return;
+    const p = this.at(f, Guide.tx + .5, Guide.ty + .5), r = (big ? 6 : 3.4) * s;
+    c.save();
+    c.beginPath();
+    c.arc(p.x, p.y - r * 1.6, r, Math.PI * .8, Math.PI * 2.2);
+    c.lineTo(p.x, p.y);
+    c.closePath();
+    c.fillStyle = '#ff4fa3'; c.fill();
+    c.lineWidth = s; c.strokeStyle = 'rgba(11,15,22,.85)'; c.stroke();
+    c.beginPath(); c.arc(p.x, p.y - r * 1.6, r * .38, 0, 6.29); c.fillStyle = '#fff'; c.fill();
+    c.restore();
   },
 
   /* You, and which way you face (the car's nose when driving). `dir`: 0 N, 1 W, 2 S, 3 E. */
@@ -232,6 +248,8 @@ const Atlas = {
     const k = Math.min((w - PAD * 2) / MAPW, (h - PAD * 2) / MAPH);
     const f = this.fit(w - PAD * 2, h - PAD * 2, k, MAPW / 2, MAPH / 2);
     f.ox += PAD; f.oy += PAD;
+    /* Kept, with the device-pixel ratio, so a click can be turned back into a tile. */
+    this._pf = f; this._pdpr = dpr;
 
     c.clearRect(0, 0, w, h);
     c.imageSmoothingEnabled = k < 1;
@@ -245,6 +263,33 @@ const Atlas = {
     this.legends(c, f, dpr);
     this.pins(c, f, dpr, true);
     this.scaleBar(c, f, dpr, w, h);
+  },
+
+  /* A click or tap on the map screen drops your own pin there, or lifts the
+     one already near it. The guide then points at it, as at a job. */
+  click(e) {
+    const cv = $('#mapCv'), f = this._pf;
+    if (!cv || !f) return;
+    const r = cv.getBoundingClientRect(), d = this._pdpr || 1;
+    const tx = Math.floor(f.vx + ((e.clientX - r.left) * d - f.ox) / f.k);
+    const ty = Math.floor(f.vy + ((e.clientY - r.top) * d - f.oy) / f.k);
+    if (tx < 0 || ty < 0 || tx >= MAPW || ty >= MAPH) return;
+    /* On the pin already there: take it away. */
+    if (Guide.pinned && Math.hypot(Guide.tx - tx, Guide.ty - ty) <= Math.max(2, 10 * d / f.k)) {
+      Guide.unpin(); Sfx.blip(); this.panel(); return;
+    }
+    /* The nearest floor you could stand on, so the distance is a walk. */
+    let best = null, bd = Infinity;
+    for (let y = ty - 4; y <= ty + 4; y++) for (let x = tx - 4; x <= tx + 4; x++) {
+      if (x < 0 || y < 0 || x >= MAPW || y >= MAPH || World.isSolid(x, y)) continue;
+      const dd = (x - tx) * (x - tx) + (y - ty) * (y - ty);
+      if (dd < bd) { bd = dd; best = [x, y]; }
+    }
+    if (!best) { Sfx.deny(); return; }
+    const z = World.zoneAt(best[0], best[1]);
+    Guide.pin(best[0], best[1], (z && ZONES[z] && ZONES[z].name) || say('pin.label'));
+    Sfx.select();
+    this.panel();
   },
 
   /* Every name in one pass, biggest place first; anything that will not fit

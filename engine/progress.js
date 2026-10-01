@@ -115,7 +115,20 @@ const Item = {
     if (u.sfx && Sfx[u.sfx]) Sfx[u.sfx]();
     if (u.t) UI.toast(it.e, u.t, u.cls || '');
   },
-  count() { return P.inventory.length; }
+  count() { return P.inventory.length; },
+  /* F: eat the thing in your bag that is worth least per mouthful, so the
+     dried mango and the coconut are the last to go. */
+  snack() {
+    if (P.food >= 90) { UI.toast('🍽️', say('snack.full')); Sfx.deny(); return false; }
+    const ids = [...new Set(P.inventory)].filter(id => {
+      const u = ITEMS[id] && ITEMS[id].use;
+      return u && typeof u === 'object' && (u.food || 0) >= 5;
+    });
+    if (!ids.length) { UI.toast('🍽️', say('snack.none')); Sfx.deny(); return false; }
+    ids.sort((a, b) => (ITEMS[a].v || 0) / ITEMS[a].use.food - (ITEMS[b].v || 0) / ITEMS[b].use.food);
+    this.use(ids[0]);
+    return true;
+  }
 };
 
 /* ---------------- Skills ---------------- */
@@ -291,6 +304,8 @@ const Track = {
   },
   /* Point the guide at the followed job; false if nothing is followed. */
   aim() {
+    /* A pin you dropped yourself wins until it is reached or lifted. */
+    if (Guide.pinned) return true;
     if (Guide.sticky) Guide.clear();
     const id = G.track;
     if (!id || !Q.active(id)) return false;
@@ -333,7 +348,7 @@ const Track = {
         if (!G.track && !G.trackOff) { this.follow(fresh[fresh.length - 1], true); this.flash('fresh'); }
       }
     }
-    const sig = [G.objective, G.track, open.map(q => q.id + q.step).join(',')].join('|');
+    const sig = [G.objective, G.track, open.map(q => q.id + q.step).join(','), Guide.pinned && Guide.tx + ',' + Guide.ty].join('|');
     if (sig !== this._sig) {
       this._sig = sig;
       /* A step of the followed job done: tick it off. */
@@ -376,7 +391,12 @@ const Track = {
       lbl.textContent = q.n;
       step.textContent = q.steps[st.step] || '';
       dots.innerHTML = q.steps.map((_, i) => '<i class="' + (i < st.step ? 'd' : i === st.step ? 'c' : '') + '"></i>').join('');
-    } else {
+    }
+    if (Guide.pinned) {
+      lbl.textContent = say('pin.title');
+      step.textContent = Guide.label;
+      dots.innerHTML = '';
+    } else if (q) { /* the job, above */ } else {
       lbl.textContent = open.length ? 'Next' : 'Free time';
       step.textContent = G.objective || say('jobs.none');
       dots.innerHTML = '';
