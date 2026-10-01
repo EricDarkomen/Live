@@ -64,7 +64,7 @@ linen suit who very much wants to buy it.
   they are up to, and how far they have come.
 - **Jump in.** Hop about, wade out from any beach and swim the shallows or the
   hidden lagoon, duck-dive under the surface, and cannonball off the jetty.
-- **Explore.** A road loop round the island, a beach buggy to drive it in, a
+- **Explore.** A road loop round the island, a beach buggy to drive it in, a shuttle from the Promenade to anywhere you have already been, a
   plaza, a yoga deck, a hidden lagoon in the jungle, a water pistol at the
   surf shack, and a wardrobe of swimwear at your beach hut.
 - **Keep it — or don't.** Win over a two-million-follower influencer, then face

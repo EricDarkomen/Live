@@ -78,7 +78,14 @@ function bindInput() {
     /* Not on a held key: the press that ends a conversation must not start the next. */
     if (e.code === 'KeyE') { if (!Panels.on && !e.repeat) Interact.go(); return; }
     /* G takes it out and puts it away; on a phone, letting go of the stick does that. */
-    if (e.code === 'KeyG') { if (!Panels.on && Guns.any()) { Guns.toggle(); if (!Guns.armed) Sfx.blip(); } else if (!Panels.on) Sfx.deny(); return; }
+    if (e.code === 'KeyG') {
+      if (Panels.on) return;
+      /* Saying why beats a buzz: nothing to take out, or not here. */
+      if (!Guns.any()) { Sfx.deny(); UI.toast('🔫', say('guns.none')); return; }
+      if (!Guns.armed && !Guns.can()) { Sfx.deny(); UI.toast('🔫', say(P.swim ? 'guns.wet' : Cars.driving ? 'guns.car' : 'guns.notNow')); return; }
+      Guns.toggle(); if (!Guns.armed) Sfx.blip();
+      return;
+    }
     if (e.code === 'KeyF') { if (!Panels.on && !Comms.on && G.state === 'play' && !e.repeat) Item.snack(); return; }
     if (e.code === 'KeyR') { if (!Panels.on && Guns.armed && !Guns.reload()) Sfx.deny(); return; }
     if (e.code === 'KeyQ') { if (!Panels.on && Guns.armed) Guns.next(); return; }
@@ -123,6 +130,24 @@ function bindInput() {
     if (KEYMAP[e.code]) Keys[KEYMAP[e.code]] = 0;
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') Keys.run = 0;
   });
+  /* Alt-tab away and the island waits for you: the clock stops under a veil
+     until the window has focus again. Not on the title or the opening, where
+     nothing is ticking that matters. */
+  addEventListener('blur', () => {
+    if (Game.blurPause !== false && !document.hidden && ['play', 'dialogue', 'combat', 'comms', 'panel', 'arcade'].includes(G.state)) {
+      Game.paused = true;
+      let v = $('#pauseVeil');
+      if (!v) {
+        v = document.createElement('div'); v.id = 'pauseVeil';
+        v.innerHTML = '<div><b>Paused</b><span>' + (TOUCH ? 'Tap' : 'Click') + ' to carry on</span></div>';
+        v.addEventListener('pointerdown', () => resumeFromVeil());
+        $('#game').appendChild(v);
+      }
+      v.classList.add('on');
+      Sfx.holdMusic(false);
+    }
+  });
+  addEventListener('focus', () => resumeFromVeil());
   addEventListener('blur', () => {
     Keys.up = Keys.down = Keys.left = Keys.right = Keys.run = 0;
     Aimer.up = Aimer.down = Aimer.left = Aimer.right = 0;
@@ -142,6 +167,10 @@ function bindInput() {
       Sfx.holdMusic(false);
       if (Sfx.ctx && Sfx.ctx.state === 'running') Sfx.ctx.suspend().catch(() => {});
     } else {
+      /* Still behind the veil if the window has not got focus back. */
+      const veil = $('#pauseVeil');
+      if (veil && veil.classList.contains('on') && !document.hasFocus()) return;
+      if (veil) veil.classList.remove('on');
       Game.paused = false;
       Game.last = performance.now();   /* no fast-forward on return */
       if (Sfx.ctx && Sfx.ctx.state === 'suspended') Sfx.ctx.resume().catch(() => {});
@@ -201,7 +230,7 @@ function bindInput() {
     Mouse.y = Cam.y + (e.clientY - r.top);
     /* A hand over somebody or something a click would walk you to. */
     if (e.target === R.cv) {
-      const over = G.state === 'play' && !Guns.armed && !Cars.driving && AutoWalk.pick(Mouse.x, Mouse.y);
+      const over = AutoWalk.enabled && G.state === 'play' && !Guns.armed && !Cars.driving && AutoWalk.pick(Mouse.x, Mouse.y);
       const cur = over ? 'pointer' : '';
       if (R.cv.style.cursor !== cur) R.cv.style.cursor = cur;
     }
@@ -210,14 +239,14 @@ function bindInput() {
     /* On a phone, tapping somebody or something walks you to it — the ground
        alone does nothing, so a stray thumb never sends you off. */
     if (e.pointerType === 'touch') {
-      if (G.state !== 'play' || Cars.driving || Guns.armed) return;
+      if (G.state !== 'play' || Cars.driving || Guns.armed || !AutoWalk.enabled) return;
       const r = R.cv.getBoundingClientRect(), wx = Cam.x + (e.clientX - r.left), wy = Cam.y + (e.clientY - r.top);
       if (AutoWalk.pick(wx, wy)) { Sfx.init(); AutoWalk.to(wx, wy); }
       return;
     }
     if (e.button !== 0) return;
     /* Empty-handed, a click is somewhere to go (AutoWalk). */
-    if (!Guns.armed && G.state === 'play' && !Cars.driving) {
+    if (!Guns.armed && G.state === 'play' && !Cars.driving && AutoWalk.enabled) {
       const r = R.cv.getBoundingClientRect();
       Sfx.init();
       AutoWalk.to(Cam.x + (e.clientX - r.left), Cam.y + (e.clientY - r.top));
@@ -308,6 +337,15 @@ function bindInput() {
   }
 }
 
+function resumeFromVeil() {
+  const v = $('#pauseVeil');
+  if (!v || !v.classList.contains('on') || document.hidden) return;
+  v.classList.remove('on');
+  Game.paused = false;
+  Game.last = performance.now();   /* no fast-forward on return */
+  if (Combat.E && Sfx.music) Sfx.holdMusic(true);
+}
+
 /* Only from somewhere a save can resume: play, or a panel or the console over it. */
 function saveOnLeave() {
   if ((typeof Trial !== 'undefined' && Trial.on) || !['play', 'panel', 'comms', 'dialogue'].includes(G.state) || Combat.E || Arcade.on) return;
@@ -321,6 +359,7 @@ function saveOnLeave() {
    islanders use; a click on somebody or something walks you up to it and
    presses E when you arrive. Any key or stick of your own cancels it. */
 const AutoWalk = {
+  enabled: true,      /* Settings: "Click to walk" */
   on: false, tx: 0, ty: 0, target: null, kind: null, stuck: 0, best: Infinity,
   to(wx, wy) {
     const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);

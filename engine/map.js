@@ -125,6 +125,8 @@ const Atlas = {
        town becomes a rash of markers. */
     const fine = f.k >= 2 * s;
     for (const o of World.objects) {
+      /* The shuttle stop, always: it is the quick way round. */
+      if (o.use === 'busStop') { dot(o.x + .5, o.y + .5, '#c58cff', big ? 3 : 1.8); continue; }
       if (o.ringing) dot(o.x + .5, o.y + .5, '#ffb347', big ? 2.4 : 1.6);
       else if (!fine && !big) continue;
       else if (o.kind === 'door') dot(o.x + .5, o.y + .5, '#8d9bb5', big ? 1.6 : 1);
