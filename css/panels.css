@@ -83,6 +83,12 @@
 .skill .pips{font-family:var(--mono);font-size:11px;color:var(--hold);letter-spacing:.1em}
 .skill.maxed .pips{color:var(--good)}
 .skill.locked{opacity:.5}
+/* A point to spend: every skill that can take it says so. */
+.skill.can{cursor:pointer;border-color:rgba(255,179,71,.35)}
+.skill.can .pips::after{content:'+';margin-left:6px;display:inline-grid;place-items:center;width:18px;height:18px;
+  border-radius:50%;background:var(--hold);color:#2a1446;font-weight:800;letter-spacing:0;font-size:14px;line-height:1}
+.skill:focus-visible{outline:2px solid var(--hold);outline-offset:2px}
+.sk-hint{margin:-4px 0 10px}
 .ach{display:flex;gap:10px;align-items:center;background:rgba(34,43,59,.4);border:1px solid var(--line);
   border-radius:9px;padding:9px 11px}
 .ach.got{border-color:var(--hold);background:rgba(255,179,71,.08)}
@@ -193,6 +199,14 @@
 .farm-prod .fst > span{font-size:11px;color:var(--dim)}
 .farm-prod .fq{display:flex;flex-direction:column;gap:3px;font-size:12px}
 .farm-prod .fq i{color:var(--dim);font-size:11px}
+/* A plan's materials: have/need per thing, lit once you have enough. */
+.cost{display:flex;flex-wrap:wrap;gap:4px}
+.cost .cc{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:11px;color:var(--dim)}
+.cost .cc b{color:var(--text);font-weight:700}
+.cost .cc.ok{background:rgba(90,212,138,.14);border-color:rgba(90,212,138,.45);color:#bff0d2}
+.farm-prod .fst.ready{border-color:rgba(90,212,138,.6);box-shadow:0 0 0 1px rgba(90,212,138,.25)}
+.fst .rdy{display:inline-block;white-space:nowrap;font-style:normal;font-size:10px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#5ad48a;color:#0b2416;vertical-align:middle}
 @media (max-width:520px){.farm-plots{gap:4px}.farm-plots .fp{padding:4px 2px}.farm-plots .fe{font-size:18px}.farm-plots .fn{font-size:9px}.farm-plots .fsub{font-size:8px}}
 /* ---- The Workshop tab (data/craft.js) ---- */
 .ws-mats{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
@@ -200,3 +214,6 @@
 .ws-mats .wm .fe{font-size:20px;line-height:1.1}
 .ws-mats .wm b{font-size:14px;color:var(--text)}
 .ws-mats .wm span:last-child{font-size:10px;color:var(--dim);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* Inventory groups (Panels.r_inventory). */
+.inv-g{margin:12px 2px 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}

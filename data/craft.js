@@ -144,7 +144,14 @@ const PROJECTS = {
 const CABANA_RENT = 18, ROOF_TIPS = 1.15;
 
 const roll = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-const costWords = inp => Object.keys(inp).map(k => inp[k] + ' ' + ITEMS[k].e).join(' + ');
+const costWords = inp => Object.keys(inp).map(k => inp[k] + ' ' + ITEMS[k].e + ' ' + ITEMS[k].n.toLowerCase()).join(' + ');
+/* The same, for the Workshop tab: each thing named, with how many you have of
+   how many it takes, lit when you have enough. */
+const costChips = inp => '<span class="cost">' + Object.keys(inp).map(k => {
+  const have = bag(k), ok = have >= inp[k];
+  return '<span class="cc' + (ok ? ' ok' : '') + '" title="' + esc(ITEMS[k].n) + '">' + ITEMS[k].e
+    + ' <b>' + Math.min(have, inp[k]) + '/' + inp[k] + '</b> ' + esc(ITEMS[k].n.toLowerCase()) + '</span>';
+}).join('') + '</span>';
 const canPay = inp => Object.keys(inp).every(k => bag(k) >= inp[k]);
 const pay = inp => { for (const k in inp) bagTake(k, inp[k]); };
 
@@ -402,7 +409,7 @@ const Craft = {
     h += '<div class="h2">Tools</div><div class="farm-prod">' + (tools.length ? tools.map(id => {
       const l = Gear.left(id);
       return '<div class="fst"><b>' + ITEMS[id].e + ' ' + esc(ITEMS[id].n) + '</b><span>' + l + '/' + TOOLS[id].uses + ' jobs left</span>' + bar(l / TOOLS[id].uses * 100, l <= 5 ? 'bad' : '') + '</div>';
-    }).join('') : '<div class="fst"><b>🤲 Just your hands</b><span>Make an axe and a pickaxe at Rafa’s workbench, in the yard behind the garden: 2 🥢 + 2–3 🪨 + 1 🪢.</span></div>') + '</div>';
+    }).join('') : '<div class="fst"><b>🤲 Just your hands</b><span>Make an axe and a pickaxe at Rafa’s workbench, in the yard behind the garden: 2 🥢 driftwood, 2–3 🪨 stone and 1 🪢 rope each.</span></div>') + '</div>';
     /* Materials. */
     const mats = MATERIALS.filter(id => bag(id));
     h += '<div class="h2">Materials</div>' + (mats.length
@@ -420,9 +427,22 @@ const Craft = {
     for (const p in PROJECTS) {
       const P2 = PROJECTS[p], sites = Build.sites(p), done = sites.filter(s => Build.has(s)).length;
       const lvlOk = this.level('craft') >= P2.lvl;
-      h += '<div class="fst"><b>' + P2.e + ' ' + esc(P2.n) + (sites.length > 1 ? ' · ' + done + '/' + sites.length : '') + '</b>'
+      const built = done >= sites.length, ready = !built && lvlOk && canPay(P2.cost);
+      /* The nearest site still waiting for this plan, for "Show me where". */
+      const objs = Levels.objectsOn('island');
+      const here = World.level === 'island';
+      const open = objs
+        ? objs.filter(o => o.site && o.proj === p && !Build.has(o.site))
+          .sort((a, b) => here ? Math.hypot(a.x * TILE - P.x, a.y * TILE - P.y) - Math.hypot(b.x * TILE - P.x, b.y * TILE - P.y) : 0)
+          .map(o => o.site)[0]
+        /* Not built just now (you are indoors): the first site left, found on arrival. */
+        : sites.find(st => !Build.has(st));
+      h += '<div class="fst' + (ready ? ' ready' : '') + '"><b>' + P2.e + ' ' + esc(P2.n) + (sites.length > 1 ? ' · ' + done + '/' + sites.length : '')
+        + (ready ? ' <em class="rdy">Ready to build</em>' : '') + '</b>'
         + '<span>' + esc(P2.d) + '</span>'
-        + '<div class="fq">' + (done >= sites.length ? '✅ Built' : costWords(P2.cost) + (lvlOk ? '' : ' · <i>needs Craftsmanship ' + P2.lvl + '</i>')) + '</div></div>';
+        + '<div class="fq">' + (built ? '✅ Built' : costChips(P2.cost) + (lvlOk ? '' : '<i>needs Craftsmanship ' + P2.lvl + '</i>')) + '</div>'
+        + (open ? '<button class="btn small ws-where" type="button" data-pin="island:@' + open + '" data-pin-label="' + esc(P2.n) + '">📍 Show me where</button>' : '')
+        + '</div>';
     }
     h += '</div><p class="idesc farm-key">Look for the 🚧 building sites: in the garden, in the yard, on the Promenade by the bar, and on Honeymoon Sands. Every job takes time and energy — eat, and sleep. Tools wear out. Wind chimes, tiki mugs and sea glass sell to Teo at the supply boat, or better, to an order.</p>';
     return h;

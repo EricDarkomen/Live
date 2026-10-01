@@ -470,9 +470,11 @@ const Boot = {
         ? (Hand.pad === 'dpad'
             ? 'Walk with the pad in the bottom-' + Hand.padSide() + '.'
             : 'Walk by putting a thumb down anywhere in the bottom-' + Hand.padSide() + ' of the screen and pushing — the stick comes to your thumb, and how far you push it is how fast you walk.')
-          + ' Tap <b>E</b> to talk to people, inspect objects, and answer ringing phones. Once someone is talking, tap the conversation box to carry on and tap a reply to choose what to say. <b>☰</b> opens your jobs, inventory and the rest. Left-handed, or would rather have a d-pad? <b>☰ · Menu</b> has both.'
-        : 'Walk around with <b>WASD</b> or the arrow keys, and hold <b>Shift</b> to run. Press <b>E</b> to talk to people, inspect objects, and answer ringing phones. Press <b>Space</b> to advance dialogue and <b>1–9</b> to choose what to say.') + '<br><br>' +
-      says('helpBody').join('<br><br>');
+          + ' Tap <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Once someone is talking, tap the conversation box to carry on and tap a reply to choose what to say. <b>☰</b> opens your jobs, inventory and the rest. Left-handed, or would rather have a d-pad? <b>☰ · Menu</b> has both.'
+        : 'Walk around with <b>WASD</b> or the arrow keys, and hold <b>Shift</b> to run. Press <b>E</b> to talk to people, inspect things, and serve guests when a bell rings at the bar. Press <b>Space</b> to advance dialogue and <b>1–9</b> to choose what to say.') + '<br><br>' +
+      /* The list of keys means nothing on a phone. */
+      says('helpBody').filter(l => !(TOUCH && /^<b>N<\/b> map/.test(l))).join('<br><br>')
+      + '<span class="help-back">' + (TOUCH ? 'Tap anywhere to go back' : 'Click anywhere, or press Esc, to go back') + '</span>';
     el.onclick = () => { el.onclick = null; el.classList.remove('on'); $('#titleScreen').classList.add('on'); Title.show(); G.state = 'title'; };
   }
 };

@@ -75,6 +75,17 @@ const Garden = {
     }
   },
   seeds() { return Object.keys(ITEMS).filter(k => ITEMS[k].crop && Item.has(k)); },
+  /* What E will do to this plot, for the prompt: so a row of them can be read
+     walking past, without opening each one. */
+  prompt(o) {
+    const p = this.state(o), s = this.stage(p), crop = p && ITEMS[p.c] ? ITEMS[p.c].n.toLowerCase() : '';
+    if (s === 4) return 'Clear the dead ' + crop;
+    if (s === 3) return 'Pick the ' + crop;
+    if (s > 0) return p.pest ? 'Shoo the pest off the ' + crop
+      : p.w < .9 ? 'Water the ' + crop + (p.w <= 0 ? ' — bone dry' : '')
+      : 'Check the ' + crop;
+    return this.seeds().length ? 'Plant something' : 'Look at a bare plot';
+  },
   plant(o, seed) {
     const c = ITEMS[seed].crop;
     Item.take(seed);

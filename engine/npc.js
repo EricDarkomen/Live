@@ -1834,6 +1834,26 @@ const Guide = {
     this.pinned = true;
     UI.toast('📍', say('pin.on', { where: esc(label) }));
   },
+  /* A pin on any level: there, or the way out towards it from here. */
+  /* `ref` is "@site": the building site of that id, looked up once it is in front of you. */
+  where(ref) {
+    const o = World.objects.find(x => '@' + x.site === ref);
+    return o ? [o.x, o.y] : null;
+  },
+  pinAt(level, ref, label) {
+    if (!level || level === Levels.current) {
+      const at = this.where(ref);
+      if (!at) { Sfx.deny(); return false; }
+      this.pin(at[0], at[1], label); Sfx.select(); return true;
+    }
+    this.clear();
+    if (!this.aimAcross(level, label)) { Sfx.deny(); return false; }
+    this.pinned = true;
+    this._then = { level, ref, label };
+    UI.toast('📍', say('pin.on', { where: esc(label) }));
+    Sfx.select();
+    return true;
+  },
   unpin() {
     if (!this.pinned) return;
     this.clear();
@@ -1903,7 +1923,7 @@ const Guide = {
     return s === null
       ? Math.round(Math.hypot((this.tx + .5) * TILE - P.x, (this.ty + .5) * TILE - P.y) / TILE) : s;
   },
-  clear() { this._want = null; this.pinned = false; this.tx = this.ty = null; this.label = ''; this.flag = null; this.npc = null; this.sticky = false; },
+  clear() { this._want = null; this._then = null; this.pinned = false; this.tx = this.ty = null; this.label = ''; this.flag = null; this.npc = null; this.sticky = false; },
   on() { return this.tx !== null && G.state === 'play'; },
   /* Arriving clears a one-shot pin; a tracked job's pin stays over the person. */
   check() {
@@ -1931,7 +1951,13 @@ const Guide = {
     this.setObject('playerDesk', say('yourDesk'), 'foundDesk');
   },
   /* On a new level, re-resolve the pin: its tile coordinates meant the old map. */
-  onLevel() { this.restore(); }
+  onLevel() {
+    const t = this._then; this._then = null;
+    const at = t && t.level === Levels.current && this.where(t.ref);
+    if (at) { this.set(at[0], at[1], t.label, null); this.pinned = true; Track._sig = null; return; }
+    if (t && Levels.route(t.level)) { this.clear(); this.aimAcross(t.level, t.label); this.pinned = true; this._then = t; return; }
+    this.restore();
+  }
 };
 
 /* ---------------- Camera ---------------- */
